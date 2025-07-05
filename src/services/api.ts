@@ -131,6 +131,25 @@ export const coldEmailAPI = {
   updateLead: (id: string, data: any) => api.put(`/cold-email-system/leads/${id}`, data),
   deleteLead: (id: string) => api.delete(`/cold-email-system/leads/${id}`),
   bulkImportLeads: (leads: any[]) => api.post('/cold-email-system/leads/bulk-import', { leads }),
+  
+  // CSV Import
+  previewCsv: (file: File) => {
+    const formData = new FormData();
+    formData.append('csvFile', file);
+    return api.post('/cold-email-system/leads/csv-preview', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  importCsv: (file: File, mapping: any, tags?: string) => {
+    const formData = new FormData();
+    formData.append('csvFile', file);
+    formData.append('mapping', JSON.stringify(mapping));
+    if (tags) formData.append('tags', tags);
+    return api.post('/cold-email-system/leads/csv-import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  getImportHistory: () => api.get('/cold-email-system/leads/import-history'),
 
   // Campaigns
   getCampaigns: (params?: any) => api.get('/cold-email-system/campaigns', { params }),
@@ -139,6 +158,21 @@ export const coldEmailAPI = {
   deleteCampaign: (id: string) => api.delete(`/cold-email-system/campaigns/${id}`),
   toggleCampaign: (id: string) => api.patch(`/cold-email-system/campaigns/${id}/toggle`),
   getCampaignAnalytics: (id: string) => api.get(`/cold-email-system/campaigns/${id}/analytics`),
+  
+  // Email Templates
+  getTemplates: (params?: any) => api.get('/cold-email-system/templates', { params }),
+  createTemplate: (data: any) => api.post('/cold-email-system/templates', data),
+  updateTemplate: (id: string, data: any) => api.put(`/cold-email-system/templates/${id}`, data),
+  deleteTemplate: (id: string) => api.delete(`/cold-email-system/templates/${id}`),
+  duplicateTemplate: (id: string) => api.post(`/cold-email-system/templates/${id}/duplicate`),
+  
+  // Unified Inbox
+  getInboxMessages: (params?: any) => api.get('/cold-email-system/inbox', { params }),
+  markAsRead: (id: string, isRead?: boolean) => api.patch(`/cold-email-system/inbox/${id}/read`, { isRead }),
+  toggleStar: (id: string, isStarred?: boolean) => api.patch(`/cold-email-system/inbox/${id}/star`, { isStarred }),
+  updateLabels: (id: string, labels: string[], action: 'add' | 'remove' | 'set') => 
+    api.patch(`/cold-email-system/inbox/${id}/labels`, { labels, action }),
+  getInboxStats: (params?: any) => api.get('/cold-email-system/inbox/stats', { params }),
 
   // Warmup & Analytics
   getWarmupStatus: () => api.get('/cold-email-system/warmup/status'),
@@ -147,6 +181,7 @@ export const coldEmailAPI = {
   syncInbox: (accountId: string) => api.post(`/cold-email-system/inbox/sync/${accountId}`),
   getEmailLogs: (params?: any) => api.get('/cold-email-system/logs', { params }),
   getDashboardAnalytics: (params?: any) => api.get('/cold-email-system/analytics/dashboard', { params }),
+  getAdvancedAnalytics: (params?: any) => api.get('/cold-email-system/analytics/advanced', { params }),
 };
 
 // ---------------- SCRIPTS ----------------

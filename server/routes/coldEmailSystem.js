@@ -1,9 +1,28 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import { EmailAccount, Lead, Campaign, EmailLog, WarmupEmail, InboxSync } from '../models/ColdEmailSystem.js';
+import { EmailAccount, Lead, Campaign, EmailLog, WarmupEmail, InboxSync, EmailTemplate, InboxMessage, CsvImport } from '../models/ColdEmailSystem.js';
 import { authenticate } from '../middleware/auth.js';
 import { sendEmail, syncInbox, generateWarmupContent } from '../services/emailService.js';
 import { scheduleWarmupEmails, scheduleCampaignEmails } from '../services/emailScheduler.js';
+import multer from 'multer';
+import csv from 'csv-parser';
+import fs from 'fs';
+import path from 'path';
+
+// Configure multer for CSV uploads
+const upload = multer({
+  dest: 'uploads/',
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'));
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
 
 const router = express.Router();
 
@@ -329,6 +348,152 @@ router.delete('/leads/:id', authenticate, async (req, res) => {
   }
 });
 
+// ==================== EMAIL TEMPLATES ====================
+
+// Get all email templates
+router.get('/templates', authenticate, async (req, res) => {
+  try {
+    const { category } = req.query;
+    const filter = { userId: req.user._id };
+    
+    if (category && category !== 'all') filter.category = category;
+    
+    const templates = await EmailTemplate.find(filter).sort({ createdAt: -1 });
+    
+    res.json(templates.map(template => ({
+      ...template.toObject(),
+      id: template._id.toString(),
+      userId: template.userId.toString()
+    })));
+  } catch (error) {
+    console.error('Error fetching email templates:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create email template
+router.post('/templates', authenticate, async (req, res) => {
+  try {
+    const {
+      name,
+      category,
+      subject,
+      content,
+      variables,
+      industry,
+      useCase
+    } = req.body;
+
+    const templateData = {
+      name,
+      category: category || 'custom',
+      subject,
+      content,
+      variables: variables || [],
+      industry: industry || '',
+      useCase: useCase || '',
+      userId: req.user._id
+    };
+
+    const template = new EmailTemplate(templateData);
+    await template.save();
+    
+    res.status(201).json({
+      ...template.toObject(),
+      id: template._id.toString(),
+      userId: template.userId.toString()
+    });
+  } catch (error) {
+    console.error('Error creating email template:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Update email template
+router.put('/templates/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid template ID format' });
+    }
+
+    const template = await EmailTemplate.findOneAndUpdate(
+      { _id: id, userId: req.user._id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!template) {
+      return res.status(404).json({ message: 'Email template not found' });
+    }
+
+    res.json({
+      ...template.toObject(),
+      id: template._id.toString(),
+      userId: template.userId.toString()
+    });
+  } catch (error) {
+    console.error('Error updating email template:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete email template
+router.delete('/templates/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid template ID format' });
+    }
+
+    const template = await EmailTemplate.findOneAndDelete({ _id: id, userId: req.user._id });
+    if (!template) {
+      return res.status(404).json({ message: 'Email template not found' });
+    }
+
+    res.json({ message: 'Email template deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting email template:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Duplicate email template
+router.post('/templates/:id/duplicate', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid template ID format' });
+    }
+
+    const originalTemplate = await EmailTemplate.findOne({ _id: id, userId: req.user._id });
+    if (!originalTemplate) {
+      return res.status(404).json({ message: 'Email template not found' });
+    }
+
+    const duplicateTemplate = new EmailTemplate({
+      ...originalTemplate.toObject(),
+      _id: undefined,
+      name: `${originalTemplate.name} (Copy)`,
+      usageCount: 0
+    });
+
+    await duplicateTemplate.save();
+
+    res.status(201).json({
+      ...duplicateTemplate.toObject(),
+      id: duplicateTemplate._id.toString(),
+      userId: duplicateTemplate.userId.toString()
+    });
+  } catch (error) {
+    console.error('Error duplicating email template:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
 // ==================== CAMPAIGNS ====================
 
 // Get all campaigns
@@ -479,6 +644,211 @@ router.get('/campaigns/:id/analytics', authenticate, async (req, res) => {
   }
 });
 
+// ==================== UNIFIED INBOX ====================
+
+// Get inbox messages
+router.get('/inbox', authenticate, async (req, res) => {
+  try {
+    const { 
+      accountId, 
+      isRead, 
+      isStarred, 
+      labels, 
+      search, 
+      page = 1, 
+      limit = 50 
+    } = req.query;
+    
+    const filter = { userId: req.user._id };
+    
+    if (accountId && mongoose.Types.ObjectId.isValid(accountId)) {
+      filter.emailAccountId = accountId;
+    }
+    if (isRead !== undefined) filter.isRead = isRead === 'true';
+    if (isStarred !== undefined) filter.isStarred = isStarred === 'true';
+    if (labels) filter.labels = { $in: labels.split(',') };
+    
+    let query = InboxMessage.find(filter)
+      .populate('emailAccountId', 'name email')
+      .populate('campaignId', 'name')
+      .populate('leadId', 'firstName lastName email company');
+    
+    if (search) {
+      query = query.find({
+        $or: [
+          { subject: { $regex: search, $options: 'i' } },
+          { 'from.email': { $regex: search, $options: 'i' } },
+          { 'from.name': { $regex: search, $options: 'i' } },
+          { 'content.text': { $regex: search, $options: 'i' } }
+        ]
+      });
+    }
+    
+    const messages = await query
+      .sort({ receivedAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+    
+    const total = await InboxMessage.countDocuments(filter);
+    
+    res.json({
+      messages: messages.map(msg => ({
+        ...msg.toObject(),
+        id: msg._id.toString(),
+        userId: msg.userId.toString(),
+        emailAccountId: msg.emailAccountId._id.toString(),
+        campaignId: msg.campaignId?._id.toString(),
+        leadId: msg.leadId?._id.toString()
+      })),
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching inbox messages:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Mark message as read/unread
+router.patch('/inbox/:id/read', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isRead } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid message ID format' });
+    }
+
+    const message = await InboxMessage.findOneAndUpdate(
+      { _id: id, userId: req.user._id },
+      { isRead: isRead !== undefined ? isRead : true },
+      { new: true }
+    );
+
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    res.json({
+      ...message.toObject(),
+      id: message._id.toString(),
+      userId: message.userId.toString()
+    });
+  } catch (error) {
+    console.error('Error updating message read status:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Star/unstar message
+router.patch('/inbox/:id/star', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isStarred } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid message ID format' });
+    }
+
+    const message = await InboxMessage.findOneAndUpdate(
+      { _id: id, userId: req.user._id },
+      { isStarred: isStarred !== undefined ? isStarred : true },
+      { new: true }
+    );
+
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    res.json({
+      ...message.toObject(),
+      id: message._id.toString(),
+      userId: message.userId.toString()
+    });
+  } catch (error) {
+    console.error('Error updating message star status:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Add labels to message
+router.patch('/inbox/:id/labels', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { labels, action = 'add' } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid message ID format' });
+    }
+
+    const message = await InboxMessage.findOne({ _id: id, userId: req.user._id });
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    if (action === 'add') {
+      message.labels = [...new Set([...message.labels, ...labels])];
+    } else if (action === 'remove') {
+      message.labels = message.labels.filter(label => !labels.includes(label));
+    } else if (action === 'set') {
+      message.labels = labels;
+    }
+
+    await message.save();
+
+    res.json({
+      ...message.toObject(),
+      id: message._id.toString(),
+      userId: message.userId.toString()
+    });
+  } catch (error) {
+    console.error('Error updating message labels:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Get inbox statistics
+router.get('/inbox/stats', authenticate, async (req, res) => {
+  try {
+    const { accountId } = req.query;
+    const filter = { userId: req.user._id };
+    
+    if (accountId && mongoose.Types.ObjectId.isValid(accountId)) {
+      filter.emailAccountId = accountId;
+    }
+
+    const [
+      totalMessages,
+      unreadMessages,
+      starredMessages,
+      repliesCount,
+      bouncesCount
+    ] = await Promise.all([
+      InboxMessage.countDocuments(filter),
+      InboxMessage.countDocuments({ ...filter, isRead: false }),
+      InboxMessage.countDocuments({ ...filter, isStarred: true }),
+      InboxMessage.countDocuments({ ...filter, isReply: true }),
+      InboxMessage.countDocuments({ ...filter, isBounce: true })
+    ]);
+
+    res.json({
+      totalMessages,
+      unreadMessages,
+      starredMessages,
+      repliesCount,
+      bouncesCount,
+      readRate: totalMessages > 0 ? ((totalMessages - unreadMessages) / totalMessages) * 100 : 0
+    });
+  } catch (error) {
+    console.error('Error fetching inbox stats:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // ==================== WARMUP SYSTEM ====================
 
 // Get warmup status
@@ -599,6 +969,240 @@ router.post('/inbox/sync/:accountId', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Error syncing inbox:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ==================== CSV IMPORT ====================
+
+// Upload and preview CSV
+router.post('/leads/csv-preview', authenticate, upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No CSV file uploaded' });
+    }
+
+    const results = [];
+    const headers = [];
+    let isFirstRow = true;
+
+    fs.createReadStream(req.file.path)
+      .pipe(csv())
+      .on('headers', (headerList) => {
+        headers.push(...headerList);
+      })
+      .on('data', (data) => {
+        if (results.length < 5) { // Preview first 5 rows
+          results.push(data);
+        }
+      })
+      .on('end', () => {
+        // Clean up uploaded file
+        fs.unlinkSync(req.file.path);
+        
+        res.json({
+          headers,
+          preview: results,
+          totalRows: results.length,
+          suggestedMapping: {
+            firstName: headers.find(h => /first.*name|fname/i.test(h)) || '',
+            lastName: headers.find(h => /last.*name|lname/i.test(h)) || '',
+            email: headers.find(h => /email|mail/i.test(h)) || '',
+            company: headers.find(h => /company|organization/i.test(h)) || '',
+            jobTitle: headers.find(h => /title|position|job/i.test(h)) || '',
+            industry: headers.find(h => /industry|sector/i.test(h)) || '',
+            website: headers.find(h => /website|url|domain/i.test(h)) || '',
+            source: headers.find(h => /source|origin/i.test(h)) || ''
+          }
+        });
+      })
+      .on('error', (error) => {
+        // Clean up uploaded file
+        if (req.file && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        res.status(400).json({ message: 'Error parsing CSV file: ' + error.message });
+      });
+  } catch (error) {
+    console.error('Error previewing CSV:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Import CSV with mapping
+router.post('/leads/csv-import', authenticate, upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No CSV file uploaded' });
+    }
+
+    const { mapping, tags = '' } = req.body;
+    const parsedMapping = typeof mapping === 'string' ? JSON.parse(mapping) : mapping;
+    const leadTags = tags ? tags.split(',').map(t => t.trim()).filter(t => t) : [];
+
+    // Create import record
+    const csvImport = new CsvImport({
+      userId: req.user._id,
+      filename: req.file.originalname,
+      mapping: parsedMapping,
+      status: 'processing'
+    });
+    await csvImport.save();
+
+    const results = [];
+    const errors = [];
+    const duplicates = [];
+    let rowNumber = 0;
+
+    fs.createReadStream(req.file.path)
+      .pipe(csv())
+      .on('data', (data) => {
+        rowNumber++;
+        results.push({ ...data, rowNumber });
+      })
+      .on('end', async () => {
+        try {
+          csvImport.totalRows = results.length;
+          await csvImport.save();
+
+          let successCount = 0;
+          let failCount = 0;
+
+          for (const row of results) {
+            try {
+              const leadData = {
+                firstName: row[parsedMapping.firstName] || '',
+                lastName: row[parsedMapping.lastName] || '',
+                email: row[parsedMapping.email] || '',
+                company: row[parsedMapping.company] || '',
+                jobTitle: row[parsedMapping.jobTitle] || '',
+                industry: row[parsedMapping.industry] || '',
+                website: row[parsedMapping.website] || '',
+                source: row[parsedMapping.source] || 'CSV Import',
+                tags: leadTags,
+                userId: req.user._id
+              };
+
+              // Validate required fields
+              if (!leadData.email) {
+                errors.push({
+                  row: row.rowNumber,
+                  field: 'email',
+                  message: 'Email is required'
+                });
+                failCount++;
+                continue;
+              }
+
+              if (!leadData.firstName && !leadData.lastName) {
+                errors.push({
+                  row: row.rowNumber,
+                  field: 'name',
+                  message: 'First name or last name is required'
+                });
+                failCount++;
+                continue;
+              }
+
+              // Check for duplicates
+              const existingLead = await Lead.findOne({
+                userId: req.user._id,
+                email: leadData.email
+              });
+
+              if (existingLead) {
+                duplicates.push({
+                  row: row.rowNumber,
+                  email: leadData.email,
+                  existingLeadId: existingLead._id.toString()
+                });
+                failCount++;
+                continue;
+              }
+
+              // Create lead
+              const lead = new Lead(leadData);
+              await lead.save();
+              successCount++;
+
+            } catch (error) {
+              errors.push({
+                row: row.rowNumber,
+                field: 'general',
+                message: error.message
+              });
+              failCount++;
+            }
+          }
+
+          // Update import record
+          csvImport.status = 'completed';
+          csvImport.processedRows = results.length;
+          csvImport.successfulRows = successCount;
+          csvImport.failedRows = failCount;
+          csvImport.errors = errors;
+          csvImport.duplicates = duplicates;
+          await csvImport.save();
+
+          // Clean up uploaded file
+          fs.unlinkSync(req.file.path);
+
+          res.json({
+            importId: csvImport._id.toString(),
+            totalRows: results.length,
+            successfulRows: successCount,
+            failedRows: failCount,
+            errors: errors.slice(0, 10), // Return first 10 errors
+            duplicates: duplicates.slice(0, 10), // Return first 10 duplicates
+            message: `Import completed. ${successCount} leads imported successfully, ${failCount} failed.`
+          });
+
+        } catch (error) {
+          csvImport.status = 'failed';
+          csvImport.errors = [{ row: 0, field: 'general', message: error.message }];
+          await csvImport.save();
+          
+          // Clean up uploaded file
+          if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+          }
+          
+          res.status(500).json({ message: 'Import failed: ' + error.message });
+        }
+      })
+      .on('error', async (error) => {
+        csvImport.status = 'failed';
+        csvImport.errors = [{ row: 0, field: 'general', message: error.message }];
+        await csvImport.save();
+        
+        // Clean up uploaded file
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        
+        res.status(400).json({ message: 'Error parsing CSV file: ' + error.message });
+      });
+
+  } catch (error) {
+    console.error('Error importing CSV:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get import history
+router.get('/leads/import-history', authenticate, async (req, res) => {
+  try {
+    const imports = await CsvImport.find({ userId: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.json(imports.map(imp => ({
+      ...imp.toObject(),
+      id: imp._id.toString(),
+      userId: imp.userId.toString()
+    })));
+  } catch (error) {
+    console.error('Error fetching import history:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -763,6 +1367,261 @@ router.get('/analytics/dashboard', authenticate, async (req, res) => {
     res.json(analytics);
   } catch (error) {
     console.error('Error fetching dashboard analytics:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ==================== ADVANCED ANALYTICS ====================
+
+// Get advanced analytics
+router.get('/analytics/advanced', authenticate, async (req, res) => {
+  try {
+    const { timeRange = 'month', campaignId, accountId } = req.query;
+    
+    // Calculate date range
+    const now = new Date();
+    let startDate;
+    
+    switch (timeRange) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'quarter':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    const filter = { userId: req.user._id };
+    const emailLogFilter = { userId: req.user._id, sentAt: { $gte: startDate } };
+    
+    if (campaignId && mongoose.Types.ObjectId.isValid(campaignId)) {
+      emailLogFilter.campaignId = campaignId;
+    }
+    if (accountId && mongoose.Types.ObjectId.isValid(accountId)) {
+      emailLogFilter.emailAccountId = accountId;
+    }
+
+    // Email performance over time
+    const emailPerformance = await EmailLog.aggregate([
+      { $match: emailLogFilter },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$sentAt' },
+            month: { $month: '$sentAt' },
+            day: { $dayOfMonth: '$sentAt' }
+          },
+          sent: { $sum: 1 },
+          opened: { $sum: { $cond: [{ $ne: ['$openedAt', null] }, 1, 0] } },
+          clicked: { $sum: { $cond: [{ $ne: ['$clickedAt', null] }, 1, 0] } },
+          replied: { $sum: { $cond: [{ $ne: ['$repliedAt', null] }, 1, 0] } },
+          bounced: { $sum: { $cond: [{ $ne: ['$bouncedAt', null] }, 1, 0] } }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+    ]);
+
+    // Campaign comparison
+    const campaignComparison = await Campaign.aggregate([
+      { $match: filter },
+      {
+        $project: {
+          name: 1,
+          'stats.emailsSent': 1,
+          'stats.opened': 1,
+          'stats.clicked': 1,
+          'stats.replied': 1,
+          'stats.bounced': 1,
+          openRate: {
+            $cond: [
+              { $gt: ['$stats.emailsSent', 0] },
+              { $multiply: [{ $divide: ['$stats.opened', '$stats.emailsSent'] }, 100] },
+              0
+            ]
+          },
+          replyRate: {
+            $cond: [
+              { $gt: ['$stats.emailsSent', 0] },
+              { $multiply: [{ $divide: ['$stats.replied', '$stats.emailsSent'] }, 100] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { 'stats.emailsSent': -1 } },
+      { $limit: 10 }
+    ]);
+
+    // Lead source analysis
+    const leadSources = await Lead.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: '$source',
+          count: { $sum: 1 },
+          contacted: { $sum: { $cond: [{ $ne: ['$status', 'new'] }, 1, 0] } },
+          replied: { $sum: { $cond: [{ $eq: ['$status', 'replied'] }, 1, 0] } },
+          interested: { $sum: { $cond: [{ $eq: ['$status', 'interested'] }, 1, 0] } }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Email account performance
+    const accountPerformance = await EmailLog.aggregate([
+      { $match: emailLogFilter },
+      {
+        $group: {
+          _id: '$emailAccountId',
+          sent: { $sum: 1 },
+          opened: { $sum: { $cond: [{ $ne: ['$openedAt', null] }, 1, 0] } },
+          replied: { $sum: { $cond: [{ $ne: ['$repliedAt', null] }, 1, 0] } },
+          bounced: { $sum: { $cond: [{ $ne: ['$bouncedAt', null] }, 1, 0] } }
+        }
+      },
+      {
+        $lookup: {
+          from: 'emailaccounts',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'account'
+        }
+      },
+      { $unwind: '$account' },
+      {
+        $project: {
+          accountName: '$account.name',
+          accountEmail: '$account.email',
+          sent: 1,
+          opened: 1,
+          replied: 1,
+          bounced: 1,
+          openRate: {
+            $cond: [
+              { $gt: ['$sent', 0] },
+              { $multiply: [{ $divide: ['$opened', '$sent'] }, 100] },
+              0
+            ]
+          },
+          replyRate: {
+            $cond: [
+              { $gt: ['$sent', 0] },
+              { $multiply: [{ $divide: ['$replied', '$sent'] }, 100] },
+              0
+            ]
+          },
+          bounceRate: {
+            $cond: [
+              { $gt: ['$sent', 0] },
+              { $multiply: [{ $divide: ['$bounced', '$sent'] }, 100] },
+              0
+            ]
+          }
+        }
+      }
+    ]);
+
+    // Response time analysis
+    const responseTimeAnalysis = await EmailLog.aggregate([
+      { 
+        $match: { 
+          ...emailLogFilter, 
+          repliedAt: { $ne: null },
+          sentAt: { $ne: null }
+        } 
+      },
+      {
+        $project: {
+          responseTime: {
+            $divide: [
+              { $subtract: ['$repliedAt', '$sentAt'] },
+              1000 * 60 * 60 // Convert to hours
+            ]
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgResponseTime: { $avg: '$responseTime' },
+          minResponseTime: { $min: '$responseTime' },
+          maxResponseTime: { $max: '$responseTime' },
+          totalReplies: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Industry performance
+    const industryPerformance = await Lead.aggregate([
+      { $match: { ...filter, industry: { $ne: null, $ne: '' } } },
+      {
+        $lookup: {
+          from: 'emaillogs',
+          localField: '_id',
+          foreignField: 'leadId',
+          as: 'emails'
+        }
+      },
+      {
+        $group: {
+          _id: '$industry',
+          totalLeads: { $sum: 1 },
+          contacted: { $sum: { $cond: [{ $gt: [{ $size: '$emails' }, 0] }, 1, 0] } },
+          replied: { $sum: { $cond: [{ $eq: ['$status', 'replied'] }, 1, 0] } },
+          interested: { $sum: { $cond: [{ $eq: ['$status', 'interested'] }, 1, 0] } }
+        }
+      },
+      {
+        $project: {
+          industry: '$_id',
+          totalLeads: 1,
+          contacted: 1,
+          replied: 1,
+          interested: 1,
+          contactRate: {
+            $cond: [
+              { $gt: ['$totalLeads', 0] },
+              { $multiply: [{ $divide: ['$contacted', '$totalLeads'] }, 100] },
+              0
+            ]
+          },
+          replyRate: {
+            $cond: [
+              { $gt: ['$contacted', 0] },
+              { $multiply: [{ $divide: ['$replied', '$contacted'] }, 100] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { totalLeads: -1 } }
+    ]);
+
+    res.json({
+      timeRange,
+      period: { start: startDate, end: now },
+      emailPerformance,
+      campaignComparison,
+      leadSources,
+      accountPerformance,
+      responseTimeAnalysis: responseTimeAnalysis[0] || {
+        avgResponseTime: 0,
+        minResponseTime: 0,
+        maxResponseTime: 0,
+        totalReplies: 0
+      },
+      industryPerformance
+    });
+  } catch (error) {
+    console.error('Error fetching advanced analytics:', error);
     res.status(500).json({ message: error.message });
   }
 });

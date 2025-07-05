@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Users, Mail, BarChart3, Settings, Plus, Filter, Search, Eye, MessageSquare, TrendingUp, AlertCircle, CheckCircle, Clock, Target, Wifi, WifiOff, Database, Zap } from 'lucide-react';
+import { Send, Users, Mail, BarChart3, Settings, Plus, Filter, Search, Eye, MessageSquare, TrendingUp, AlertCircle, CheckCircle, Clock, Target, Wifi, WifiOff, Database, Zap, Upload, Edit3, Trash2, Star } from 'lucide-react';
 import { coldEmailAPI } from '../../services/api';
 
 interface EmailAccount {
@@ -100,11 +100,19 @@ export const ColdEmailManager: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [emailAccounts, setEmailAccounts] = useState<EmailAccount[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [inboxMessages, setInboxMessages] = useState<any[]>([]);
+  const [advancedAnalytics, setAdvancedAnalytics] = useState<any>(null);
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [showNewCampaign, setShowNewCampaign] = useState(false);
   const [showNewLead, setShowNewLead] = useState(false);
   const [showNewAccount, setShowNewAccount] = useState(false);
+  const [showNewTemplate, setShowNewTemplate] = useState(false);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvPreview, setCsvPreview] = useState<any>(null);
+  const [csvMapping, setCsvMapping] = useState<any>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -115,23 +123,26 @@ export const ColdEmailManager: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [campaignsRes, leadsRes, accountsRes, analyticsRes] = await Promise.all([
+      const [campaignsRes, leadsRes, accountsRes, analyticsRes, templatesRes] = await Promise.all([
         coldEmailAPI.getCampaigns(),
         coldEmailAPI.getLeads(),
         coldEmailAPI.getAccounts(),
-        coldEmailAPI.getDashboardAnalytics()
+        coldEmailAPI.getDashboardAnalytics(),
+        coldEmailAPI.getTemplates()
       ]);
 
       setCampaigns(campaignsRes.data || []);
       setLeads(leadsRes.data?.leads || []);
       setEmailAccounts(accountsRes.data || []);
       setAnalytics(analyticsRes.data || null);
+      setTemplates(templatesRes.data || []);
     } catch (error) {
       console.error('Error loading cold email data:', error);
       setCampaigns([]);
       setLeads([]);
       setEmailAccounts([]);
       setAnalytics(null);
+      setTemplates([]);
     } finally {
       setLoading(false);
     }
@@ -223,6 +234,63 @@ export const ColdEmailManager: React.FC = () => {
       console.error('Error creating campaign:', error);
     }
   };
+
+  const handleCsvUpload = async (file: File) => {
+    try {
+      setCsvFile(file);
+      const response = await coldEmailAPI.previewCsv(file);
+      setCsvPreview(response.data);
+      setCsvMapping(response.data.suggestedMapping);
+    } catch (error) {
+      console.error('Error previewing CSV:', error);
+      alert('Error previewing CSV file. Please check the format and try again.');
+    }
+  };
+
+  const handleCsvImport = async () => {
+    if (!csvFile || !csvMapping) return;
+    
+    try {
+      const response = await coldEmailAPI.importCsv(csvFile, csvMapping);
+      alert(response.data.message);
+      setShowCsvImport(false);
+      setCsvFile(null);
+      setCsvPreview(null);
+      setCsvMapping({});
+      await loadData(); // Refresh leads
+    } catch (error) {
+      console.error('Error importing CSV:', error);
+      alert('Error importing CSV file. Please try again.');
+    }
+  };
+
+  const loadInboxMessages = async () => {
+    try {
+      const response = await coldEmailAPI.getInboxMessages();
+      setInboxMessages(response.data.messages || []);
+    } catch (error) {
+      console.error('Error loading inbox messages:', error);
+      setInboxMessages([]);
+    }
+  };
+
+  const loadAdvancedAnalytics = async () => {
+    try {
+      const response = await coldEmailAPI.getAdvancedAnalytics();
+      setAdvancedAnalytics(response.data);
+    } catch (error) {
+      console.error('Error loading advanced analytics:', error);
+      setAdvancedAnalytics(null);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'inbox') {
+      loadInboxMessages();
+    } else if (activeTab === 'analytics') {
+      loadAdvancedAnalytics();
+    }
+  }, [activeTab]);
 
   const DashboardView = () => {
     if (!analytics) {
@@ -494,6 +562,257 @@ export const ColdEmailManager: React.FC = () => {
     </div>
   );
 
+  const TemplatesView = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">Email Templates</h3>
+        <button
+          onClick={() => setShowNewTemplate(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+        >
+          <Plus className="w-4 h-4" />
+          <span>New Template</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {templates.map((template) => (
+          <div key={template.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h4 className="font-semibold text-gray-900">{template.name}</h4>
+                <p className="text-sm text-gray-600 capitalize">{template.category}</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button className="text-gray-400 hover:text-blue-600">
+                  <Edit3 className="w-4 h-4" />
+                </button>
+                <button className="text-gray-400 hover:text-red-600">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-700 mb-2">Subject:</p>
+              <p className="text-sm text-gray-600">{template.subject}</p>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 line-clamp-3">{template.content}</p>
+            </div>
+            
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>Used {template.usageCount || 0} times</span>
+              <span>{new Date(template.createdAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+        ))}
+        
+        {templates.length === 0 && (
+          <div className="col-span-full text-center py-12">
+            <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">No email templates found</p>
+            <button
+              onClick={() => setShowNewTemplate(true)}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Create Your First Template</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const InboxView = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">Unified Inbox</h3>
+        <div className="flex items-center space-x-3">
+          <button className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+            Sync All
+          </button>
+          <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <option value="all">All Accounts</option>
+            {emailAccounts.map(account => (
+              <option key={account.id} value={account.id}>{account.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center space-x-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search messages..."
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full"
+              />
+            </div>
+            <select className="border border-gray-300 rounded-lg px-3 py-2">
+              <option value="all">All Messages</option>
+              <option value="unread">Unread</option>
+              <option value="starred">Starred</option>
+              <option value="replies">Replies</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className="divide-y divide-gray-200">
+          {inboxMessages.length > 0 ? (
+            inboxMessages.map((message) => (
+              <div key={message.id} className="p-4 hover:bg-gray-50 cursor-pointer">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-medium text-blue-600">
+                        {message.from.name ? message.from.name.charAt(0) : message.from.email.charAt(0)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-gray-900">
+                        {message.from.name || message.from.email}
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        {message.isStarred && <Star className="w-4 h-4 text-yellow-500" />}
+                        <span className="text-xs text-gray-500">
+                          {new Date(message.receivedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-900 font-medium">{message.subject}</p>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                      {message.content.text || 'No preview available'}
+                    </p>
+                    <div className="flex items-center space-x-2 mt-2">
+                      {message.labels.map((label, index) => (
+                        <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-12">
+              <Eye className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No messages found</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const AdvancedAnalyticsView = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">Advanced Analytics</h3>
+        <select className="border border-gray-300 rounded-lg px-3 py-2">
+          <option value="month">This Month</option>
+          <option value="quarter">Last 3 Months</option>
+          <option value="year">This Year</option>
+        </select>
+      </div>
+
+      {advancedAnalytics ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Campaign Performance */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Campaign Performance</h4>
+            <div className="space-y-4">
+              {advancedAnalytics.campaignComparison.map((campaign: any) => (
+                <div key={campaign._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-900">{campaign.name}</p>
+                    <p className="text-sm text-gray-600">{campaign.stats.emailsSent} emails sent</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">{campaign.openRate.toFixed(1)}% open</p>
+                    <p className="text-sm text-gray-600">{campaign.replyRate.toFixed(1)}% reply</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Lead Sources */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Lead Sources</h4>
+            <div className="space-y-3">
+              {advancedAnalytics.leadSources.map((source: any) => (
+                <div key={source._id} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-900">{source._id || 'Unknown'}</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-900">{source.count}</span>
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full"
+                        style={{ width: `${(source.count / Math.max(...advancedAnalytics.leadSources.map((s: any) => s.count))) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Response Time Analysis */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Response Time Analysis</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <p className="text-2xl font-bold text-blue-600">
+                  {advancedAnalytics.responseTimeAnalysis.avgResponseTime.toFixed(1)}h
+                </p>
+                <p className="text-sm text-gray-600">Avg Response Time</p>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <p className="text-2xl font-bold text-green-600">
+                  {advancedAnalytics.responseTimeAnalysis.totalReplies}
+                </p>
+                <p className="text-sm text-gray-600">Total Replies</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Industry Performance */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Industry Performance</h4>
+            <div className="space-y-3">
+              {advancedAnalytics.industryPerformance.slice(0, 5).map((industry: any) => (
+                <div key={industry._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-900">{industry.industry}</p>
+                    <p className="text-sm text-gray-600">{industry.totalLeads} leads</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">{industry.replyRate.toFixed(1)}% reply</p>
+                    <p className="text-sm text-gray-600">{industry.contactRate.toFixed(1)}% contact</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">Loading advanced analytics...</p>
+        </div>
+      )}
+    </div>
+  );
+
   const LeadsView = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -520,13 +839,22 @@ export const ColdEmailManager: React.FC = () => {
             <option value="interested">Interested</option>
           </select>
         </div>
-        <button
-          onClick={() => setShowNewLead(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Lead</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setShowNewLead(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Lead</span>
+          </button>
+          <button
+            onClick={() => setShowCsvImport(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Import CSV</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -746,9 +1074,9 @@ export const ColdEmailManager: React.FC = () => {
       {activeTab === 'campaigns' && <CampaignsView />}
       {activeTab === 'leads' && <LeadsView />}
       {activeTab === 'accounts' && <AccountsView />}
-      {activeTab === 'templates' && <div className="text-center py-12"><p className="text-gray-600">Email Templates management coming soon...</p></div>}
-      {activeTab === 'inbox' && <div className="text-center py-12"><p className="text-gray-600">Unified Inbox coming soon...</p></div>}
-      {activeTab === 'analytics' && <div className="text-center py-12"><p className="text-gray-600">Advanced Analytics coming soon...</p></div>}
+      {activeTab === 'templates' && <TemplatesView />}
+      {activeTab === 'inbox' && <InboxView />}
+      {activeTab === 'analytics' && <AdvancedAnalyticsView />}
 
       {/* New Campaign Modal */}
       {showNewCampaign && (
@@ -1082,6 +1410,133 @@ export const ColdEmailManager: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Import Modal */}
+      {showCsvImport && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">Import Leads from CSV</h3>
+            
+            {!csvPreview ? (
+              <div className="space-y-6">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-900 mb-2">Upload CSV File</p>
+                  <p className="text-gray-600 mb-4">Select a CSV file containing your leads data</p>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleCsvUpload(file);
+                    }}
+                    className="hidden"
+                    id="csv-upload"
+                  />
+                  <label
+                    htmlFor="csv-upload"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer inline-block"
+                  >
+                    Choose File
+                  </label>
+                </div>
+                
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">CSV Format Requirements:</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Include headers in the first row</li>
+                    <li>• Email column is required</li>
+                    <li>• First name or last name is required</li>
+                    <li>• Supported columns: firstName, lastName, email, company, jobTitle, industry, website, source</li>
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="bg-green-50 rounded-lg p-4">
+                  <p className="text-green-800">
+                    <strong>File:</strong> {csvFile?.name} ({csvPreview.totalRows} rows)
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-4">Map CSV Columns to Lead Fields</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(csvMapping).map(([field, csvColumn]) => (
+                      <div key={field}>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
+                          {field.replace(/([A-Z])/g, ' $1').trim()}
+                        </label>
+                        <select
+                          value={csvColumn as string}
+                          onChange={(e) => setCsvMapping({ ...csvMapping, [field]: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                        >
+                          <option value="">-- Skip this field --</option>
+                          {csvPreview.headers.map((header: string) => (
+                            <option key={header} value={header}>{header}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-4">Preview Data</h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border border-gray-200 rounded-lg">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          {csvPreview.headers.map((header: string) => (
+                            <th key={header} className="px-4 py-2 text-left text-sm font-medium text-gray-900 border-b">
+                              {header}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {csvPreview.preview.map((row: any, index: number) => (
+                          <tr key={index} className="border-b">
+                            {csvPreview.headers.map((header: string) => (
+                              <td key={header} className="px-4 py-2 text-sm text-gray-600">
+                                {row[header]}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex space-x-3 pt-6 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCsvImport(false);
+                  setCsvFile(null);
+                  setCsvPreview(null);
+                  setCsvMapping({});
+                }}
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              {csvPreview && (
+                <button
+                  onClick={handleCsvImport}
+                  className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Import {csvPreview.totalRows} Leads
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

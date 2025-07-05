@@ -256,6 +256,7 @@ router.post('/generate', authenticate, async (req, res) => {
       tone,
       source: `Generated from: ${topic}`,
       keywords: keywords.split(',').map((k: string) => k.trim()).filter((k: string) => k),
+      keywords: keywords.split(',').map(k => k.trim()).filter(k => k),
       userId: req.user._id,
       isGenerated: true,
       generationPrompt: `Topic: ${topic}, Tone: ${tone}, Keywords: ${keywords}`,

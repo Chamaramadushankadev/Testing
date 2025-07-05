@@ -1,20 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, StickyNote, Search, Filter, Tag, Calendar, Edit3, Trash2, Eye, BookOpen } from 'lucide-react';
 import { Note, Goal } from '../../types';
-import { mockNotes, mockGoals } from '../../data/mockData';
+import { notesAPI, goalsAPI } from '../../services/api';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 
 export const NotesManager: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>(mockNotes);
-  const [goals] = useState<Goal[]>(mockGoals);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddNote, setShowAddNote] = useState(false);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterGoal, setFilterGoal] = useState<string>('all');
   const [filterTag, setFilterTag] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [notesResponse, goalsResponse] = await Promise.all([
+        notesAPI.getAll(),
+        goalsAPI.getAll()
+      ]);
+      setNotes(Array.isArray(notesResponse.data) ? notesResponse.data : []);
+      setGoals(Array.isArray(goalsResponse.data) ? goalsResponse.data : []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setNotes([]);
+      setGoals([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredNotes = notes.filter(note => {
     const matchesGoal = filterGoal === 'all' || note.goalId === filterGoal;
@@ -32,73 +56,66 @@ export const NotesManager: React.FC = () => {
     return goal ? goal.title : 'Unknown Goal';
   };
 
-  const handleAddNote = (formData: FormData) => {
-    const title = formData.get('title') as string;
-    const content = formData.get('content') as string;
-    const goalId = formData.get('goalId') as string;
-    const tags = (formData.get('tags') as string).split(',').map(t => t.trim()).filter(t => t);
+  const handleAddNote = async (formData: FormData) => {
+    try {
+      const title = formData.get('title') as string;
+      const content = formData.get('content') as string;
+      const goalId = formData.get('goalId') as string;
+      const tags = (formData.get('tags') as string).split(',').map(t => t.trim()).filter(t => t);
 
-    const newNote: Note = {
-      id: Date.now().toString(),
-      title,
-      content,
-      goalId: goalId || undefined,
-      tags,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      attachments: []
-    };
+      const noteData = {
+        title,
+        content,
+        goalId: goalId || undefined,
+        tags
+      };
 
-    setNotes([newNote, ...notes]);
-    setShowAddNote(false);
+      const response = await notesAPI.create(noteData);
+      setNotes([response.data, ...notes]);
+      setShowAddNote(false);
+    } catch (error) {
+      console.error('Error creating note:', error);
+    }
   };
 
-  const handleEditNote = (formData: FormData) => {
-    if (!selectedNote) return;
+  const handleEditNote = async (formData: FormData) => {
+    if (!editingNote) return;
 
-    const title = formData.get('title') as string;
-    const content = formData.get('content') as string;
-    const goalId = formData.get('goalId') as string;
-    const tags = (formData.get('tags') as string).split(',').map(t => t.trim()).filter(t => t);
+    try {
+      const title = formData.get('title') as string;
+      const content = formData.get('content') as string;
+      const goalId = formData.get('goalId') as string;
+      const tags = (formData.get('tags') as string).split(',').map(t => t.trim()).filter(t => t);
 
-    const updatedNote: Note = {
-      ...selectedNote,
-      title,
-      content,
-      goalId: goalId || undefined,
-      tags,
-      updatedAt: new Date()
-    };
+      const noteData = {
+        title,
+        content,
+        goalId: goalId || undefined,
+        tags
+      };
 
-    setNotes(notes.map(note => note.id === selectedNote.id ? updatedNote : note));
-    setIsEditing(false);
-    setSelectedNote(updatedNote);
+      const response = await notesAPI.update(editingNote.id, noteData);
+      setNotes(notes.map(note => note.id === editingNote.id ? response.data : note));
+      setIsEditing(false);
+      setEditingNote(null);
+      setSelectedNote(response.data);
+    } catch (error) {
+      console.error('Error updating note:', error);
+    }
   };
 
-const handleDeleteNote = async (noteId: string) => {
-  const confirmed = window.confirm("Are you sure you want to delete this note?");
-  if (!confirmed) return;
+  const handleDeleteNote = async (noteId: string) => {
+    const confirmed = window.confirm("Are you sure you want to delete this note?");
+    if (!confirmed) return;
 
-  try {
-    const res = await fetch(`/api/notes/${noteId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
-
-    setNotes(prev => prev.filter(note => note.id !== noteId));
-    setSelectedNote(null);
-  } catch (error) {
-    console.error('❌ Error deleting note:', error);
-    alert('Failed to delete note.');
-  }
-};
-
-
+    try {
+      await notesAPI.delete(noteId);
+      setNotes(notes.filter(note => note.id !== noteId));
+      setSelectedNote(null);
+    } catch (error) {
+      console.error('Error deleting note:', error);
+    }
+  };
 
   const NoteCard: React.FC<{ note: Note }> = ({ note }) => (
     <div 
@@ -110,7 +127,7 @@ const handleDeleteNote = async (noteId: string) => {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            setSelectedNote(note);
+            setEditingNote(note);
             setIsEditing(true);
           }}
           className="text-gray-400 hover:text-blue-600 transition-colors"
@@ -120,9 +137,9 @@ const handleDeleteNote = async (noteId: string) => {
       </div>
       
       <div className="prose prose-sm max-w-none mb-4">
-        <ReactMarkdown className="line-clamp-3 text-gray-600">
-          {note.content}
-        </ReactMarkdown>
+        <div className="line-clamp-3 text-gray-600 whitespace-pre-line">
+  {note.content}
+</div>
       </div>
       
       <div className="flex items-center justify-between">
@@ -137,7 +154,7 @@ const handleDeleteNote = async (noteId: string) => {
           )}
         </div>
         <div className="text-xs text-gray-500">
-          {format(note.updatedAt, 'MMM dd')}
+          {format(new Date(note.updatedAt), 'MMM dd')}
         </div>
       </div>
       
@@ -149,6 +166,17 @@ const handleDeleteNote = async (noteId: string) => {
       </div>
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading notes...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -245,7 +273,10 @@ const handleDeleteNote = async (noteId: string) => {
               <h3 className="text-xl font-semibold text-gray-900">{selectedNote.title}</h3>
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    setEditingNote(selectedNote);
+                    setIsEditing(true);
+                  }}
                   className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                 >
                   <Edit3 className="w-4 h-4" />
@@ -278,7 +309,7 @@ const handleDeleteNote = async (noteId: string) => {
                 ))}
               </div>
               <div className="text-sm text-gray-500">
-                Updated {format(selectedNote.updatedAt, 'MMM dd, yyyy')}
+                Updated {format(new Date(selectedNote.updatedAt), 'MMM dd, yyyy')}
               </div>
             </div>
           </div>
@@ -309,7 +340,7 @@ const handleDeleteNote = async (noteId: string) => {
                 <input
                   type="text"
                   name="title"
-                  defaultValue={isEditing ? selectedNote?.title : ''}
+                  defaultValue={isEditing ? editingNote?.title : ''}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter note title..."
                   required
@@ -321,7 +352,7 @@ const handleDeleteNote = async (noteId: string) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Associated Goal</label>
                   <select 
                     name="goalId"
-                    defaultValue={isEditing ? selectedNote?.goalId || '' : ''}
+                    defaultValue={isEditing ? editingNote?.goalId || '' : ''}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Personal Notes</option>
@@ -336,7 +367,7 @@ const handleDeleteNote = async (noteId: string) => {
                   <input
                     type="text"
                     name="tags"
-                    defaultValue={isEditing ? selectedNote?.tags.join(', ') : ''}
+                    defaultValue={isEditing ? editingNote?.tags.join(', ') : ''}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., ideas, research, important"
                   />
@@ -348,7 +379,7 @@ const handleDeleteNote = async (noteId: string) => {
                 <textarea
                   name="content"
                   rows={12}
-                  defaultValue={isEditing ? selectedNote?.content : ''}
+                  defaultValue={isEditing ? editingNote?.content : ''}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
                   placeholder="Write your note content here... You can use Markdown formatting."
                 />
@@ -360,6 +391,7 @@ const handleDeleteNote = async (noteId: string) => {
                   onClick={() => {
                     setShowAddNote(false);
                     setIsEditing(false);
+                    setEditingNote(null);
                     setSelectedNote(null);
                   }}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"

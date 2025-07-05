@@ -1,8 +1,22 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Note from '../models/Note.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Helper function to transform note data for frontend compatibility
+const transformNote = (note) => {
+  const noteObj = note.toObject();
+  return {
+    ...noteObj,
+    id: noteObj._id.toString(),
+    goalId: noteObj.goalId ? noteObj.goalId.toString() : undefined,
+    userId: noteObj.userId.toString(),
+    createdAt: noteObj.createdAt,
+    updatedAt: noteObj.updatedAt
+  };
+};
 
 // GET all notes for the authenticated user with optional filters
 router.get('/', authenticate, async (req, res) => {
@@ -10,8 +24,12 @@ router.get('/', authenticate, async (req, res) => {
     const { goalId, tags, search } = req.query;
     const filter = { userId: req.user._id };
 
-    if (goalId) filter.goalId = goalId;
-    if (tags) filter.tags = { $in: tags.split(',') };
+    if (goalId && goalId !== 'all' && goalId !== '') {
+      filter.goalId = goalId;
+    }
+    if (tags && tags !== 'all') {
+      filter.tags = { $in: tags.split(',') };
+    }
 
     let query = Note.find(filter).populate('goalId', 'title');
 
@@ -25,7 +43,8 @@ router.get('/', authenticate, async (req, res) => {
     }
 
     const notes = await query.sort({ updatedAt: -1 });
-    res.json(notes);
+    const transformedNotes = notes.map(transformNote);
+    res.json(transformedNotes);
   } catch (error) {
     console.error('Error fetching notes:', error);
     res.status(500).json({ message: error.message });
@@ -35,8 +54,15 @@ router.get('/', authenticate, async (req, res) => {
 // GET a single note
 router.get('/:id', authenticate, async (req, res) => {
   try {
+    const { id } = req.params;
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid note ID format' });
+    }
+
     const note = await Note.findOne({
-      _id: req.params.id,
+      _id: id,
       userId: req.user._id
     }).populate('goalId', 'title');
 
@@ -44,7 +70,7 @@ router.get('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    res.json(note);
+    res.json(transformNote(note));
   } catch (error) {
     console.error('Error fetching note:', error);
     res.status(500).json({ message: error.message });
@@ -54,14 +80,28 @@ router.get('/:id', authenticate, async (req, res) => {
 // POST create a new note
 router.post('/', authenticate, async (req, res) => {
   try {
-    const newNote = new Note({
-      ...req.body,
-      userId: req.user._id
-    });
+    const { title, content, goalId, tags } = req.body;
 
+    const noteData = {
+      title,
+      content,
+      userId: req.user._id,
+      tags: tags || []
+    };
+
+    // Only add goalId if it's provided and not empty
+    if (goalId && goalId.trim() !== '') {
+      if (!mongoose.Types.ObjectId.isValid(goalId)) {
+        return res.status(400).json({ message: 'Invalid goal ID format' });
+      }
+      noteData.goalId = goalId;
+    }
+
+    const newNote = new Note(noteData);
     await newNote.save();
     await newNote.populate('goalId', 'title');
-    res.status(201).json(newNote);
+    
+    res.status(201).json(transformNote(newNote));
   } catch (error) {
     console.error('Error creating note:', error);
     res.status(400).json({ message: error.message });
@@ -71,9 +111,33 @@ router.post('/', authenticate, async (req, res) => {
 // PUT update a note
 router.put('/:id', authenticate, async (req, res) => {
   try {
+    const { id } = req.params;
+    const { title, content, goalId, tags } = req.body;
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid note ID format' });
+    }
+
+    const updateData = {
+      title,
+      content,
+      tags: tags || []
+    };
+
+    // Handle goalId - remove if empty, validate if provided
+    if (!goalId || goalId.trim() === '') {
+      updateData.$unset = { goalId: 1 };
+    } else {
+      if (!mongoose.Types.ObjectId.isValid(goalId)) {
+        return res.status(400).json({ message: 'Invalid goal ID format' });
+      }
+      updateData.goalId = goalId;
+    }
+
     const updatedNote = await Note.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user._id },
-      req.body,
+      { _id: id, userId: req.user._id },
+      updateData,
       { new: true, runValidators: true }
     ).populate('goalId', 'title');
 
@@ -81,7 +145,7 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    res.json(updatedNote);
+    res.json(transformNote(updatedNote));
   } catch (error) {
     console.error('Error updating note:', error);
     res.status(400).json({ message: error.message });
@@ -91,8 +155,15 @@ router.put('/:id', authenticate, async (req, res) => {
 // DELETE a note
 router.delete('/:id', authenticate, async (req, res) => {
   try {
+    const { id } = req.params;
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid note ID format' });
+    }
+
     const deletedNote = await Note.findOneAndDelete({
-      _id: req.params.id,
+      _id: id,
       userId: req.user._id
     });
 
@@ -110,8 +181,15 @@ router.delete('/:id', authenticate, async (req, res) => {
 // PATCH toggle favorite status
 router.patch('/:id/favorite', authenticate, async (req, res) => {
   try {
+    const { id } = req.params;
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid note ID format' });
+    }
+
     const note = await Note.findOne({
-      _id: req.params.id,
+      _id: id,
       userId: req.user._id
     });
 
@@ -123,7 +201,7 @@ router.patch('/:id/favorite', authenticate, async (req, res) => {
     await note.save();
     await note.populate('goalId', 'title');
 
-    res.json(note);
+    res.json(transformNote(note));
   } catch (error) {
     console.error('Error toggling favorite:', error);
     res.status(400).json({ message: error.message });

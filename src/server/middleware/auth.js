@@ -1,78 +1,92 @@
-@@ .. @@
- import jwt from 'jsonwebtoken';
-+import admin from 'firebase-admin';
- import User from '../models/User.js';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
-+// Initialize Firebase Admin (you'll need to add service account key)
-+// For now, we'll use a fallback approach
-+
- export const authenticate = async (req, res, next) => {
-   try {
-     const token = req.header('Authorization')?.replace('Bearer ', '');
-     
-     if (!token) {
-       // For development, create a default user if no token provided
-       req.user = {
-         _id: '507f1f77bcf86cd799439011',
-         name: 'Demo User',
-         email: 'demo@ooopzzz.com'
-       };
-       return next();
-     }
+export const authenticate = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
 
-     try {
--      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
--      const user = await User.findById(decoded.userId).select('-password');
-+      // Try to verify Firebase token first
-+      let user = null;
-+      
-+      try {
-+        // In production, you'd verify the Firebase token here
-+        // const decodedToken = await admin.auth().verifyIdToken(token);
-+        // For now, we'll extract user info from the token payload (not secure, just for demo)
-+        const payload = JSON.parse(atob(token.split('.')[1]));
-+        
-+        // Create or find user based on Firebase UID
-+        user = {
-+          _id: payload.user_id || payload.sub,
-+          name: payload.name || 'User',
-+          email: payload.email || 'user@example.com',
-+          firebaseUid: payload.user_id || payload.sub
-+        };
-+      } catch (firebaseError) {
-+        // Fallback to JWT verification for backward compatibility
-+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-+        user = await User.findById(decoded.userId).select('-password');
-+      }
-       
-       if (!user) {
-         // Fallback to demo user if token is invalid
-         req.user = {
-           _id: '507f1f77bcf86cd799439011',
-           name: 'Demo User',
-           email: 'demo@ooopzzz.com'
-         };
-       } else {
-         req.user = user;
-       }
-     } catch (tokenError) {
-       // Fallback to demo user if token verification fails
-       req.user = {
-         _id: '507f1f77bcf86cd799439011',
-         name: 'Demo User',
-         email: 'demo@ooopzzz.com'
-       };
-     }
+    try {
+      // Try to decode Firebase token (basic decode for demo - in production use Firebase Admin SDK)
+      let user = null;
+      
+      if (token.includes('.')) {
+        try {
+          // Decode Firebase JWT token
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const firebaseUid = payload.user_id || payload.sub;
+          const email = payload.email;
+          const name = payload.name || email?.split('@')[0] || 'User';
+          
+          if (firebaseUid && email) {
+            // Find or create user in MongoDB based on Firebase UID
+            user = await User.findOne({ firebaseUid });
+            
+            if (!user) {
+              // Create new user in MongoDB
+              user = new User({
+                firebaseUid,
+                name,
+                email,
+                password: 'firebase-auth', // Placeholder since we use Firebase auth
+                jobTitle: 'Content Creator',
+                timezone: 'UTC-8',
+                bio: 'AI enthusiast and content creator focused on productivity tools and automation.',
+                settings: {
+                  notifications: {
+                    email: true,
+                    push: true,
+                    taskReminders: true,
+                    goalUpdates: true,
+                    emailCampaigns: true,
+                    scriptGeneration: true,
+                    googleAlerts: true,
+                    weeklySummary: true
+                  },
+                  appearance: {
+                    theme: 'light',
+                    compactMode: false,
+                    showAnimations: true
+                  }
+                }
+              });
+              await user.save();
+              console.log('✅ Created new user in MongoDB:', email);
+            }
+          }
+        } catch (firebaseError) {
+          console.log('Firebase token decode failed, trying JWT...');
+        }
+      }
+      
+      // Fallback to JWT verification for backward compatibility
+      if (!user) {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        user = await User.findById(decoded.userId).select('-password');
+      }
+      
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid token' });
+      }
 
-     next();
-   } catch (error) {
-     console.error('Auth middleware error:', error);
-     // Always provide a fallback user to prevent blocking
-     req.user = {
-       _id: '507f1f77bcf86cd799439011',
-       name: 'Demo User',
-       email: 'demo@ooopzzz.com'
-     };
-     next();
-   }
- };
+      req.user = user;
+      next();
+    } catch (tokenError) {
+      console.error('Token verification failed:', tokenError.message);
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    return res.status(500).json({ message: 'Authentication error' });
+  }
+};
+
+export const authorize = (...roles) => {
+  return (req, res, next) => {
+    // Skip authorization for now in development
+    next();
+  };
+};

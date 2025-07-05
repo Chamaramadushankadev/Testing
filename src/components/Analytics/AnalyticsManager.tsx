@@ -1,15 +1,44 @@
 import React, { useState } from 'react';
 import { BarChart3, TrendingUp, Users, Target, Calendar, Download, Filter } from 'lucide-react';
-import { Goal, Task, YouTubeScript, EmailCampaign } from '../../types';
-import { mockGoals, mockTasks, mockScripts, mockCampaigns } from '../../data/mockData';
+import { Goal, Task } from '../../types';
+import { goalsAPI, tasksAPI, scriptsAPI, emailAPI } from '../../services/api';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
 export const AnalyticsManager: React.FC = () => {
-  const [goals] = useState<Goal[]>(mockGoals);
-  const [tasks] = useState<Task[]>(mockTasks);
-  const [scripts] = useState<YouTubeScript[]>(mockScripts);
-  const [campaigns] = useState<EmailCampaign[]>(mockCampaigns);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [scripts, setScripts] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter'>('month');
+
+  React.useEffect(() => {
+    loadAnalyticsData();
+  }, []);
+
+  const loadAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      const [goalsResponse, tasksResponse, scriptsResponse, campaignsResponse] = await Promise.all([
+        goalsAPI.getAll(),
+        tasksAPI.getAll(),
+        scriptsAPI.getAll().catch(() => ({ data: [] })),
+        emailAPI.getCampaigns().catch(() => ({ data: [] }))
+      ]);
+      setGoals(goalsResponse.data || []);
+      setTasks(tasksResponse.data || []);
+      setScripts(scriptsResponse.data || []);
+      setCampaigns(campaignsResponse.data || []);
+    } catch (error) {
+      console.error('Error loading analytics data:', error);
+      setGoals([]);
+      setTasks([]);
+      setScripts([]);
+      setCampaigns([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getDateRange = () => {
     const now = new Date();
@@ -44,6 +73,17 @@ export const AnalyticsManager: React.FC = () => {
   const avgOpenRate = campaigns.length > 0 
     ? campaigns.reduce((sum, c) => sum + (c.stats.opened / c.stats.sent), 0) / campaigns.length * 100 
     : 0;
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
 
   const StatCard: React.FC<{ title: string; value: string | number; change?: string; icon: React.ElementType; color: string }> = 
     ({ title, value, change, icon: Icon, color }) => (

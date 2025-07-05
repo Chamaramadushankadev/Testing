@@ -19,6 +19,7 @@ api.interceptors.request.use(async (config) => {
     try {
       const token = await user.getIdToken();
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔥 Using Firebase token for API request');
     } catch (error) {
       console.error('Error getting Firebase token:', error);
     }
@@ -27,6 +28,7 @@ api.interceptors.request.use(async (config) => {
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔑 Using localStorage token for API request');
     }
   }
   return config;
@@ -36,16 +38,18 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('❌ API Error:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      data: error.config?.data,
-      headers: error.config?.headers,
-      status: error.response?.status,
-      message: error.response?.data?.message || error.message,
-    });
+    if (error.response?.status !== 401) {
+      console.error('❌ API Error:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message,
+      });
+    }
 
-    // Don't auto-logout on 401 since Firebase handles auth state
+    if (error.response?.status === 401) {
+      console.log('🔒 Authentication required - redirecting to login');
+    }
 
     return Promise.reject({
       message: error.response?.data?.message || error.message || 'Network error',

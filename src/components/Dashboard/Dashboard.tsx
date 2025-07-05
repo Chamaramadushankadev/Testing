@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Target, CheckSquare, Video, Mail, TrendingUp, Calendar, Clock } from 'lucide-react';
 import { Goal, Task } from '../../types';
 import { goalsAPI, tasksAPI } from '../../services/api';
-import { mockScripts, mockCampaigns } from '../../data/mockData';
+import { scriptsAPI, emailAPI } from '../../services/api';
 
 export const Dashboard: React.FC = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [scripts, setScripts] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,17 +18,23 @@ export const Dashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [goalsResponse, tasksResponse] = await Promise.all([
+      const [goalsResponse, tasksResponse, scriptsResponse, campaignsResponse] = await Promise.all([
         goalsAPI.getAll(),
-        tasksAPI.getAll()
+        tasksAPI.getAll(),
+        scriptsAPI.getAll().catch(() => ({ data: [] })),
+        emailAPI.getCampaigns().catch(() => ({ data: [] }))
       ]);
       setGoals(goalsResponse.data || []);
       setTasks(tasksResponse.data || []);
+      setScripts(scriptsResponse.data || []);
+      setCampaigns(campaignsResponse.data || []);
     } catch (error: any) {
       console.error('Error loading dashboard data:', error);
       // Set empty arrays on error - no error display needed here
       setGoals([]);
       setTasks([]);
+      setScripts([]);
+      setCampaigns([]);
     } finally {
       setLoading(false);
     }
@@ -46,8 +54,8 @@ export const Dashboard: React.FC = () => {
   const completedTasks = tasks.filter(task => task.status === 'completed').length;
   const totalTasks = tasks.length;
   const activeGoals = goals.filter(goal => goal.status === 'active').length;
-  const scriptsGenerated = mockScripts.length;
-  const campaignsSent = mockCampaigns.filter(c => c.status === 'sent').length;
+  const scriptsGenerated = scripts.length;
+  const campaignsSent = campaigns.filter(c => c.status === 'sent').length;
 
   const stats = [
     {

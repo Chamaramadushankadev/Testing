@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { auth } from '../config/firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5173';
 
@@ -11,10 +12,22 @@ const api = axios.create({
 });
 
 // Add token to headers
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(async (config) => {
+  // Try to get Firebase auth token first
+  const user = auth.currentUser;
+  if (user) {
+    try {
+      const token = await user.getIdToken();
+      config.headers.Authorization = `Bearer ${token}`;
+    } catch (error) {
+      console.error('Error getting Firebase token:', error);
+    }
+  } else {
+    // Fallback to localStorage token for backward compatibility
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -32,10 +45,7 @@ api.interceptors.response.use(
       message: error.response?.data?.message || error.message,
     });
 
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-    }
+    // Don't auto-logout on 401 since Firebase handles auth state
 
     return Promise.reject({
       message: error.response?.data?.message || error.message || 'Network error',

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { Sidebar } from './components/Layout/Sidebar';
 import { Header } from './components/Layout/Header';
 import { Dashboard } from './components/Dashboard/Dashboard';
@@ -50,16 +51,18 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header activeTab={activeTab} />
-        <main className="flex-1 overflow-y-auto">
-          {renderContent()}
-        </main>
-        <DatabaseStatus />
+    <ProtectedRoute>
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header activeTab={activeTab} />
+          <main className="flex-1 overflow-y-auto">
+            {renderContent()}
+          </main>
+          <DatabaseStatus />
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
 

@@ -8,6 +8,7 @@ export const GoalsManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -139,7 +140,11 @@ export const GoalsManager: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredGoals.length > 0 ? (
           filteredGoals.map(goal => (
-            <div key={goal._id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md space-y-3">
+            <div 
+              key={goal._id} 
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md space-y-3 cursor-pointer transition-all duration-200"
+              onClick={() => setSelectedGoal(goal)}
+            >
               {/* Top row */}
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center space-x-2 max-w-[70%]">
@@ -153,13 +158,13 @@ export const GoalsManager: React.FC = () => {
                   <button onClick={() => { setEditingGoal(goal); setShowAddGoal(true); }}>
                     <Pencil className="w-4 h-4 text-gray-500 hover:text-blue-600" />
                   </button>
-                  <button onClick={() => handleDeleteGoal(goal._id)}>
+                  <button onClick={(e) => { e.stopPropagation(); handleDeleteGoal(goal._id); }}>
                     <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-600" />
                   </button>
                 </div>
               </div>
 
-              <p className="text-gray-600 text-sm line-clamp-2">{goal.description}</p>
+              <p className="text-gray-600 text-sm line-clamp-2 whitespace-pre-line">{goal.description}</p>
 
               {/* Progress */}
               <div>
@@ -226,7 +231,13 @@ export const GoalsManager: React.FC = () => {
             >
               <input type="hidden" name="id" defaultValue={editingGoal?._id} />
               <input type="text" name="title" required placeholder="Title" defaultValue={editingGoal?.title || ''} className="w-full border rounded-lg px-3 py-2" />
-              <textarea name="description" rows={3} placeholder="Description" defaultValue={editingGoal?.description || ''} className="w-full border rounded-lg px-3 py-2" />
+              <textarea 
+                name="description" 
+                rows={6} 
+                placeholder="Description (line breaks will be preserved)" 
+                defaultValue={editingGoal?.description || ''} 
+                className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
+              />
               <input type="text" name="category" placeholder="Category" defaultValue={editingGoal?.category || ''} className="w-full border rounded-lg px-3 py-2" />
               <div className="grid grid-cols-2 gap-4">
                 <select name="priority" defaultValue={editingGoal?.priority || 'low'} className="w-full border rounded-lg px-3 py-2">
@@ -249,5 +260,145 @@ export const GoalsManager: React.FC = () => {
         </div>
       )}
     </div>
+      {/* Goal Detail Modal */}
+      {selectedGoal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div 
+                  className="p-2 rounded-lg"
+                  style={{ backgroundColor: '#3B82F6' + '20', color: '#3B82F6' }}
+                >
+                  <Target className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-semibold text-gray-900">{selectedGoal.title}</h3>
+                  <p className="text-sm text-gray-600">{selectedGoal.category}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    setEditingGoal(selectedGoal);
+                    setShowAddGoal(true);
+                    setSelectedGoal(null);
+                  }}
+                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    handleDeleteGoal(selectedGoal._id);
+                    setSelectedGoal(null);
+                  }}
+                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setSelectedGoal(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <div className="lg:col-span-2">
+                <h4 className="font-medium text-gray-900 mb-3">Description</h4>
+                <div className="prose max-w-none">
+                  <div className="whitespace-pre-line text-gray-700 leading-relaxed">
+                    {selectedGoal.description}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-3">Goal Details</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Status</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedGoal.status)}`}>
+                        {selectedGoal.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Priority</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(selectedGoal.priority)}`}>
+                        {selectedGoal.priority}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Progress</span>
+                      <span className="text-sm font-medium text-gray-900">{selectedGoal.progress}%</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Due Date</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {new Date(selectedGoal.dueDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Category</span>
+                      <span className="text-sm font-medium text-gray-900">{selectedGoal.category}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-3">Progress</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Completion</span>
+                      <span className="font-medium text-gray-900">{selectedGoal.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                        style={{ width: `${selectedGoal.progress}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2">
+                      {selectedGoal.progress === 100 ? 'Goal completed!' : 
+                       selectedGoal.progress >= 75 ? 'Almost there!' :
+                       selectedGoal.progress >= 50 ? 'Making good progress' :
+                       selectedGoal.progress >= 25 ? 'Getting started' :
+                       'Just beginning'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+              <div className="text-sm text-gray-500">
+                Created {new Date(selectedGoal.createdAt).toLocaleDateString()}
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => {
+                    setEditingGoal(selectedGoal);
+                    setShowAddGoal(true);
+                    setSelectedGoal(null);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Edit Goal
+                </button>
+                <button
+                  onClick={() => setSelectedGoal(null)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
   );
 };

@@ -118,23 +118,35 @@ export const remindersAPI = {
 
 // ---------------- COLD EMAIL ----------------
 export const coldEmailAPI = {
-  getAccounts: () => api.get('/cold-email/accounts'),
-  createAccount: (data: any) => api.post('/cold-email/accounts', data),
-  updateAccount: (id: string, data: any) => api.put(`/cold-email/accounts/${id}`, data),
-  deleteAccount: (id: string) => api.delete(`/cold-email/accounts/${id}`),
+  // Email Accounts
+  getAccounts: () => api.get('/cold-email-system/accounts'),
+  createAccount: (data: any) => api.post('/cold-email-system/accounts', data),
+  updateAccount: (id: string, data: any) => api.put(`/cold-email-system/accounts/${id}`, data),
+  deleteAccount: (id: string) => api.delete(`/cold-email-system/accounts/${id}`),
+  testAccount: (id: string) => api.post(`/cold-email-system/accounts/${id}/test`),
 
-  getLeads: (params?: any) => api.get('/cold-email/leads', { params }),
-  createLead: (data: any) => api.post('/cold-email/leads', data),
-  updateLead: (id: string, data: any) => api.put(`/cold-email/leads/${id}`, data),
-  deleteLead: (id: string) => api.delete(`/cold-email/leads/${id}`),
-  bulkImportLeads: (leads: any[]) => api.post('/cold-email/leads/bulk-import', { leads }),
+  // Leads
+  getLeads: (params?: any) => api.get('/cold-email-system/leads', { params }),
+  createLead: (data: any) => api.post('/cold-email-system/leads', data),
+  updateLead: (id: string, data: any) => api.put(`/cold-email-system/leads/${id}`, data),
+  deleteLead: (id: string) => api.delete(`/cold-email-system/leads/${id}`),
+  bulkImportLeads: (leads: any[]) => api.post('/cold-email-system/leads/bulk-import', { leads }),
 
-  getCampaigns: (params?: any) => api.get('/cold-email/campaigns', { params }),
-  createCampaign: (data: any) => api.post('/cold-email/campaigns', data),
-  updateCampaign: (id: string, data: any) => api.put(`/cold-email/campaigns/${id}`, data),
-  deleteCampaign: (id: string) => api.delete(`/cold-email/campaigns/${id}`),
-  toggleCampaign: (id: string) => api.patch(`/cold-email/campaigns/${id}/toggle`),
-  getCampaignAnalytics: (id: string) => api.get(`/cold-email/campaigns/${id}/analytics`),
+  // Campaigns
+  getCampaigns: (params?: any) => api.get('/cold-email-system/campaigns', { params }),
+  createCampaign: (data: any) => api.post('/cold-email-system/campaigns', data),
+  updateCampaign: (id: string, data: any) => api.put(`/cold-email-system/campaigns/${id}`, data),
+  deleteCampaign: (id: string) => api.delete(`/cold-email-system/campaigns/${id}`),
+  toggleCampaign: (id: string) => api.patch(`/cold-email-system/campaigns/${id}/toggle`),
+  getCampaignAnalytics: (id: string) => api.get(`/cold-email-system/campaigns/${id}/analytics`),
+
+  // Warmup & Analytics
+  getWarmupStatus: () => api.get('/cold-email-system/warmup/status'),
+  startWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/start`),
+  getInboxSyncStatus: () => api.get('/cold-email-system/inbox/sync-status'),
+  syncInbox: (accountId: string) => api.post(`/cold-email-system/inbox/sync/${accountId}`),
+  getEmailLogs: (params?: any) => api.get('/cold-email-system/logs', { params }),
+  getDashboardAnalytics: (params?: any) => api.get('/cold-email-system/analytics/dashboard', { params }),
 };
 
 // ---------------- SCRIPTS ----------------

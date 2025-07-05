@@ -512,9 +512,9 @@ campaignSchema.virtual('stats.bounceRate').get(function() {
 // Ensure virtual fields are serialized
 campaignSchema.set('toJSON', { virtuals: true });
 
-export const EmailAccount = mongoose.model('EmailAccount', emailAccountSchema);
-export const Lead = mongoose.model('Lead', leadSchema);
-export const Campaign = mongoose.model('Campaign', campaignSchema);
-export const EmailLog = mongoose.model('EmailLog', emailLogSchema);
-export const WarmupEmail = mongoose.model('WarmupEmail', warmupEmailSchema);
-export const InboxSync = mongoose.model('InboxSync', inboxSyncSchema);
+export const EmailAccount = mongoose.models.EmailAccount || mongoose.model('EmailAccount', emailAccountSchema);
+export const Lead = mongoose.models.Lead || mongoose.model('Lead', leadSchema);
+export const Campaign = mongoose.models.Campaign || mongoose.model('Campaign', campaignSchema);
+export const EmailLog = mongoose.models.EmailLog || mongoose.model('EmailLog', emailLogSchema);
+export const WarmupEmail = mongoose.models.WarmupEmail || mongoose.model('WarmupEmail', warmupEmailSchema);
+export const InboxSync = mongoose.models.InboxSync || mongoose.model('InboxSync', inboxSyncSchema);

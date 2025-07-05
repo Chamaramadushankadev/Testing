@@ -88,6 +88,21 @@ export const notesAPI = {
   toggleFavorite: (id: string) => api.patch(`/notes/${id}/favorite`),
 };
 
+// ---------------- PROPOSALS ----------------
+export const proposalsAPI = {
+  getAll: (params?: any) => api.get('/proposals', { params }),
+  getById: (id: string) => api.get(`/proposals/${id}`),
+  create: (data: any) => api.post('/proposals', data),
+  update: (id: string, data: any) => api.put(`/proposals/${id}`, data),
+  delete: (id: string) => api.delete(`/proposals/${id}`),
+  
+  // Categories
+  getCategories: () => api.get('/proposals/categories'),
+  createCategory: (data: any) => api.post('/proposals/categories', data),
+  updateCategory: (id: string, data: any) => api.put(`/proposals/categories/${id}`, data),
+  deleteCategory: (id: string) => api.delete(`/proposals/categories/${id}`),
+};
+
 // ---------------- REMINDERS ----------------
 export const remindersAPI = {
   getAll: (params?: any) => api.get('/reminders', { params }),

@@ -35,6 +35,32 @@ export interface Note {
   attachments: Attachment[];
 }
 
+export interface Proposal {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  tags: string[];
+  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed';
+  priority: 'low' | 'medium' | 'high';
+  clientName?: string;
+  projectValue?: number;
+  deadline?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  attachments: Attachment[];
+}
+
+export interface ProposalCategory {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  icon: string;
+  isDefault: boolean;
+  createdAt: Date;
+}
+
 export interface Attachment {
   id: string;
   name: string;

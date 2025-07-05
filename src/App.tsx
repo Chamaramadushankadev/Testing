@@ -5,6 +5,7 @@ import { Dashboard } from './components/Dashboard/Dashboard';
 import { GoalsManager } from './components/Goals/GoalsManager';
 import { TasksManager } from './components/Tasks/TasksManager';
 import { NotesManager } from './components/Notes/NotesManager';
+import { ProposalsManager } from './components/Proposals/ProposalsManager';
 import { RemindersManager } from './components/Reminders/RemindersManager';
 import { GoogleAlerts } from './components/GoogleAlerts/GoogleAlerts';
 import { YouTubeScripts } from './components/YouTubeScripts/YouTubeScripts';
@@ -27,6 +28,8 @@ function App() {
         return <TasksManager />;
       case 'notes':
         return <NotesManager />;
+      case 'proposals':
+        return <ProposalsManager />;
       case 'reminders':
         return <RemindersManager />;
       case 'alerts':

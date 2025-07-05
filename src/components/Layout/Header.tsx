@@ -12,6 +12,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
       goals: 'Goals & Objectives',
       tasks: 'Task Management',
       notes: 'Notes & Knowledge Base',
+      proposals: 'Proposals & Projects',
       reminders: 'Reminders & Notifications',
       alerts: 'Google Alerts Monitoring',
       scripts: 'YouTube Script Generator',

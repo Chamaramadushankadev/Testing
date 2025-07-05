@@ -249,19 +249,19 @@ router.post('/generate', authenticate, async (req, res) => {
 ---
 *Generated with AI • ${tone} tone • ${new Date().toLocaleDateString()}*`;
 
-    const scriptData = {
-      channelId,
-      title: `${topic} - AI Generated Script`,
-      content: generatedContent,
-      tone,
-      source: `Generated from: ${topic}`,
-      keywords: keywords.split(',').map((k: string) => k.trim()).filter((k: string) => k),
-      keywords: keywords.split(',').map(k => k.trim()).filter(k => k),
-      userId: req.user._id,
-      isGenerated: true,
-      generationPrompt: `Topic: ${topic}, Tone: ${tone}, Keywords: ${keywords}`,
-      status: 'draft'
-    };
+const scriptData = {
+  channelId,
+  title: `${topic} - AI Generated Script`,
+  content: generatedContent,
+  tone,
+  source: `Generated from: ${topic}`,
+  keywords: keywords.split(',').map(k => k.trim()).filter(k => k),
+  userId: req.user._id,
+  isGenerated: true,
+  generationPrompt: `Topic: ${topic}, Tone: ${tone}, Keywords: ${keywords}`,
+  status: 'draft'
+};
+
 
     const script = new YouTubeScript(scriptData);
     await script.save();

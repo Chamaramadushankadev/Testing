@@ -18,14 +18,16 @@ const transformChannel = (channel) => {
 // Get all channels for user
 router.get('/', authenticate, async (req, res) => {
   try {
+    console.log('📺 Fetching YouTube channels for user:', req.user.email, '(ID:', req.user._id, ')');
     const { isActive = 'true' } = req.query;
-    const filter = { userId: req.user._id };
+    const filter = { userId: req.user._id }; // Ensure user-specific filtering
     
     if (isActive !== 'all') {
       filter.isActive = isActive === 'true';
     }
 
     const channels = await YouTubeChannel.find(filter).sort({ createdAt: -1 });
+    console.log(`✅ Found ${channels.length} YouTube channels for user ${req.user.email}`);
     const transformedChannels = channels.map(transformChannel);
     res.json(transformedChannels);
   } catch (error) {
@@ -58,6 +60,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // Create new channel
 router.post('/', authenticate, async (req, res) => {
   try {
+    console.log('📺 Creating YouTube channel for user:', req.user.email, '(ID:', req.user._id, ')');
     const { name, channelId, description, url, subscriberCount, color, tags } = req.body;
 
     const channelData = {
@@ -68,12 +71,13 @@ router.post('/', authenticate, async (req, res) => {
       subscriberCount: subscriberCount || 0,
       color: color || '#3B82F6',
       tags: tags || [],
-      userId: req.user._id
+      userId: req.user._id // Ensure user ID is set
     };
 
     const channel = new YouTubeChannel(channelData);
     await channel.save();
     
+    console.log('✅ YouTube channel created successfully for user:', req.user.email);
     res.status(201).json(transformChannel(channel));
   } catch (error) {
     console.error('Error creating channel:', error);
@@ -103,7 +107,7 @@ router.put('/:id', authenticate, async (req, res) => {
     };
 
     const channel = await YouTubeChannel.findOneAndUpdate(
-      { _id: id, userId: req.user._id },
+      { _id: id, userId: req.user._id }, // Ensure user owns the channel
       updateData,
       { new: true, runValidators: true }
     );
@@ -129,6 +133,10 @@ router.delete('/:id', authenticate, async (req, res) => {
     }
 
     const channel = await YouTubeChannel.findOneAndDelete({ _id: id, userId: req.user._id });
+    if (!channel) {
+      console.log('❌ YouTube channel not found or access denied');
+      return res.status(404).json({ message: 'Channel not found' });
+    }
     if (!channel) {
       return res.status(404).json({ message: 'Channel not found' });
     }

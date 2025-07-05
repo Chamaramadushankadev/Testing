@@ -20,8 +20,9 @@ const transformReminder = (reminder) => {
 // Get all reminders for user
 router.get('/', authenticate, async (req, res) => {
   try {
+    console.log('⏰ Fetching reminders for user:', req.user.email, '(ID:', req.user._id, ')');
     const { type, status, includeCompleted = 'false' } = req.query;
-    const filter = { userId: req.user._id };
+    const filter = { userId: req.user._id }; // Ensure user-specific filtering
 
     if (type && type !== 'all') filter.type = type;
     if (status === 'completed') filter.isCompleted = true;
@@ -32,6 +33,7 @@ router.get('/', authenticate, async (req, res) => {
       .populate('entityId')
       .sort({ scheduledAt: 1 });
     
+    console.log(`✅ Found ${reminders.length} reminders for user ${req.user.email}`);
     const transformedReminders = reminders.map(transformReminder);
     res.json(transformedReminders);
   } catch (error) {
@@ -66,6 +68,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // Create new reminder
 router.post('/', authenticate, async (req, res) => {
   try {
+    console.log('⏰ Creating reminder for user:', req.user.email, '(ID:', req.user._id, ')');
     const { 
       title, 
       message, 
@@ -82,7 +85,7 @@ router.post('/', authenticate, async (req, res) => {
       message,
       type,
       scheduledAt: new Date(scheduledAt),
-      userId: req.user._id,
+      userId: req.user._id, // Ensure user ID is set
       isRecurring
     };
 
@@ -111,6 +114,7 @@ router.post('/', authenticate, async (req, res) => {
     await reminder.save();
     await reminder.populate('entityId');
     
+    console.log('✅ Reminder created successfully for user:', req.user.email);
     res.status(201).json(transformReminder(reminder));
   } catch (error) {
     console.error('Error creating reminder:', error);
@@ -171,7 +175,7 @@ router.put('/:id', authenticate, async (req, res) => {
     }
 
     const reminder = await Reminder.findOneAndUpdate(
-      { _id: id, userId: req.user._id },
+      { _id: id, userId: req.user._id }, // Ensure user owns the reminder
       updateData,
       { new: true, runValidators: true }
     ).populate('entityId');
@@ -199,6 +203,7 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     const reminder = await Reminder.findOne({ _id: id, userId: req.user._id });
     if (!reminder) {
+      console.log('❌ Reminder not found or access denied');
       return res.status(404).json({ message: 'Reminder not found' });
     }
 

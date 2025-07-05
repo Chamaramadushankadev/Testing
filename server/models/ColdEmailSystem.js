@@ -492,6 +492,225 @@ warmupEmailSchema.index({ sentAt: 1 });
 inboxSyncSchema.index({ userId: 1, emailAccountId: 1 });
 inboxSyncSchema.index({ lastSyncAt: 1 });
 
+// Email Template Schema
+const emailTemplateSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  category: {
+    type: String,
+    enum: ['cold-outreach', 'follow-up', 'partnership', 'sales', 'custom'],
+    default: 'custom'
+  },
+  subject: {
+    type: String,
+    required: true
+  },
+  content: {
+    type: String,
+    required: true
+  },
+  variables: [{
+    type: String,
+    trim: true
+  }],
+  industry: {
+    type: String,
+    trim: true
+  },
+  useCase: {
+    type: String,
+    trim: true
+  },
+  isDefault: {
+    type: Boolean,
+    default: false
+  },
+  usageCount: {
+    type: Number,
+    default: 0
+  }
+}, {
+  timestamps: true
+});
+
+// Inbox Message Schema
+const inboxMessageSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  emailAccountId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'EmailAccount',
+    required: true
+  },
+  messageId: {
+    type: String,
+    required: true
+  },
+  threadId: {
+    type: String
+  },
+  from: {
+    name: String,
+    email: {
+      type: String,
+      required: true
+    }
+  },
+  to: [{
+    name: String,
+    email: String
+  }],
+  cc: [{
+    name: String,
+    email: String
+  }],
+  bcc: [{
+    name: String,
+    email: String
+  }],
+  subject: {
+    type: String,
+    required: true
+  },
+  content: {
+    text: String,
+    html: String
+  },
+  isRead: {
+    type: Boolean,
+    default: false
+  },
+  isStarred: {
+    type: Boolean,
+    default: false
+  },
+  isReply: {
+    type: Boolean,
+    default: false
+  },
+  isBounce: {
+    type: Boolean,
+    default: false
+  },
+  isAutoReply: {
+    type: Boolean,
+    default: false
+  },
+  labels: [{
+    type: String,
+    trim: true
+  }],
+  attachments: [{
+    filename: String,
+    contentType: String,
+    size: Number,
+    contentId: String
+  }],
+  receivedAt: {
+    type: Date,
+    required: true
+  },
+  campaignId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Campaign'
+  },
+  leadId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Lead'
+  },
+  sentiment: {
+    type: String,
+    enum: ['positive', 'neutral', 'negative'],
+    default: 'neutral'
+  },
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high'],
+    default: 'medium'
+  },
+  processed: {
+    type: Boolean,
+    default: false
+  }
+}, {
+  timestamps: true
+});
+
+// CSV Import Schema
+const csvImportSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  filename: {
+    type: String,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['processing', 'completed', 'failed'],
+    default: 'processing'
+  },
+  totalRows: {
+    type: Number,
+    default: 0
+  },
+  processedRows: {
+    type: Number,
+    default: 0
+  },
+  successfulRows: {
+    type: Number,
+    default: 0
+  },
+  failedRows: {
+    type: Number,
+    default: 0
+  },
+  mapping: {
+    type: Map,
+    of: String
+  },
+  errors: [{
+    row: Number,
+    field: String,
+    message: String
+  }],
+  duplicates: [{
+    row: Number,
+    email: String,
+    existingLeadId: String
+  }]
+}, {
+  timestamps: true
+});
+
+// Indexes for new schemas
+emailTemplateSchema.index({ userId: 1, category: 1 });
+emailTemplateSchema.index({ userId: 1, name: 1 });
+
+inboxMessageSchema.index({ userId: 1, emailAccountId: 1 });
+inboxMessageSchema.index({ userId: 1, receivedAt: -1 });
+inboxMessageSchema.index({ userId: 1, isRead: 1 });
+inboxMessageSchema.index({ messageId: 1 }, { unique: true });
+inboxMessageSchema.index({ threadId: 1 });
+inboxMessageSchema.index({ 'from.email': 1 });
+
+csvImportSchema.index({ userId: 1, createdAt: -1 });
+csvImportSchema.index({ status: 1 });
+
 // Virtual fields for campaign stats
 campaignSchema.virtual('stats.openRate').get(function() {
   return this.stats.emailsSent > 0 ? (this.stats.opened / this.stats.emailsSent) * 100 : 0;
@@ -518,3 +737,6 @@ export const Campaign = mongoose.models.Campaign || mongoose.model('Campaign', c
 export const EmailLog = mongoose.models.EmailLog || mongoose.model('EmailLog', emailLogSchema);
 export const WarmupEmail = mongoose.models.WarmupEmail || mongoose.model('WarmupEmail', warmupEmailSchema);
 export const InboxSync = mongoose.models.InboxSync || mongoose.model('InboxSync', inboxSyncSchema);
+export const EmailTemplate = mongoose.models.EmailTemplate || mongoose.model('EmailTemplate', emailTemplateSchema);
+export const InboxMessage = mongoose.models.InboxMessage || mongoose.model('InboxMessage', inboxMessageSchema);
+export const CsvImport = mongoose.models.CsvImport || mongoose.model('CsvImport', csvImportSchema);

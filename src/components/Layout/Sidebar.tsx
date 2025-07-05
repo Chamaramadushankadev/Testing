@@ -24,7 +24,6 @@ const menuItems = [
   { id: 'tasks', label: 'Tasks', icon: CheckSquare },
   { id: 'notes', label: 'Notes', icon: StickyNote },
   { id: 'reminders', label: 'Reminders', icon: Bell },
-  { id: 'alerts', label: 'Google Alerts', icon: Rss },
   { id: 'scripts', label: 'YouTube Scripts', icon: Video },
   { id: 'email', label: 'Email', icon: Mail },
   { id: 'cold-email', label: 'Cold Email', icon: Send },

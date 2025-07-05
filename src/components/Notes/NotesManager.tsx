@@ -297,7 +297,8 @@ export const NotesManager: React.FC = () => {
             </div>
             
             <div className="prose max-w-none mb-6">
-              <ReactMarkdown>{selectedNote.content}</ReactMarkdown>
+              <div className="whitespace-pre-line">{selectedNote.content}</div>
+
             </div>
             
             <div className="flex items-center justify-between pt-6 border-t border-gray-200">

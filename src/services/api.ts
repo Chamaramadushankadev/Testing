@@ -97,6 +97,8 @@ export const remindersAPI = {
   delete: (id: string) => api.delete(`/reminders/${id}`),
   toggle: (id: string) => api.patch(`/reminders/${id}/toggle`),
   getUpcoming: () => api.get('/reminders/upcoming/list'),
+  getOverdue: () => api.get('/reminders/overdue/list'),
+  snooze: (id: string, minutes: number) => api.patch(`/reminders/${id}/snooze`, { minutes }),
 };
 
 // ---------------- COLD EMAIL ----------------

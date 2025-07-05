@@ -127,7 +127,23 @@ export interface Reminder {
   type: 'task' | 'goal' | 'custom';
   scheduledAt: Date;
   isCompleted: boolean;
+  completedAt?: Date;
   entityId?: string;
+  entityType?: 'Goal' | 'Task';
+  isRecurring: boolean;
+  recurringPattern?: {
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    interval: number;
+    endDate?: Date;
+    daysOfWeek?: number[];
+    dayOfMonth?: number;
+    maxOccurrences?: number;
+  };
+  notificationSent: boolean;
+  parentReminderId?: string;
+  occurrenceCount: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Cold Email Marketing Types

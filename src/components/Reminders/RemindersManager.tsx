@@ -1,45 +1,43 @@
-import React, { useState } from 'react';
-import { Plus, Bell, Calendar, Clock, Target, CheckSquare, AlertCircle, Repeat } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Bell, Calendar, Clock, Target, CheckSquare, AlertCircle, Repeat, Edit3, Trash2, MoreVertical, SunSnow as Snooze } from 'lucide-react';
 import { Reminder, Goal, Task } from '../../types';
-import { mockGoals, mockTasks } from '../../data/mockData';
+import { remindersAPI, goalsAPI, tasksAPI } from '../../services/api';
 import { format, isToday, isTomorrow, isPast, addDays, addWeeks, addMonths } from 'date-fns';
 
-const mockReminders: Reminder[] = [
-  {
-    id: '1',
-    title: 'Review YouTube Channel Progress',
-    message: 'Check analytics and plan next week\'s content',
-    type: 'goal',
-    scheduledAt: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
-    isCompleted: false,
-    entityId: '1'
-  },
-  {
-    id: '2',
-    title: 'Complete Video Script',
-    message: 'Finish writing the AI tools comparison script',
-    type: 'task',
-    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-    isCompleted: false,
-    entityId: '2'
-  },
-  {
-    id: '3',
-    title: 'Weekly Planning Session',
-    message: 'Plan goals and tasks for the upcoming week',
-    type: 'custom',
-    scheduledAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next week
-    isCompleted: false
-  }
-];
-
 export const RemindersManager: React.FC = () => {
-  const [reminders, setReminders] = useState<Reminder[]>(mockReminders);
-  const [goals] = useState<Goal[]>(mockGoals);
-  const [tasks] = useState<Task[]>(mockTasks);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddReminder, setShowAddReminder] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [remindersResponse, goalsResponse, tasksResponse] = await Promise.all([
+        remindersAPI.getAll(),
+        goalsAPI.getAll(),
+        tasksAPI.getAll()
+      ]);
+      setReminders(remindersResponse.data || []);
+      setGoals(goalsResponse.data || []);
+      setTasks(tasksResponse.data || []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setReminders([]);
+      setGoals([]);
+      setTasks([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredReminders = reminders.filter(reminder => {
     const matchesType = filterType === 'all' || reminder.type === filterType;
@@ -68,45 +66,83 @@ export const RemindersManager: React.FC = () => {
   };
 
   const getDateStatus = (scheduledAt: Date) => {
-    if (isPast(scheduledAt) && !isToday(scheduledAt)) return { color: 'text-red-600', label: 'Overdue' };
-    if (isToday(scheduledAt)) return { color: 'text-orange-600', label: 'Today' };
-    if (isTomorrow(scheduledAt)) return { color: 'text-yellow-600', label: 'Tomorrow' };
-    return { color: 'text-gray-600', label: format(scheduledAt, 'MMM dd, yyyy') };
+    const date = new Date(scheduledAt);
+    if (isPast(date) && !isToday(date)) return { color: 'text-red-600', label: 'Overdue' };
+    if (isToday(date)) return { color: 'text-orange-600', label: 'Today' };
+    if (isTomorrow(date)) return { color: 'text-yellow-600', label: 'Tomorrow' };
+    return { color: 'text-gray-600', label: format(date, 'MMM dd, yyyy') };
   };
 
-  const toggleReminderStatus = (reminderId: string) => {
-    setReminders(reminders.map(reminder => 
-      reminder.id === reminderId 
-        ? { ...reminder, isCompleted: !reminder.isCompleted }
-        : reminder
-    ));
+  const toggleReminderStatus = async (reminderId: string) => {
+    try {
+      const response = await remindersAPI.toggle(reminderId);
+      setReminders(reminders.map(reminder => 
+        reminder.id === reminderId ? response.data : reminder
+      ));
+    } catch (error) {
+      console.error('Error toggling reminder:', error);
+    }
   };
 
-  const handleAddReminder = (formData: FormData) => {
-    const title = formData.get('title') as string;
-    const message = formData.get('message') as string;
-    const type = formData.get('type') as 'task' | 'goal' | 'custom';
-    const scheduledAt = new Date(formData.get('scheduledAt') as string);
-    const entityId = formData.get('entityId') as string;
+  const handleAddOrUpdateReminder = async (formData: FormData) => {
+    try {
+      const reminderData = {
+        title: formData.get('title') as string,
+        message: formData.get('message') as string,
+        type: formData.get('type') as string,
+        scheduledAt: new Date(formData.get('scheduledAt') as string),
+        entityId: formData.get('entityId') as string || undefined,
+        entityType: formData.get('entityType') as string || undefined,
+        isRecurring: formData.get('isRecurring') === 'true',
+        recurringPattern: formData.get('isRecurring') === 'true' ? {
+          frequency: formData.get('frequency') as any,
+          interval: parseInt(formData.get('interval') as string) || 1,
+          endDate: formData.get('endDate') ? new Date(formData.get('endDate') as string) : undefined,
+          maxOccurrences: formData.get('maxOccurrences') ? parseInt(formData.get('maxOccurrences') as string) : undefined
+        } : undefined
+      };
 
-    const newReminder: Reminder = {
-      id: Date.now().toString(),
-      title,
-      message,
-      type,
-      scheduledAt,
-      isCompleted: false,
-      entityId: entityId || undefined
-    };
+      if (editingReminder) {
+        const response = await remindersAPI.update(editingReminder.id, reminderData);
+        setReminders(reminders.map(r => r.id === editingReminder.id ? response.data : r));
+      } else {
+        const response = await remindersAPI.create(reminderData);
+        setReminders([response.data, ...reminders]);
+      }
 
-    setReminders([newReminder, ...reminders]);
-    setShowAddReminder(false);
+      setEditingReminder(null);
+      setShowAddReminder(false);
+    } catch (error) {
+      console.error('Error saving reminder:', error);
+    }
+  };
+
+  const handleDeleteReminder = async (reminderId: string, deleteAll = false) => {
+    if (!window.confirm('Are you sure you want to delete this reminder?')) return;
+    
+    try {
+      await remindersAPI.delete(reminderId);
+      setReminders(reminders.filter(r => r.id !== reminderId));
+    } catch (error) {
+      console.error('Error deleting reminder:', error);
+    }
   };
 
   const upcomingReminders = filteredReminders
-    .filter(r => !r.isCompleted && !isPast(r.scheduledAt))
-    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+    .filter(r => !r.isCompleted && !isPast(new Date(r.scheduledAt)))
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
     .slice(0, 3);
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading reminders...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -138,7 +174,10 @@ export const RemindersManager: React.FC = () => {
         </div>
         
         <button
-          onClick={() => setShowAddReminder(true)}
+          onClick={() => {
+            setEditingReminder(null);
+            setShowAddReminder(true);
+          }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
@@ -152,7 +191,7 @@ export const RemindersManager: React.FC = () => {
           { label: 'Total Reminders', value: filteredReminders.length, color: 'bg-blue-500' },
           { label: 'Pending', value: filteredReminders.filter(r => !r.isCompleted).length, color: 'bg-orange-500' },
           { label: 'Completed', value: filteredReminders.filter(r => r.isCompleted).length, color: 'bg-green-500' },
-          { label: 'Overdue', value: filteredReminders.filter(r => !r.isCompleted && isPast(r.scheduledAt)).length, color: 'bg-red-500' }
+          { label: 'Overdue', value: filteredReminders.filter(r => !r.isCompleted && isPast(new Date(r.scheduledAt))).length, color: 'bg-red-500' }
         ].map((stat, index) => (
           <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center justify-between">
@@ -179,7 +218,7 @@ export const RemindersManager: React.FC = () => {
             {upcomingReminders.length > 0 ? (
               upcomingReminders.map((reminder) => {
                 const Icon = getTypeIcon(reminder.type);
-                const dateStatus = getDateStatus(reminder.scheduledAt);
+                const dateStatus = getDateStatus(new Date(reminder.scheduledAt));
                 
                 return (
                   <div key={reminder.id} className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
@@ -187,14 +226,17 @@ export const RemindersManager: React.FC = () => {
                       <Icon className="w-4 h-4 text-gray-600 mt-1" />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-gray-900 text-sm">{reminder.title}</h4>
-                        <p className="text-xs text-gray-600 mt-1">{reminder.message}</p>
+                        <p className="text-xs text-gray-600 mt-1 whitespace-pre-line">{reminder.message}</p>
                         <div className="flex items-center justify-between mt-2">
                           <span className={`text-xs font-medium ${dateStatus.color}`}>
                             {dateStatus.label}
                           </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(reminder.type)}`}>
-                            {reminder.type}
-                          </span>
+                          <div className="flex items-center space-x-1">
+                            {reminder.isRecurring && <Repeat className="w-3 h-3 text-gray-400" />}
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(reminder.type)}`}>
+                              {reminder.type}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -218,7 +260,7 @@ export const RemindersManager: React.FC = () => {
               {filteredReminders.length > 0 ? (
                 filteredReminders.map((reminder) => {
                   const Icon = getTypeIcon(reminder.type);
-                  const dateStatus = getDateStatus(reminder.scheduledAt);
+                  const dateStatus = getDateStatus(new Date(reminder.scheduledAt));
                   
                   return (
                     <div key={reminder.id} className="p-4 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow">
@@ -240,13 +282,14 @@ export const RemindersManager: React.FC = () => {
                               <h4 className={`font-medium ${reminder.isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
                                 {reminder.title}
                               </h4>
+                              {reminder.isRecurring && <Repeat className="w-4 h-4 text-blue-600" />}
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">{reminder.message}</p>
+                            <p className="text-sm text-gray-600 mb-2 whitespace-pre-line">{reminder.message}</p>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-2">
                                 <Clock className="w-3 h-3 text-gray-400" />
                                 <span className={`text-xs font-medium ${dateStatus.color}`}>
-                                  {format(reminder.scheduledAt, 'MMM dd, yyyy HH:mm')}
+                                  {format(new Date(reminder.scheduledAt), 'MMM dd, yyyy HH:mm')}
                                 </span>
                               </div>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(reminder.type)}`}>
@@ -254,6 +297,23 @@ export const RemindersManager: React.FC = () => {
                               </span>
                             </div>
                           </div>
+                        </div>
+                        <div className="flex items-center space-x-1 ml-4">
+                          <button
+                            onClick={() => {
+                              setEditingReminder(reminder);
+                              setShowAddReminder(true);
+                            }}
+                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteReminder(reminder.id)}
+                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -270,16 +330,18 @@ export const RemindersManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Reminder Modal */}
+      {/* Add/Edit Reminder Modal */}
       {showAddReminder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Create New Reminder</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">
+              {editingReminder ? 'Edit Reminder' : 'Create New Reminder'}
+            </h3>
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
-                handleAddReminder(formData);
+                handleAddOrUpdateReminder(formData);
               }}
               className="space-y-6"
             >
@@ -288,6 +350,7 @@ export const RemindersManager: React.FC = () => {
                 <input
                   type="text"
                   name="title"
+                  defaultValue={editingReminder?.title || ''}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter reminder title..."
                   required
@@ -299,6 +362,7 @@ export const RemindersManager: React.FC = () => {
                 <textarea
                   name="message"
                   rows={3}
+                  defaultValue={editingReminder?.message || ''}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter reminder message..."
                 />
@@ -309,6 +373,7 @@ export const RemindersManager: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
                   <select 
                     name="type"
+                    defaultValue={editingReminder?.type || 'custom'}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="custom">Custom Reminder</option>
@@ -322,16 +387,89 @@ export const RemindersManager: React.FC = () => {
                   <input
                     type="datetime-local"
                     name="scheduledAt"
+                    defaultValue={editingReminder ? new Date(editingReminder.scheduledAt).toISOString().slice(0, 16) : ''}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                 </div>
               </div>
 
+              {/* Recurring Options */}
+              <div>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    name="isRecurring"
+                    value="true"
+                    defaultChecked={editingReminder?.isRecurring || false}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    onChange={(e) => {
+                      const recurringOptions = document.getElementById('recurring-options');
+                      if (recurringOptions) {
+                        recurringOptions.style.display = e.target.checked ? 'block' : 'none';
+                      }
+                    }}
+                  />
+                  <span className="text-sm font-medium text-gray-700">Make this a recurring reminder</span>
+                </label>
+              </div>
+
+              <div id="recurring-options" style={{ display: editingReminder?.isRecurring ? 'block' : 'none' }} className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Frequency</label>
+                    <select 
+                      name="frequency"
+                      defaultValue={editingReminder?.recurringPattern?.frequency || 'daily'}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Repeat every</label>
+                    <input
+                      type="number"
+                      name="interval"
+                      min="1"
+                      defaultValue={editingReminder?.recurringPattern?.interval || 1}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">End Date (optional)</label>
+                    <input
+                      type="date"
+                      name="endDate"
+                      defaultValue={editingReminder?.recurringPattern?.endDate ? new Date(editingReminder.recurringPattern.endDate).toISOString().slice(0, 10) : ''}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Max Occurrences (optional)</label>
+                    <input
+                      type="number"
+                      name="maxOccurrences"
+                      min="1"
+                      defaultValue={editingReminder?.recurringPattern?.maxOccurrences || ''}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setShowAddReminder(false)}
+                  onClick={() => {
+                    setShowAddReminder(false);
+                    setEditingReminder(null);
+                  }}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
@@ -340,7 +478,7 @@ export const RemindersManager: React.FC = () => {
                   type="submit"
                   className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Create Reminder
+                  {editingReminder ? 'Update Reminder' : 'Create Reminder'}
                 </button>
               </div>
             </form>

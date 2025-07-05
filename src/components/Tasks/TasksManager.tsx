@@ -9,6 +9,7 @@ export const TasksManager: React.FC = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterGoal, setFilterGoal] = useState<string>('all');
@@ -85,7 +86,7 @@ export const TasksManager: React.FC = () => {
     }
   };
 
-  const handleAddTask = async (formData: FormData) => {
+  const handleAddOrUpdateTask = async (formData: FormData) => {
     try {
       const taskData = {
         title: formData.get('title') as string,
@@ -96,11 +97,18 @@ export const TasksManager: React.FC = () => {
         dueDate: new Date(formData.get('dueDate') as string),
       };
 
-      const response = await tasksAPI.create(taskData);
-      setTasks([response.data, ...tasks]);
+      if (editingTask) {
+        const response = await tasksAPI.update(editingTask.id, taskData);
+        setTasks(tasks.map(task => task.id === editingTask.id ? response.data : task));
+      } else {
+        const response = await tasksAPI.create(taskData);
+        setTasks([response.data, ...tasks]);
+      }
+
       setShowAddTask(false);
+      setEditingTask(null);
     } catch (error: any) {
-      console.error('Error creating task:', error);
+      console.error('Error saving task:', error);
     }
   };
 
@@ -130,23 +138,8 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
   };
 
   const handleEdit = () => {
-    const form = new FormData();
-    form.set('title', task.title);
-    form.set('description', task.description);
-    form.set('goalId', task.goalId || '');
-    form.set('priority', task.priority);
-    form.set('status', task.status);
-    form.set('dueDate', new Date(task.dueDate).toISOString().slice(0, 16));
-    // Store formData and taskId in state for the modal
+    setEditingTask(task);
     setShowAddTask(true);
-    (document.querySelector('input[name="title"]') as HTMLInputElement).value = task.title;
-    (document.querySelector('textarea[name="description"]') as HTMLTextAreaElement).value = task.description || '';
-    (document.querySelector('select[name="goalId"]') as HTMLSelectElement).value = task.goalId || '';
-    (document.querySelector('select[name="priority"]') as HTMLSelectElement).value = task.priority;
-    (document.querySelector('select[name="status"]') as HTMLSelectElement).value = task.status;
-    (document.querySelector('input[name="dueDate"]') as HTMLInputElement).value = new Date(task.dueDate).toISOString().slice(0, 16);
-
-    // For future improvement: use a separate state to pass this cleanly
   };
 
   return (
@@ -169,7 +162,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
             <h4 className={`font-medium text-gray-900 ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
               {task.title}
             </h4>
-            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{task.description}</p>
+            <p className="text-sm text-gray-600 mt-1 line-clamp-2 whitespace-pre-line">{task.description}</p>
           </div>
         </div>
         <div className="flex space-x-2">
@@ -298,7 +291,10 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
           </div>
           
           <button
-            onClick={() => setShowAddTask(true)}
+            onClick={() => {
+              setEditingTask(null);
+              setShowAddTask(true);
+            }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
           >
             <Plus className="w-4 h-4" />
@@ -349,7 +345,10 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                   }
                 </p>
                 <button
-                  onClick={() => setShowAddTask(true)}
+                  onClick={() => {
+                    setEditingTask(null);
+                    setShowAddTask(true);
+                  }}
                   className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto"
                 >
                   <Plus className="w-5 h-5" />
@@ -387,16 +386,18 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
         </div>
       )}
 
-      {/* Add Task Modal */}
+      {/* Add/Edit Task Modal */}
       {showAddTask && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Create New Task</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">
+              {editingTask ? 'Edit Task' : 'Create New Task'}
+            </h3>
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
-                handleAddTask(formData);
+                handleAddOrUpdateTask(formData);
               }}
               className="space-y-6"
             >
@@ -406,6 +407,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                   <input
                     type="text"
                     name="title"
+                    defaultValue={editingTask?.title || ''}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter task title..."
                     required
@@ -417,6 +419,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                   <textarea
                     name="description"
                     rows={4}
+                    defaultValue={editingTask?.description || ''}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Describe the task..."
                   />
@@ -426,6 +429,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                   <label className="block text-sm font-medium text-gray-700 mb-2">Associated Goal</label>
                   <select 
                     name="goalId"
+                    defaultValue={editingTask?.goalId || ''}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Select a goal (optional)</option>
@@ -439,6 +443,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                   <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
                   <select 
                     name="priority"
+                    defaultValue={editingTask?.priority || 'low'}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="low">Low Priority</option>
@@ -451,6 +456,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                   <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                   <select 
                     name="status"
+                    defaultValue={editingTask?.status || 'pending'}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="pending">Pending</option>
@@ -464,6 +470,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                   <input
                     type="datetime-local"
                     name="dueDate"
+                    defaultValue={editingTask ? new Date(editingTask.dueDate).toISOString().slice(0, 16) : ''}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
@@ -473,7 +480,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
               <div className="flex space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setShowAddTask(false)}
+                  onClick={() => { setShowAddTask(false); setEditingTask(null); }}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
@@ -482,7 +489,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                   type="submit"
                   className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Create Task
+                  {editingTask ? 'Update Task' : 'Create Task'}
                 </button>
               </div>
             </form>

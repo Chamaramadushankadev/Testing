@@ -236,7 +236,7 @@ router.post('/generate', authenticate, async (req, res) => {
       casual: `👋 **Hook**: "Hey everyone! Let's talk about why ${topic} is actually pretty amazing..."`
     };
 
-    const generatedContent = `${hooks[tone as keyof typeof hooks]}
+    const generatedContent = `${hooks[tone]}
 
 **Value**: 
 - Key point 1: ${topic} fundamentals

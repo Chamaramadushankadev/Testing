@@ -14,9 +14,11 @@ import googleAlertsRoutes from './routes/googleAlerts.js';
 import scriptsRoutes from './routes/scripts.js';
 import emailRoutes from './routes/email.js';
 import coldEmailRoutes from './routes/coldEmail.js';
+import coldEmailSystemRoutes from './routes/coldEmailSystem.js';
 import analyticsRoutes from './routes/analytics.js';
 import youtubeChannelsRoutes from './routes/youtubeChannels.js';
 import youtubeScriptsRoutes from './routes/youtubeScripts.js';
+import { startBackgroundJobs } from './services/emailScheduler.js';
 
 dotenv.config();
 
@@ -60,6 +62,7 @@ app.use('/api/google-alerts', googleAlertsRoutes);
 app.use('/api/scripts', scriptsRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/cold-email', coldEmailRoutes);
+app.use('/api/cold-email-system', coldEmailSystemRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/youtube-channels', youtubeChannelsRoutes);
 app.use('/api/youtube-scripts', youtubeScriptsRoutes);
@@ -90,6 +93,11 @@ app.use('*', (req, res) => {
 // Start server
 const startServer = async () => {
   await connectToMongoDB();
+  
+  // Start background jobs for email system
+  if (isMongoConnected) {
+    startBackgroundJobs();
+  }
 
   const server = app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);

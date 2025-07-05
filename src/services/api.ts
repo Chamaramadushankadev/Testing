@@ -153,4 +153,24 @@ export const analyticsAPI = {
   getTasksAnalytics: () => api.get('/analytics/tasks'),
 };
 
+// ---------------- YOUTUBE CHANNELS ----------------
+export const youtubeChannelsAPI = {
+  getAll: (params?: any) => api.get('/youtube-channels', { params }),
+  getById: (id: string) => api.get(`/youtube-channels/${id}`),
+  create: (data: any) => api.post('/youtube-channels', data),
+  update: (id: string, data: any) => api.put(`/youtube-channels/${id}`, data),
+  delete: (id: string) => api.delete(`/youtube-channels/${id}`),
+};
+
+// ---------------- YOUTUBE SCRIPTS ----------------
+export const youtubeScriptsAPI = {
+  getAll: (params?: any) => api.get('/youtube-scripts', { params }),
+  getById: (id: string) => api.get(`/youtube-scripts/${id}`),
+  getByChannel: (channelId: string, params?: any) => api.get(`/youtube-scripts/channel/${channelId}`, { params }),
+  create: (data: any) => api.post('/youtube-scripts', data),
+  update: (id: string, data: any) => api.put(`/youtube-scripts/${id}`, data),
+  delete: (id: string) => api.delete(`/youtube-scripts/${id}`),
+  generate: (data: any) => api.post('/youtube-scripts/generate', data),
+};
+
 export default api;

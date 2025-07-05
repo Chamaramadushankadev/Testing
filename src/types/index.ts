@@ -66,12 +66,35 @@ export interface Article {
 
 export interface YouTubeScript {
   id: string;
+  channelId: string;
   title: string;
   content: string;
   tone: 'witty' | 'emotional' | 'informative' | 'casual';
   source: string;
   createdAt: Date;
+  updatedAt: Date;
   keywords: string[];
+  wordCount: number;
+  estimatedDuration: number;
+  isGenerated: boolean;
+  generationPrompt?: string;
+  status: 'draft' | 'ready' | 'used';
+  tags: string[];
+  notes: string;
+}
+
+export interface YouTubeChannel {
+  id: string;
+  name: string;
+  channelId?: string;
+  description: string;
+  url?: string;
+  subscriberCount: number;
+  isActive: boolean;
+  color: string;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Email {

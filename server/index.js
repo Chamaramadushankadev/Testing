@@ -16,6 +16,8 @@ import scriptsRoutes from './routes/scripts.js';
 import emailRoutes from './routes/email.js';
 import coldEmailRoutes from './routes/coldEmail.js';
 import analyticsRoutes from './routes/analytics.js';
+import youtubeChannelsRoutes from './routes/youtubeChannels.js';
+import youtubeScriptsRoutes from './routes/youtubeScripts.js';
 
 dotenv.config();
 
@@ -100,6 +102,8 @@ app.use('/api/scripts', scriptsRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/cold-email', coldEmailRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/youtube-channels', youtubeChannelsRoutes);
+app.use('/api/youtube-scripts', youtubeScriptsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

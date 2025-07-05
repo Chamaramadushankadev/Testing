@@ -59,6 +59,9 @@ export const GoalsManager: React.FC = () => {
     try {
       await goalsAPI.delete(goalId);
       setGoals(goals.filter(g => g._id !== goalId));
+      if (selectedGoal && selectedGoal._id === goalId) {
+        setSelectedGoal(null);
+      }
     } catch (error) {
       console.error('Error deleting goal:', error);
     }
@@ -155,10 +158,21 @@ export const GoalsManager: React.FC = () => {
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(goal.status)}`}>
                     {goal.status}
                   </span>
-                  <button onClick={() => { setEditingGoal(goal); setShowAddGoal(true); }}>
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setEditingGoal(goal); 
+                      setShowAddGoal(true); 
+                    }}
+                  >
                     <Pencil className="w-4 h-4 text-gray-500 hover:text-blue-600" />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleDeleteGoal(goal._id); }}>
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      handleDeleteGoal(goal._id); 
+                    }}
+                  >
                     <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-600" />
                   </button>
                 </div>
@@ -216,7 +230,7 @@ export const GoalsManager: React.FC = () => {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Add/Edit Goal Modal */}
       {showAddGoal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
@@ -259,7 +273,7 @@ export const GoalsManager: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+
       {/* Goal Detail Modal */}
       {selectedGoal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -400,5 +414,6 @@ export const GoalsManager: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
   );
 };

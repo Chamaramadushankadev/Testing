@@ -20,8 +20,9 @@ const transformScript = (script) => {
 // Get all scripts for user
 router.get('/', authenticate, async (req, res) => {
   try {
+    console.log('📝 Fetching YouTube scripts for user:', req.user.email, '(ID:', req.user._id, ')');
     const { channelId, tone, status, search } = req.query;
-    const filter = { userId: req.user._id };
+    const filter = { userId: req.user._id }; // Ensure user-specific filtering
 
     if (channelId && channelId !== 'all') {
       if (!mongoose.Types.ObjectId.isValid(channelId)) {
@@ -45,6 +46,7 @@ router.get('/', authenticate, async (req, res) => {
     }
 
     const scripts = await query.sort({ createdAt: -1 });
+    console.log(`✅ Found ${scripts.length} YouTube scripts for user ${req.user.email}`);
     const transformedScripts = scripts.map(transformScript);
     res.json(transformedScripts);
   } catch (error) {
@@ -79,6 +81,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // Create new script
 router.post('/', authenticate, async (req, res) => {
   try {
+    console.log('📝 Creating YouTube script for user:', req.user.email, '(ID:', req.user._id, ')');
     const { 
       channelId, 
       title, 
@@ -111,7 +114,7 @@ router.post('/', authenticate, async (req, res) => {
       status: status || 'draft',
       tags: tags || [],
       notes: notes || '',
-      userId: req.user._id,
+      userId: req.user._id, // Ensure user ID is set
       isGenerated: false
     };
 
@@ -119,6 +122,7 @@ router.post('/', authenticate, async (req, res) => {
     await script.save();
     await script.populate('channelId', 'name color');
     
+    console.log('✅ YouTube script created successfully for user:', req.user.email);
     res.status(201).json(transformScript(script));
   } catch (error) {
     console.error('Error creating script:', error);
@@ -174,7 +178,7 @@ router.put('/:id', authenticate, async (req, res) => {
     }
 
     const script = await YouTubeScript.findOneAndUpdate(
-      { _id: id, userId: req.user._id },
+      { _id: id, userId: req.user._id }, // Ensure user owns the script
       updateData,
       { new: true, runValidators: true }
     ).populate('channelId', 'name color');
@@ -201,6 +205,7 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     const script = await YouTubeScript.findOneAndDelete({ _id: id, userId: req.user._id });
     if (!script) {
+      console.log('❌ YouTube script not found or access denied');
       return res.status(404).json({ message: 'Script not found' });
     }
     

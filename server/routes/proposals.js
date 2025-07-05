@@ -149,8 +149,9 @@ router.delete('/categories/:id', authenticate, async (req, res) => {
 // GET all proposals for the authenticated user with optional filters
 router.get('/', authenticate, async (req, res) => {
   try {
+    console.log('📄 Fetching proposals for user:', req.user.email, '(ID:', req.user._id, ')');
     const { category, status, priority, tags, search } = req.query;
-    const filter = { userId: req.user._id };
+    const filter = { userId: req.user._id }; // Ensure user-specific filtering
 
     if (category && category !== 'all' && category !== '') {
       filter.category = category;
@@ -178,6 +179,7 @@ router.get('/', authenticate, async (req, res) => {
     }
 
     const proposals = await query.sort({ updatedAt: -1 });
+    console.log(`✅ Found ${proposals.length} proposals for user ${req.user.email}`);
     const transformedProposals = proposals.map(transformProposal);
     res.json(transformedProposals);
   } catch (error) {
@@ -214,6 +216,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // POST create a new proposal
 router.post('/', authenticate, async (req, res) => {
   try {
+    console.log('📄 Creating proposal for user:', req.user.email, '(ID:', req.user._id, ')');
     const { 
       title, 
       content, 
@@ -236,12 +239,13 @@ router.post('/', authenticate, async (req, res) => {
       clientName: clientName || '',
       projectValue: projectValue || undefined,
       deadline: deadline ? new Date(deadline) : undefined,
-      userId: req.user._id
+      userId: req.user._id // Ensure user ID is set
     };
 
     const newProposal = new Proposal(proposalData);
     await newProposal.save();
     
+    console.log('✅ Proposal created successfully for user:', req.user.email);
     res.status(201).json(transformProposal(newProposal));
   } catch (error) {
     console.error('Error creating proposal:', error);
@@ -282,7 +286,7 @@ router.put('/:id', authenticate, async (req, res) => {
     };
 
     const updatedProposal = await Proposal.findOneAndUpdate(
-      { _id: id, userId: req.user._id },
+      { _id: id, userId: req.user._id }, // Ensure user owns the proposal
       updateData,
       { new: true, runValidators: true }
     );
@@ -309,7 +313,7 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     const deletedProposal = await Proposal.findOneAndDelete({
       _id: id,
-      userId: req.user._id
+      userId: req.user._id // Ensure user owns the proposal
     });
 
     if (!deletedProposal) {

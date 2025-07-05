@@ -21,8 +21,9 @@ const transformNote = (note) => {
 // GET all notes for the authenticated user with optional filters
 router.get('/', authenticate, async (req, res) => {
   try {
+    console.log('📝 Fetching notes for user:', req.user.email, '(ID:', req.user._id, ')');
     const { goalId, tags, search } = req.query;
-    const filter = { userId: req.user._id };
+    const filter = { userId: req.user._id }; // Ensure user-specific filtering
 
     if (goalId && goalId !== 'all' && goalId !== '') {
       filter.goalId = goalId;
@@ -43,6 +44,7 @@ router.get('/', authenticate, async (req, res) => {
     }
 
     const notes = await query.sort({ updatedAt: -1 });
+    console.log(`✅ Found ${notes.length} notes for user ${req.user.email}`);
     const transformedNotes = notes.map(transformNote);
     res.json(transformedNotes);
   } catch (error) {
@@ -61,15 +63,18 @@ router.get('/:id', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Invalid note ID format' });
     }
 
+    console.log('📝 Fetching note', id, 'for user:', req.user.email);
     const note = await Note.findOne({
       _id: id,
-      userId: req.user._id
+      userId: req.user._id // Ensure user owns the note
     }).populate('goalId', 'title');
 
     if (!note) {
+      console.log('❌ Note not found or access denied');
       return res.status(404).json({ message: 'Note not found' });
     }
 
+    console.log('✅ Note found for user');
     res.json(transformNote(note));
   } catch (error) {
     console.error('Error fetching note:', error);
@@ -82,10 +87,11 @@ router.post('/', authenticate, async (req, res) => {
   try {
     const { title, content, goalId, tags } = req.body;
 
+    console.log('📝 Creating note for user:', req.user.email, '(ID:', req.user._id, ')');
     const noteData = {
       title,
       content,
-      userId: req.user._id,
+      userId: req.user._id, // Ensure user ID is set
       tags: tags || []
     };
 
@@ -101,6 +107,7 @@ router.post('/', authenticate, async (req, res) => {
     await newNote.save();
     await newNote.populate('goalId', 'title');
     
+    console.log('✅ Note created successfully for user:', req.user.email);
     res.status(201).json(transformNote(newNote));
   } catch (error) {
     console.error('Error creating note:', error);
@@ -119,6 +126,7 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Invalid note ID format' });
     }
 
+    console.log('📝 Updating note', id, 'for user:', req.user.email);
     const updateData = {
       title,
       content,
@@ -136,15 +144,17 @@ router.put('/:id', authenticate, async (req, res) => {
     }
 
     const updatedNote = await Note.findOneAndUpdate(
-      { _id: id, userId: req.user._id },
+      { _id: id, userId: req.user._id }, // Ensure user owns the note
       updateData,
       { new: true, runValidators: true }
     ).populate('goalId', 'title');
 
     if (!updatedNote) {
+      console.log('❌ Note not found or access denied');
       return res.status(404).json({ message: 'Note not found' });
     }
 
+    console.log('✅ Note updated successfully');
     res.json(transformNote(updatedNote));
   } catch (error) {
     console.error('Error updating note:', error);
@@ -162,15 +172,18 @@ router.delete('/:id', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Invalid note ID format' });
     }
 
+    console.log('📝 Deleting note', id, 'for user:', req.user.email);
     const deletedNote = await Note.findOneAndDelete({
       _id: id,
-      userId: req.user._id
+      userId: req.user._id // Ensure user owns the note
     });
 
     if (!deletedNote) {
+      console.log('❌ Note not found or access denied');
       return res.status(404).json({ message: 'Note not found' });
     }
 
+    console.log('✅ Note deleted successfully');
     res.json({ message: 'Note deleted successfully' });
   } catch (error) {
     console.error('Error deleting note:', error);
@@ -188,12 +201,14 @@ router.patch('/:id/favorite', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Invalid note ID format' });
     }
 
+    console.log('📝 Toggling favorite for note', id, 'for user:', req.user.email);
     const note = await Note.findOne({
       _id: id,
-      userId: req.user._id
+      userId: req.user._id // Ensure user owns the note
     });
 
     if (!note) {
+      console.log('❌ Note not found or access denied');
       return res.status(404).json({ message: 'Note not found' });
     }
 
@@ -201,6 +216,7 @@ router.patch('/:id/favorite', authenticate, async (req, res) => {
     await note.save();
     await note.populate('goalId', 'title');
 
+    console.log('✅ Note favorite status toggled successfully');
     res.json(transformNote(note));
   } catch (error) {
     console.error('Error toggling favorite:', error);

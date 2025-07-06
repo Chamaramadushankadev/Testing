@@ -436,18 +436,31 @@ export const ProposalsManager: React.FC = () => {
                   >
                     <CategoryIcon className="w-5 h-5" />
                   </div>
-                  {!category.isDefault && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingCategory(category);
-                        setShowAddCategory(true);
-                      }}
-                      className="text-gray-400 hover:text-blue-600 transition-colors"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                    </button>
-                  )}
+                  <div className="flex items-center space-x-1">
+                    {!category.isDefault && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingCategory(category);
+                            setShowAddCategory(true);
+                          }}
+                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCategory(category.id);
+                          }}
+                          className="text-gray-400 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <h4 className="font-medium text-gray-900 text-sm">{category.name}</h4>
                 <p className="text-xs text-gray-500 mt-1">{count} proposals</p>

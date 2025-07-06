@@ -220,8 +220,8 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
   return (
     <div className="p-6 space-y-6">
       {/* Header Actions */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-        <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -229,16 +229,16 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
               placeholder="Search tasks..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+              className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Filter className="w-4 h-4 text-gray-500" />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -249,7 +249,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
             <select
               value={filterPriority}
               onChange={(e) => setFilterPriority(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Priority</option>
               <option value="high">High</option>
@@ -260,7 +260,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
             <select
               value={filterGoal}
               onChange={(e) => setFilterGoal(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Goals</option>
               {goals.map(goal => (
@@ -270,11 +270,11 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
           </div>
         </div>
         
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+        <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
+          <div className="flex items-center bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+              className={`flex-1 px-3 py-1 rounded text-sm font-medium transition-colors ${
                 viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
               }`}
             >
@@ -282,7 +282,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
             </button>
             <button
               onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+              className={`flex-1 px-3 py-1 rounded text-sm font-medium transition-colors ${
                 viewMode === 'kanban' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
               }`}
             >
@@ -295,7 +295,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
               setEditingTask(null);
               setShowAddTask(true);
             }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
           >
             <Plus className="w-4 h-4" />
             <span>Add Task</span>
@@ -304,7 +304,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
       </div>
 
       {/* Task Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Tasks', value: filteredTasks.length, color: 'bg-blue-500' },
           { label: 'Pending', value: tasksByStatus.pending.length, color: 'bg-gray-500' },
@@ -328,7 +328,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
       {/* Tasks Display */}
       {viewMode === 'list' ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">All Tasks</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">All Tasks ({filteredTasks.length})</h3>
           <div className="space-y-0">
             {filteredTasks.length > 0 ? (
               filteredTasks.map((task) => (
@@ -349,7 +349,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                     setEditingTask(null);
                     setShowAddTask(true);
                   }}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto"
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 mx-auto"
                 >
                   <Plus className="w-5 h-5" />
                   <span>Create Your First Task</span>
@@ -359,7 +359,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {Object.entries(tasksByStatus).map(([status, statusTasks]) => (
             <div key={status} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
@@ -401,8 +401,8 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
               }}
               className="space-y-6"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
+              <div className="grid grid-cols-1 gap-6">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Task Title</label>
                   <input
                     type="text"
@@ -414,7 +414,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                   />
                 </div>
                 
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                   <textarea
                     name="description"
@@ -425,7 +425,8 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                   />
                 </div>
 
-                <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Associated Goal</label>
                   <select 
                     name="goalId"
@@ -437,9 +438,8 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                       <option key={goal.id} value={goal.id}>{goal.title}</option>
                     ))}
                   </select>
-                </div>
-
-                <div>
+                  </div>
+                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
                   <select 
                     name="priority"
@@ -450,9 +450,11 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                     <option value="medium">Medium Priority</option>
                     <option value="high">High Priority</option>
                   </select>
+                  </div>
                 </div>
 
-                <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                   <select 
                     name="status"
@@ -463,9 +465,8 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                     <option value="in-progress">In Progress</option>
                     <option value="completed">Completed</option>
                   </select>
-                </div>
-
-                <div>
+                  </div>
+                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
                   <input
                     type="datetime-local"
@@ -474,20 +475,21 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex space-x-3 pt-6 border-t border-gray-200">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => { setShowAddTask(false); setEditingTask(null); }}
-                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {editingTask ? 'Update Task' : 'Create Task'}
                 </button>

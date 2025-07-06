@@ -181,8 +181,8 @@ export const NotesManager: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-        <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -190,16 +190,16 @@ export const NotesManager: React.FC = () => {
               placeholder="Search notes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+              className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Filter className="w-4 h-4 text-gray-500" />
             <select
               value={filterGoal}
               onChange={(e) => setFilterGoal(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Goals</option>
               <option value="">Personal Notes</option>
@@ -211,7 +211,7 @@ export const NotesManager: React.FC = () => {
             <select
               value={filterTag}
               onChange={(e) => setFilterTag(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Tags</option>
               {allTags.map(tag => (
@@ -221,11 +221,11 @@ export const NotesManager: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+        <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
+          <div className="flex items-center bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+              className={`flex-1 px-3 py-1 rounded text-sm font-medium transition-colors ${
                 viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
               }`}
             >
@@ -233,7 +233,7 @@ export const NotesManager: React.FC = () => {
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+              className={`flex-1 px-3 py-1 rounded text-sm font-medium transition-colors ${
                 viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
               }`}
             >
@@ -243,7 +243,7 @@ export const NotesManager: React.FC = () => {
           
           <button
             onClick={() => setShowAddNote(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
           >
             <Plus className="w-4 h-4" />
             <span>Add Note</span>
@@ -252,7 +252,7 @@ export const NotesManager: React.FC = () => {
       </div>
 
       {/* Notes Grid/List */}
-      <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+      <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
         {filteredNotes.length > 0 ? (
           filteredNotes.map((note) => (
             <NoteCard key={note.id} note={note} />
@@ -348,7 +348,7 @@ export const NotesManager: React.FC = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Associated Goal</label>
                   <select 
@@ -386,7 +386,7 @@ export const NotesManager: React.FC = () => {
                 />
               </div>
 
-              <div className="flex space-x-3 pt-6 border-t border-gray-200">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => {
@@ -395,13 +395,13 @@ export const NotesManager: React.FC = () => {
                     setEditingNote(null);
                     setSelectedNote(null);
                   }}
-                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {isEditing ? 'Update Note' : 'Create Note'}
                 </button>

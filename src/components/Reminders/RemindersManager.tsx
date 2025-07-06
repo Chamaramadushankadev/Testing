@@ -147,13 +147,13 @@ export const RemindersManager: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Types</option>
               <option value="goal">Goal Reminders</option>
@@ -164,7 +164,7 @@ export const RemindersManager: React.FC = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -178,7 +178,7 @@ export const RemindersManager: React.FC = () => {
             setEditingReminder(null);
             setShowAddReminder(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
         >
           <Plus className="w-4 h-4" />
           <span>Add Reminder</span>
@@ -186,7 +186,7 @@ export const RemindersManager: React.FC = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Reminders', value: filteredReminders.length, color: 'bg-blue-500' },
           { label: 'Pending', value: filteredReminders.filter(r => !r.isCompleted).length, color: 'bg-orange-500' },
@@ -207,9 +207,9 @@ export const RemindersManager: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Upcoming Reminders */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:col-span-1">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <AlertCircle className="w-5 h-5 mr-2 text-orange-600" />
             Upcoming Reminders
@@ -253,7 +253,7 @@ export const RemindersManager: React.FC = () => {
         </div>
 
         {/* All Reminders */}
-        <div className="lg:col-span-2">
+        <div className="md:col-span-2">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">All Reminders</h3>
             <div className="space-y-4">
@@ -368,7 +368,7 @@ export const RemindersManager: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
                   <select 
@@ -463,20 +463,20 @@ export const RemindersManager: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex space-x-3 pt-6 border-t border-gray-200">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddReminder(false);
                     setEditingReminder(null);
                   }}
-                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {editingReminder ? 'Update Reminder' : 'Create Reminder'}
                 </button>

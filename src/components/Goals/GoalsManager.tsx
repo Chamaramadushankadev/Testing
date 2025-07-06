@@ -104,8 +104,8 @@ export const GoalsManager: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -113,15 +113,15 @@ export const GoalsManager: React.FC = () => {
               placeholder="Search goals..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-64"
+              className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
             />
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Filter className="w-4 h-4 text-gray-500" />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -132,7 +132,7 @@ export const GoalsManager: React.FC = () => {
         </div>
         <button
           onClick={() => { setShowAddGoal(true); setEditingGoal(null); }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+          className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
         >
           <Plus className="w-4 h-4" />
           <span>Add Goal</span>
@@ -140,7 +140,7 @@ export const GoalsManager: React.FC = () => {
       </div>
 
       {/* Goals List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredGoals.length > 0 ? (
           filteredGoals.map(goal => (
             <div 
@@ -152,7 +152,7 @@ export const GoalsManager: React.FC = () => {
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center space-x-2 max-w-[70%]">
                   <Target className="w-5 h-5 text-blue-600 shrink-0" />
-                  <h3 className="text-lg font-semibold text-gray-900 truncate">{goal.title}</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{goal.title}</h3>
                 </div>
                 <div className="flex items-center space-x-2">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(goal.status)}`}>
@@ -178,7 +178,7 @@ export const GoalsManager: React.FC = () => {
                 </div>
               </div>
 
-              <p className="text-gray-600 text-sm line-clamp-2 whitespace-pre-line">{goal.description}</p>
+              <p className="text-gray-600 text-sm line-clamp-2">{goal.description}</p>
 
               {/* Progress */}
               <div>
@@ -195,7 +195,7 @@ export const GoalsManager: React.FC = () => {
               <div className="flex justify-between items-center text-xs pt-2">
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-500">
+                  <span className="text-gray-500 whitespace-nowrap">
                     Due {new Date(goal.dueDate).toLocaleDateString()}
                   </span>
                 </div>
@@ -210,7 +210,7 @@ export const GoalsManager: React.FC = () => {
                   <span className="text-gray-500">{goal.tasks?.length || 0} tasks</span>
                 </div>
                 <span className="text-gray-300">•</span>
-                <span className="text-gray-500">{goal.category}</span>
+                <span className="text-gray-500 truncate">{goal.category}</span>
               </div>
             </div>
           ))
@@ -221,7 +221,7 @@ export const GoalsManager: React.FC = () => {
             <p className="mb-6">Try changing filters or create a new goal.</p>
             <button
               onClick={() => { setEditingGoal(null); setShowAddGoal(true); }}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center space-x-2 mx-auto"
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2 mx-auto"
             >
               <Plus className="w-5 h-5" />
               <span>Create Goal</span>
@@ -244,28 +244,73 @@ export const GoalsManager: React.FC = () => {
               className="space-y-4"
             >
               <input type="hidden" name="id" defaultValue={editingGoal?._id} />
-              <input type="text" name="title" required placeholder="Title" defaultValue={editingGoal?.title || ''} className="w-full border rounded-lg px-3 py-2" />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input 
+                  type="text" 
+                  name="title" 
+                  required 
+                  placeholder="Title" 
+                  defaultValue={editingGoal?.title || ''} 
+                  className="w-full border rounded-lg px-3 py-2" 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
               <textarea 
                 name="description" 
                 rows={6} 
                 placeholder="Description (line breaks will be preserved)" 
                 defaultValue={editingGoal?.description || ''} 
-                className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
               />
-              <input type="text" name="category" placeholder="Category" defaultValue={editingGoal?.category || ''} className="w-full border rounded-lg px-3 py-2" />
-              <div className="grid grid-cols-2 gap-4">
-                <select name="priority" defaultValue={editingGoal?.priority || 'low'} className="w-full border rounded-lg px-3 py-2">
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <input 
+                  type="text" 
+                  name="category" 
+                  placeholder="Category" 
+                  defaultValue={editingGoal?.category || ''} 
+                  className="w-full border rounded-lg px-3 py-2" 
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <select 
+                    name="priority" 
+                    defaultValue={editingGoal?.priority || 'low'} 
+                    className="w-full border rounded-lg px-3 py-2"
+                  >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
-                </select>
-                <input type="date" name="dueDate" required defaultValue={editingGoal?.dueDate?.slice(0, 10)} className="w-full border rounded-lg px-3 py-2" />
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                  <input 
+                    type="date" 
+                    name="dueDate" 
+                    required 
+                    defaultValue={editingGoal?.dueDate?.slice(0, 10)} 
+                    className="w-full border rounded-lg px-3 py-2" 
+                  />
+                </div>
               </div>
-              <div className="flex justify-between pt-4">
-                <button type="button" onClick={() => { setShowAddGoal(false); setEditingGoal(null); }} className="px-4 py-2 border rounded-lg">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:justify-between sm:space-y-0 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => { setShowAddGoal(false); setEditingGoal(null); }} 
+                  className="w-full sm:w-auto px-4 py-2 border rounded-lg"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button 
+                  type="submit" 
+                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
                   {editingGoal ? 'Update' : 'Add Goal'}
                 </button>
               </div>
@@ -277,21 +322,21 @@ export const GoalsManager: React.FC = () => {
       {/* Goal Detail Modal */}
       {selectedGoal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl p-4 sm:p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 min-w-0">
                 <div 
                   className="p-2 rounded-lg"
                   style={{ backgroundColor: '#3B82F6' + '20', color: '#3B82F6' }}
                 >
                   <Target className="w-6 h-6" />
                 </div>
-                <div>
-                  <h3 className="text-2xl font-semibold text-gray-900">{selectedGoal.title}</h3>
+                <div className="min-w-0">
+                  <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">{selectedGoal.title}</h3>
                   <p className="text-sm text-gray-600">{selectedGoal.category}</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 flex-shrink-0">
                 <button
                   onClick={() => {
                     setEditingGoal(selectedGoal);
@@ -320,8 +365,8 @@ export const GoalsManager: React.FC = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-              <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+              <div className="xl:col-span-2">
                 <h4 className="font-medium text-gray-900 mb-3">Description</h4>
                 <div className="prose max-w-none">
                   <div className="whitespace-pre-line text-gray-700 leading-relaxed">
@@ -388,24 +433,24 @@ export const GoalsManager: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-              <div className="text-sm text-gray-500">
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 pt-6 border-t border-gray-200">
+              <div className="text-sm text-gray-500 order-2 sm:order-1">
                 Created {new Date(selectedGoal.createdAt).toLocaleDateString()}
               </div>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 order-1 sm:order-2">
                 <button
                   onClick={() => {
                     setEditingGoal(selectedGoal);
                     setShowAddGoal(true);
                     setSelectedGoal(null);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Edit Goal
                 </button>
                 <button
                   onClick={() => setSelectedGoal(null)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Close
                 </button>

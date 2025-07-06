@@ -176,6 +176,8 @@ export const YouTubeScripts: React.FC = () => {
       if (activeChannelId === channelId) {
         setActiveChannelId(channels.length > 1 ? channels.find(c => c.id !== channelId)?.id || 'all' : 'all');
       }
+      // Reload scripts after deleting channel
+      await loadScripts();
     } catch (error) {
       console.error('Error deleting channel:', error);
     }
@@ -288,6 +290,31 @@ export const YouTubeScripts: React.FC = () => {
               >
                 <span>{channel.name}</span>
                 <span className="text-xs opacity-75">({scripts.filter(s => s.channelId === channel.id).length})</span>
+                {activeChannelId === channel.id && (
+                  <div className="flex items-center space-x-1 ml-2">
+                    {!channel.isDefault && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingChannel(channel);
+                          setShowAddChannel(true);
+                        }}
+                        className="text-gray-400 hover:text-blue-600 transition-colors"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteChannel(channel.id);
+                      }}
+                      className="text-gray-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </button>
             ))}
           </div>
@@ -305,7 +332,7 @@ export const YouTubeScripts: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 pb-4">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 pb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -313,16 +340,16 @@ export const YouTubeScripts: React.FC = () => {
               placeholder="Search scripts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+              className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Filter className="w-4 h-4 text-gray-500" />
             <select
               value={filterTone}
               onChange={(e) => setFilterTone(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Tones</option>
               {toneOptions.map(option => (
@@ -333,7 +360,7 @@ export const YouTubeScripts: React.FC = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="draft">Draft</option>
@@ -344,7 +371,7 @@ export const YouTubeScripts: React.FC = () => {
           
           <button
             onClick={loadScripts}
-            className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+            className="w-full sm:w-auto bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm"
           >
             Apply Filters
           </button>
@@ -352,7 +379,7 @@ export const YouTubeScripts: React.FC = () => {
       </div>
 
       {/* Scripts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {scripts.length > 0 ? (
           scripts.map((script) => (
             <div key={script.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -413,7 +440,7 @@ export const YouTubeScripts: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {script.keywords.slice(0, 2).map((keyword, index) => (
                     <div key={index} className="flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                       <Tag className="w-3 h-3 mr-1" />
@@ -426,7 +453,7 @@ export const YouTubeScripts: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 pt-4 border-t border-gray-200">
                 <div className="text-xs text-gray-500">
                   Source: {script.source}
                 </div>
@@ -471,14 +498,14 @@ export const YouTubeScripts: React.FC = () => {
               <div className="flex items-center justify-center space-x-4">
                 <button
                   onClick={() => setShowAddScript(true)}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
                 >
                   <Plus className="w-5 h-5" />
                   <span>Add Script</span>
                 </button>
                 <button
                   onClick={() => setShowGenerator(true)}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all flex items-center space-x-2"
+                  className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all flex items-center justify-center space-x-2"
                 >
                   <Wand2 className="w-5 h-5" />
                   <span>Generate with AI</span>
@@ -659,7 +686,7 @@ export const YouTubeScripts: React.FC = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
                   <select
@@ -698,7 +725,7 @@ export const YouTubeScripts: React.FC = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Keywords (comma-separated)</label>
                   <input
@@ -733,20 +760,20 @@ export const YouTubeScripts: React.FC = () => {
                 />
               </div>
 
-              <div className="flex space-x-3 pt-6 border-t border-gray-200">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddScript(false);
                     setEditingScript(null);
                   }}
-                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {editingScript ? 'Update Script' : 'Create Script'}
                 </button>
@@ -783,7 +810,7 @@ export const YouTubeScripts: React.FC = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">YouTube Channel ID (optional)</label>
                   <input
@@ -818,7 +845,7 @@ export const YouTubeScripts: React.FC = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Channel URL (optional)</label>
                   <input
@@ -852,20 +879,20 @@ export const YouTubeScripts: React.FC = () => {
                 />
               </div>
 
-              <div className="flex space-x-3 pt-6 border-t border-gray-200">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddChannel(false);
                     setEditingChannel(null);
                   }}
-                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {editingChannel ? 'Update Channel' : 'Create Channel'}
                 </button>

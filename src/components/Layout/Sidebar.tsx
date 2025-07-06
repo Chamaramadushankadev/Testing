@@ -35,7 +35,7 @@ const menuItems = [
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   return (
-    <div className="w-64 bg-white shadow-lg border-r border-gray-200 h-full overflow-y-auto">
+    <div className="hidden lg:block w-64 bg-white shadow-lg border-r border-gray-200 h-full overflow-y-auto">
       <div className="p-6 border-b border-gray-200">
         <h1 className="text-2xl font-bold text-gray-900">ProductivePro</h1>
         <p className="text-sm text-gray-600 mt-1">Your AI-Powered Workspace</p>

@@ -24,6 +24,10 @@ export const ProposalsManager: React.FC = () => {
     loadData();
   }, []);
 
+  useEffect(() => {
+    loadProposals();
+  }, [filterCategory, filterStatus, filterPriority, searchTerm]);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -39,6 +43,22 @@ export const ProposalsManager: React.FC = () => {
       setCategories([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadProposals = async () => {
+    try {
+      const params: any = {};
+      if (filterCategory !== 'all') params.category = filterCategory;
+      if (filterStatus !== 'all') params.status = filterStatus;
+      if (filterPriority !== 'all') params.priority = filterPriority;
+      if (searchTerm) params.search = searchTerm;
+
+      const response = await proposalsAPI.getAll(params);
+      setProposals(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error('Error loading proposals:', error);
+      setProposals([]);
     }
   };
 
@@ -152,6 +172,9 @@ export const ProposalsManager: React.FC = () => {
     } catch (error) {
       console.error('Error saving category:', error);
     }
+    
+    // Reload data to get updated categories
+    await loadData();
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
@@ -167,6 +190,8 @@ export const ProposalsManager: React.FC = () => {
     try {
       await proposalsAPI.deleteCategory(categoryId);
       setCategories(categories.filter(cat => cat.id !== categoryId));
+      // Reload data to ensure consistency
+      await loadData();
     } catch (error) {
       console.error('Error deleting category:', error);
     }
@@ -297,8 +322,8 @@ export const ProposalsManager: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-        <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -306,16 +331,16 @@ export const ProposalsManager: React.FC = () => {
               placeholder="Search proposals..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+              className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Filter className="w-4 h-4 text-gray-500" />
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Categories</option>
               {categories.map(category => (
@@ -326,7 +351,7 @@ export const ProposalsManager: React.FC = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="draft">Draft</option>
@@ -339,7 +364,7 @@ export const ProposalsManager: React.FC = () => {
             <select
               value={filterPriority}
               onChange={(e) => setFilterPriority(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Priority</option>
               <option value="high">High</option>
@@ -349,22 +374,22 @@ export const ProposalsManager: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
           <button
             onClick={() => {
               setEditingCategory(null);
               setShowAddCategory(true);
             }}
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+            className="w-full sm:w-auto bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
           >
             <Settings className="w-4 h-4" />
             <span>Manage Categories</span>
           </button>
 
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+              className={`flex-1 sm:flex-none px-3 py-1 rounded text-sm font-medium transition-colors ${
                 viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
               }`}
             >
@@ -372,7 +397,7 @@ export const ProposalsManager: React.FC = () => {
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+              className={`flex-1 sm:flex-none px-3 py-1 rounded text-sm font-medium transition-colors ${
                 viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
               }`}
             >
@@ -382,7 +407,7 @@ export const ProposalsManager: React.FC = () => {
           
           <button
             onClick={() => setShowAddProposal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
           >
             <Plus className="w-4 h-4" />
             <span>Add Proposal</span>
@@ -393,7 +418,7 @@ export const ProposalsManager: React.FC = () => {
       {/* Categories Overview */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Categories</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           {categories.map((category) => {
             const CategoryIcon = getCategoryIcon(category.icon);
             const count = proposals.filter(p => p.category === category.name).length;
@@ -433,7 +458,7 @@ export const ProposalsManager: React.FC = () => {
       </div>
 
       {/* Proposals Grid/List */}
-      <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+      <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
         {filteredProposals.length > 0 ? (
           filteredProposals.map((proposal) => (
             <ProposalCard key={proposal.id} proposal={proposal} />
@@ -451,7 +476,7 @@ export const ProposalsManager: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div 
                   className="p-2 rounded-lg"
                   style={{ 
@@ -462,11 +487,11 @@ export const ProposalsManager: React.FC = () => {
                   {React.createElement(getCategoryIcon(getCategoryInfo(selectedProposal.category)?.icon || 'folder'), { className: "w-5 h-5" })}
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900">{selectedProposal.title}</h3>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">{selectedProposal.title}</h3>
                   <p className="text-sm text-gray-600">{selectedProposal.category}</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 flex-shrink-0">
                 <button
                   onClick={() => {
                     setEditingProposal(selectedProposal);
@@ -491,8 +516,8 @@ export const ProposalsManager: React.FC = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-              <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+              <div className="xl:col-span-2">
                 <div className="prose max-w-none">
                   <div className="whitespace-pre-line">{selectedProposal.content}</div>
                 </div>
@@ -541,15 +566,15 @@ export const ProposalsManager: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 pt-6 border-t border-gray-200">
+              <div className="flex flex-wrap gap-2 order-2 sm:order-1">
                 {selectedProposal.tags.map((tag, index) => (
                   <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                     {tag}
                   </span>
                 ))}
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 order-1 sm:order-2">
                 Updated {format(new Date(selectedProposal.updatedAt), 'MMM dd, yyyy')}
               </div>
             </div>
@@ -588,7 +613,7 @@ export const ProposalsManager: React.FC = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                   <select 
@@ -645,7 +670,7 @@ export const ProposalsManager: React.FC = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Client Name</label>
                   <input
@@ -692,7 +717,7 @@ export const ProposalsManager: React.FC = () => {
                 />
               </div>
 
-              <div className="flex space-x-3 pt-6 border-t border-gray-200">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => {
@@ -701,13 +726,13 @@ export const ProposalsManager: React.FC = () => {
                     setEditingProposal(null);
                     setSelectedProposal(null);
                   }}
-                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {isEditing ? 'Update Proposal' : 'Create Proposal'}
                 </button>
@@ -755,7 +780,7 @@ export const ProposalsManager: React.FC = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
                   <input
@@ -784,14 +809,14 @@ export const ProposalsManager: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex space-x-3 pt-6 border-t border-gray-200">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddCategory(false);
                     setEditingCategory(null);
                   }}
-                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
@@ -799,14 +824,14 @@ export const ProposalsManager: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleDeleteCategory(editingCategory.id)}
-                    className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    className="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                   >
                     Delete
                   </button>
                 )}
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {editingCategory ? 'Update Category' : 'Create Category'}
                 </button>

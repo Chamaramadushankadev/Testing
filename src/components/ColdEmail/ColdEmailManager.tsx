@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import { Send, Users, Settings, BarChart3, Plus, Search, Filter, Mail, Trash2, Edit3, Eye, Download, Upload, RefreshCw, FileText, ChevronRight, ArrowUpRight } from 'lucide-react';
   Mail, 
   Send, 
   Users, 
@@ -99,6 +99,7 @@ export const ColdEmailManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'accounts' | 'leads' | 'campaigns' | 'templates' | 'inbox'>('dashboard');
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [totalLeads, setTotalLeads] = useState(0);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,9 +107,25 @@ export const ColdEmailManager: React.FC = () => {
   const [showAddLead, setShowAddLead] = useState(false);
   const [showAddCampaign, setShowAddCampaign] = useState(false);
   const [showAddTemplate, setShowAddTemplate] = useState(false);
+  const [showImportLeads, setShowImportLeads] = useState(false);
+  const [showLeadDetails, setShowLeadDetails] = useState(false);
+  const [showAddTemplate, setShowAddTemplate] = useState(false);
   const [editingAccount, setEditingAccount] = useState<EmailAccount | null>(null);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvPreview, setCsvPreview] = useState<any>(null);
+  const [csvMapping, setCsvMapping] = useState<any>({});
+  const [importTags, setImportTags] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [leadsPerPage, setLeadsPerPage] = useState(10);
+  const [filterLeadStatus, setFilterLeadStatus] = useState('all');
+  const [filterLeadTag, setFilterLeadTag] = useState('all');
+  const [searchLeadTerm, setSearchLeadTerm] = useState('');
+  const [analyticsTimeRange, setAnalyticsTimeRange] = useState('month');
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -120,15 +137,13 @@ export const ColdEmailManager: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [accountsRes, leadsRes, campaignsRes, templatesRes] = await Promise.all([
+      const [accountsResponse, campaignsResponse, templatesResponse] = await Promise.all([
         coldEmailAPI.getAccounts(),
-        coldEmailAPI.getLeads(),
         coldEmailAPI.getCampaigns(),
         coldEmailAPI.getTemplates()
       ]);
       
       setAccounts(accountsRes.data || []);
-      setLeads(leadsRes.data?.leads || []);
       setCampaigns(campaignsRes.data || []);
       setTemplates(templatesRes.data || []);
     } catch (error) {
@@ -198,6 +213,7 @@ export const ColdEmailManager: React.FC = () => {
       if (editingLead) {
         const response = await coldEmailAPI.updateLead(editingLead.id, leadData);
         setLeads(leads.map(l => l.id === editingLead.id ? response.data : l));
+        setSelectedLead(null);
       } else {
         const response = await coldEmailAPI.createLead(leadData);
         setLeads([response.data, ...leads]);
@@ -287,7 +303,7 @@ export const ColdEmailManager: React.FC = () => {
   const DashboardView = () => (
     <div className="space-y-6">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
           { label: 'Email Accounts', value: accounts.length, icon: Mail, color: 'bg-blue-500' },
           { label: 'Total Leads', value: leads.length, icon: Users, color: 'bg-green-500' },
@@ -446,7 +462,7 @@ export const ColdEmailManager: React.FC = () => {
               <option value="replied">Replied</option>
               <option value="interested">Interested</option>
               <option value="not-interested">Not Interested</option>
-            </select>
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           </div>
         </div>
         
@@ -463,7 +479,7 @@ export const ColdEmailManager: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -472,13 +488,14 @@ export const ColdEmailManager: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredLeads.map((lead) => (
                 <tr key={lead.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
+                      <div className="col-span-3 sm:col-span-1">
                       <div className="text-sm font-medium text-gray-900">
                         {lead.firstName} {lead.lastName}
                       </div>
@@ -533,7 +550,7 @@ export const ColdEmailManager: React.FC = () => {
 
   const TemplatesView = () => (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <h3 className="text-lg font-semibold text-gray-900">Email Templates</h3>
         <button
           onClick={() => {
@@ -625,7 +642,7 @@ export const ColdEmailManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Tab Navigation */}
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 mb-6">
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8 overflow-x-auto">
           {[
@@ -634,7 +651,7 @@ export const ColdEmailManager: React.FC = () => {
             { id: 'leads', label: 'Leads', icon: Users },
             { id: 'campaigns', label: 'Campaigns', icon: Send },
             { id: 'templates', label: 'Templates', icon: FileText }
-          ].map((tab) => {
+            { id: 'analytics', label: 'Analytics', icon: BarChart3 },
             const Icon = tab.icon;
             return (
               <button
@@ -659,6 +676,7 @@ export const ColdEmailManager: React.FC = () => {
       {activeTab === 'accounts' && <AccountsView />}
       {activeTab === 'leads' && <LeadsView />}
       {activeTab === 'templates' && <TemplatesView />}
+      {activeTab === 'analytics' && <AnalyticsTab />}
 
       {/* Add/Edit Account Modal */}
       {showAddAccount && (
@@ -674,7 +692,7 @@ export const ColdEmailManager: React.FC = () => {
                 handleAddAccount(formData);
               }}
               className="space-y-6"
-            >
+            <form onSubmit={(e) => { e.preventDefault(); const formData = new FormData(e.currentTarget); handleAddOrUpdateAccount(formData); }} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Account Name</label>
@@ -682,6 +700,7 @@ export const ColdEmailManager: React.FC = () => {
                     type="text"
                     name="name"
                     defaultValue={editingAccount?.name || ''}
+                    required
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., Primary Outreach"
                     required
@@ -694,6 +713,7 @@ export const ColdEmailManager: React.FC = () => {
                     type="email"
                     name="email"
                     defaultValue={editingAccount?.email || ''}
+                    required
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="outreach@yourdomain.com"
                     required
@@ -707,6 +727,7 @@ export const ColdEmailManager: React.FC = () => {
                   <select
                     name="provider"
                     defaultValue={editingAccount?.provider || 'namecheap'}
+                    required
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="namecheap">Namecheap</option>
@@ -722,6 +743,7 @@ export const ColdEmailManager: React.FC = () => {
                     type="number"
                     name="dailyLimit"
                     defaultValue={editingAccount?.dailyLimit || 50}
+                    required
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     min="1"
                     max="200"
@@ -769,6 +791,7 @@ export const ColdEmailManager: React.FC = () => {
                     type="password"
                     name="smtpPassword"
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
                     placeholder="Your email password"
                   />
                 </div>
@@ -1180,6 +1203,22 @@ export const ColdEmailManager: React.FC = () => {
                       </span>
                     ))}
                   </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setEditingLead(lead); setShowAddLead(true); }}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDeleteLead(lead.id); }}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
                 </div>
               )}
               
@@ -1201,6 +1240,683 @@ export const ColdEmailManager: React.FC = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+          <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Leads Found</h3>
+          <p className="text-gray-600 mb-6">
+            {searchLeadTerm || filterLeadStatus !== 'all' || filterLeadTag !== 'all'
+              ? 'No leads match your current filters. Try adjusting your search or filters.'
+              : 'Add your first lead to get started with cold email campaigns.'}
+          </p>
+          <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 justify-center">
+            <button
+              onClick={() => { setEditingLead(null); setShowAddLead(true); }}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 mx-auto"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Lead</span>
+            </button>
+            <button
+              onClick={() => setShowImportLeads(true)}
+              className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2 mx-auto"
+            >
+              <Upload className="w-5 h-5" />
+              <span>Import CSV</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add/Edit Lead Modal */}
+      {showAddLead && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">
+              {editingLead ? 'Edit Lead' : 'Add New Lead'}
+            </h3>
+            <form onSubmit={(e) => { e.preventDefault(); const formData = new FormData(e.currentTarget); handleAddOrUpdateLead(formData); }} className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    defaultValue={editingLead?.firstName || ''}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="John"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    defaultValue={editingLead?.lastName || ''}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  defaultValue={editingLead?.email || ''}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="john.doe@example.com"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
+                  <input
+                    type="text"
+                    name="company"
+                    defaultValue={editingLead?.company || ''}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Acme Inc."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
+                  <input
+                    type="text"
+                    name="jobTitle"
+                    defaultValue={editingLead?.jobTitle || ''}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Marketing Manager"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Industry</label>
+                  <input
+                    type="text"
+                    name="industry"
+                    defaultValue={editingLead?.industry || ''}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Technology"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                  <input
+                    type="url"
+                    name="website"
+                    defaultValue={editingLead?.website || ''}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://example.com"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tags (comma-separated)</label>
+                <input
+                  type="text"
+                  name="tags"
+                  defaultValue={editingLead?.tags.join(', ') || ''}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., saas, marketing, high-priority"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select
+                  name="status"
+                  defaultValue={editingLead?.status || 'new'}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="new">New</option>
+                  <option value="contacted">Contacted</option>
+                  <option value="opened">Opened</option>
+                  <option value="replied">Replied</option>
+                  <option value="interested">Interested</option>
+                  <option value="not-interested">Not Interested</option>
+                  <option value="bounced">Bounced</option>
+                  <option value="unsubscribed">Unsubscribed</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                <textarea
+                  name="notes"
+                  rows={3}
+                  defaultValue={editingLead?.notes || ''}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Add any notes about this lead..."
+                />
+              </div>
+
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddLead(false);
+                    setEditingLead(null);
+                  }}
+                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  {editingLead ? 'Update Lead' : 'Add Lead'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add/Edit Campaign Modal */}
+      {showAddCampaign && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">
+              {editingCampaign ? 'Edit Campaign' : 'Create New Campaign'}
+            </h3>
+            <form onSubmit={(e) => { e.preventDefault(); const formData = new FormData(e.currentTarget); handleAddOrUpdateCampaign(formData); }} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Campaign Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  defaultValue={editingCampaign?.name || ''}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Q1 Outreach Campaign"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <textarea
+                  name="description"
+                  rows={3}
+                  defaultValue={editingCampaign?.description || ''}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Describe the purpose of this campaign..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Accounts</label>
+                <select
+                  name="emailAccountIds"
+                  multiple
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  size={3}
+                  required
+                >
+                  {accounts.map(account => (
+                    <option 
+                      key={account.id} 
+                      value={account.id}
+                      selected={editingCampaign?.emailAccountIds.includes(account.id)}
+                    >
+                      {account.name} ({account.email})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple accounts</p>
+              </div>
+
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddCampaign(false);
+                    setEditingCampaign(null);
+                  }}
+                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  {editingCampaign ? 'Update Campaign' : 'Create Campaign'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add/Edit Template Modal */}
+      {showAddTemplate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">
+              {editingTemplate ? 'Edit Template' : 'Create New Template'}
+            </h3>
+            <form onSubmit={(e) => { e.preventDefault(); const formData = new FormData(e.currentTarget); handleAddOrUpdateTemplate(formData); }} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Template Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  defaultValue={editingTemplate?.name || ''}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Initial Outreach"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                  <select
+                    name="category"
+                    defaultValue={editingTemplate?.category || 'cold-outreach'}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="cold-outreach">Cold Outreach</option>
+                    <option value="follow-up">Follow-up</option>
+                    <option value="partnership">Partnership</option>
+                    <option value="sales">Sales</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Industry (optional)</label>
+                  <input
+                    type="text"
+                    name="industry"
+                    defaultValue={editingTemplate?.industry || ''}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., SaaS, Marketing, E-commerce"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Subject Line</label>
+                <input
+                  type="text"
+                  name="subject"
+                  defaultValue={editingTemplate?.subject || ''}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Quick question about {{company}}"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Content</label>
+                <textarea
+                  name="content"
+                  rows={10}
+                  defaultValue={editingTemplate?.content || ''}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  placeholder="Hi {{first_name}},\n\nI noticed {{company}} has been doing some interesting work in {{industry}}..."
+                />
+                <p className="text-xs text-gray-500 mt-1">Use variables like {{first_name}}, {{company}}, etc.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Variables (comma-separated)</label>
+                <input
+                  type="text"
+                  name="variables"
+                  defaultValue={editingTemplate?.variables?.join(', ') || ''}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., first_name, company, industry"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Use Case</label>
+                <input
+                  type="text"
+                  name="useCase"
+                  defaultValue={editingTemplate?.useCase || ''}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Initial outreach to marketing agencies"
+                />
+              </div>
+
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddTemplate(false);
+                    setEditingTemplate(null);
+                  }}
+                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  {editingTemplate ? 'Update Template' : 'Create Template'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Import Leads Modal */}
+      {showImportLeads && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">Import Leads from CSV</h3>
+            
+            {!csvPreview ? (
+              <div className="space-y-6">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">Upload a CSV file with your leads data</p>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleCsvFileChange}
+                    className="hidden"
+                    id="csv-file-input"
+                  />
+                  <label
+                    htmlFor="csv-file-input"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-block cursor-pointer"
+                  >
+                    Select CSV File
+                  </label>
+                </div>
+                
+                <div className="text-sm text-gray-600">
+                  <p className="font-medium mb-2">CSV Format Requirements:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>File must be in CSV format</li>
+                    <li>First row should contain column headers</li>
+                    <li>Required fields: First Name, Last Name, Email</li>
+                    <li>Optional fields: Company, Job Title, Industry, Website, etc.</li>
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                  <p className="text-green-800 font-medium">CSV file loaded successfully</p>
+                  <p className="text-green-700 text-sm">Found {csvPreview.headers.length} columns and {csvPreview.preview.length}+ rows</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">Map CSV Columns to Lead Fields</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                      <select
+                        value={csvMapping.firstName || ''}
+                        onChange={(e) => setCsvMapping({...csvMapping, firstName: e.target.value})}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                      >
+                        <option value="">Select column</option>
+                        {csvPreview.headers.map((header: string) => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                      <select
+                        value={csvMapping.lastName || ''}
+                        onChange={(e) => setCsvMapping({...csvMapping, lastName: e.target.value})}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                      >
+                        <option value="">Select column</option>
+                        {csvPreview.headers.map((header: string) => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                      <select
+                        value={csvMapping.email || ''}
+                        onChange={(e) => setCsvMapping({...csvMapping, email: e.target.value})}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                      >
+                        <option value="">Select column</option>
+                        {csvPreview.headers.map((header: string) => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
+                      <select
+                        value={csvMapping.company || ''}
+                        onChange={(e) => setCsvMapping({...csvMapping, company: e.target.value})}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                      >
+                        <option value="">Select column</option>
+                        {csvPreview.headers.map((header: string) => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tags (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={importTags}
+                    onChange={(e) => setImportTags(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3"
+                    placeholder="e.g., csv-import, leads, outreach"
+                  />
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <h4 className="font-medium text-gray-900 mb-3">Preview</h4>
+                  <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        {csvPreview.headers.map((header: string) => (
+                          <th key={header} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {csvPreview.preview.map((row: any, index: number) => (
+                        <tr key={index}>
+                          {csvPreview.headers.map((header: string) => (
+                            <td key={`${index}-${header}`} className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                              {row[header]}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImportLeads(false);
+                  setCsvFile(null);
+                  setCsvPreview(null);
+                }}
+                className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              {csvPreview && (
+                <button
+                  type="button"
+                  onClick={handleImportCsv}
+                  disabled={!csvMapping.firstName || !csvMapping.lastName || !csvMapping.email}
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Import Leads
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lead Details Modal */}
+      {selectedLead && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Lead Details</h3>
+              <button
+                onClick={() => setSelectedLead(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-bold text-lg">
+                    {selectedLead.firstName.charAt(0)}{selectedLead.lastName.charAt(0)}
+                  </span>
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900">{selectedLead.firstName} {selectedLead.lastName}</h4>
+                  <p className="text-gray-600">{selectedLead.email}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <h5 className="font-medium text-gray-900 mb-3">Contact Information</h5>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Company:</span>
+                      <span className="text-sm font-medium text-gray-900">{selectedLead.company || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Job Title:</span>
+                      <span className="text-sm font-medium text-gray-900">{selectedLead.jobTitle || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Industry:</span>
+                      <span className="text-sm font-medium text-gray-900">{selectedLead.industry || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Website:</span>
+                      <a href={selectedLead.website} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline">
+                        {selectedLead.website || 'N/A'}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h5 className="font-medium text-gray-900 mb-3">Status Information</h5>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Status:</span>
+                      <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                        selectedLead.status === 'interested' ? 'bg-green-100 text-green-800' :
+                        selectedLead.status === 'replied' ? 'bg-blue-100 text-blue-800' :
+                        selectedLead.status === 'opened' ? 'bg-yellow-100 text-yellow-800' :
+                        selectedLead.status === 'bounced' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {selectedLead.status.replace('-', ' ')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Source:</span>
+                      <span className="text-sm font-medium text-gray-900">{selectedLead.source || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Last Contacted:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {selectedLead.lastContactedAt ? new Date(selectedLead.lastContactedAt).toLocaleDateString() : 'Never'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Added:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {new Date(selectedLead.addedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h5 className="font-medium text-gray-900 mb-3">Tags</h5>
+                <div className="flex flex-wrap gap-2">
+                  {selectedLead.tags.map((tag, index) => (
+                    <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                      {tag}
+                    </span>
+                  ))}
+                  {selectedLead.tags.length === 0 && (
+                    <span className="text-sm text-gray-500">No tags</span>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <h5 className="font-medium text-gray-900 mb-3">Notes</h5>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-700 whitespace-pre-line">{selectedLead.notes || 'No notes'}</p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingLead(selectedLead);
+                    setShowAddLead(true);
+                    setSelectedLead(null);
+                  }}
+                  className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Edit Lead
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteLead(selectedLead.id)}
+                  className="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Delete Lead
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedLead(null)}
+                  className="w-full sm:w-auto px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

@@ -118,6 +118,8 @@ export const ColdEmailManager: React.FC = () => {
   const [csvPreview, setCsvPreview] = useState<any>(null);
   const [csvMapping, setCsvMapping] = useState<any>({});
   const [csvTags, setCsvTags] = useState('');
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -203,7 +205,7 @@ export const ColdEmailManager: React.FC = () => {
         name: formData.get('name') as string,
         description: formData.get('description') as string || '',
         emailAccountIds: [formData.get('emailAccountId') as string].filter(Boolean),
-        leadIds: leads.map(l => l.id),
+        leadIds: Array.from(formData.getAll('leadIds')) as string[],
         sequence: [{
           stepNumber: 1,
           subject: formData.get('subject') as string,
@@ -1205,96 +1207,156 @@ export const ColdEmailManager: React.FC = () => {
       )}
 
       {/* Add Campaign Modal */}
-      {showAddCampaign && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Create New Campaign</h3>
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                handleAddCampaign(formData);
-              }}
-              className="space-y-6"
-            >
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Campaign Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="SaaS Outreach Campaign"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea
-                  name="description"
-                  rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe your campaign goals and target audience..."
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email Account</label>
-                <select
-                  name="emailAccountId"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Select an email account</option>
-                  {accounts.filter(a => a.isActive).map(account => (
-                    <option key={account.id} value={account.id}>
-                      {account.name} ({account.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email Subject</label>
-                <input
-                  type="text"
-                  name="subject"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Quick question about {{company}}"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email Content</label>
-                <textarea
-                  name="content"
-                  rows={8}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Hi {{first_name}},&#10;&#10;I noticed {{company}} has been doing some interesting work...&#10;&#10;Best regards,&#10;[Your Name]"
-                  required
-                />
-              </div>
-
-              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setShowAddCampaign(false)}
-                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Create Campaign
-                </button>
-              </div>
-            </form>
-          </div>
+   {showAddCampaign && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <h3 className="text-xl font-semibold text-gray-900 mb-6">Create New Campaign</h3>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
+          handleAddCampaign(formData,selectedLeadIds);
+        }}
+        className="space-y-6"
+      >
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Campaign Name</label>
+          <input
+            type="text"
+            name="name"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="SaaS Outreach Campaign"
+            required
+          />
         </div>
-      )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+          <textarea
+            name="description"
+            rows={3}
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Describe your campaign goals and target audience..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email Account</label>
+          <select
+            name="emailAccountId"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+          >
+            <option value="">Select an email account</option>
+            {accounts.filter(a => a.isActive).map(account => (
+              <option key={account.id} value={account.id}>
+                {account.name} ({account.email})
+              </option>
+            ))}
+          </select>
+        </div>
+
+<div className="relative">
+  <label className="block text-sm font-medium text-gray-700 mb-2">Select Leads</label>
+  <button
+    type="button"
+    onClick={() => setDropdownOpen(!dropdownOpen)}
+    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-left focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  >
+    {selectedLeadIds.length === 0
+      ? 'Choose leads...'
+      : `${selectedLeadIds.length} lead(s) selected`}
+  </button>
+
+  {dropdownOpen && (
+    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+      {leads
+        .filter((lead) =>
+          `${lead.firstName} ${lead.lastName} ${lead.email}`.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .map((lead) => (
+          <label
+            key={lead.id}
+            className="flex items-center px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              value={lead.id}
+              checked={selectedLeadIds.includes(lead.id)}
+              onChange={(e) => {
+                const id = e.target.value;
+                setSelectedLeadIds((prev) =>
+                  e.target.checked
+                    ? [...prev, id]
+                    : prev.filter((lid) => lid !== id)
+                );
+              }}
+              className="mr-2"
+            />
+            {lead.firstName} {lead.lastName} ({lead.email})
+          </label>
+        ))}
+    </div>
+  )}
+
+  {/* Search input inside dropdown */}
+  <div className="mt-2">
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+      <input
+        type="text"
+        placeholder="Search leads..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      />
+    </div>
+  </div>
+</div>
+
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email Subject</label>
+          <input
+            type="text"
+            name="subject"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Quick question about {{company}}"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email Content</label>
+          <textarea
+            name="content"
+            rows={8}
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Hi {{first_name}},&#10;&#10;I noticed {{company}} has been doing some interesting work...&#10;&#10;Best regards,&#10;[Your Name]"
+            required
+          />
+        </div>
+
+        <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={() => setShowAddCampaign(false)}
+            className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Create Campaign
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+
 
       {/* Add Template Modal */}
       {showAddTemplate && (

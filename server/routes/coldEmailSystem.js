@@ -4,10 +4,15 @@ import { EmailAccount, Lead, Campaign, EmailLog, WarmupEmail, InboxSync, EmailTe
 import { authenticate } from '../middleware/auth.js';
 import { sendEmail, syncInbox, generateWarmupContent } from '../services/emailService.js';
 import { scheduleWarmupEmails, scheduleCampaignEmails } from '../services/emailScheduler.js';
+import { verifySMTP } from '../services/verifySMTP.js';
+
 import multer from 'multer';
 import csv from 'csv-parser';
+import nodemailer from 'nodemailer'; 
 import fs from 'fs';
 import path from 'path';
+
+
 
 // Configure multer for CSV uploads
 const upload = multer({
@@ -83,6 +88,10 @@ router.post('/accounts', authenticate, async (req, res) => {
       warmupSettings
     } = req.body;
 
+const smtpResult = await verifySMTP(req.body.smtpSettings);
+if (!smtpResult.success) {
+  return res.status(400).json({ message: 'SMTP login failed: ' + smtpResult.message });
+}
     const accountData = {
       name,
       email,

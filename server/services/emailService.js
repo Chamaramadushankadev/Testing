@@ -91,13 +91,20 @@ export const sendEmail = async (account, emailData) => {
 // Sync inbox for replies and bounces
 export const syncInbox = async (account) => {
   try {
+    const imapHost = account.imapSettings?.host || 'mail.privateemail.com';
+    const imapPort = account.imapSettings?.port || 993;
+    const imapSecure = account.imapSettings?.secure ?? true;
+
+    const smtpUser = account.smtpSettings?.username;
+    const smtpPass = account.smtpSettings?.password;
+
     const client = new ImapFlow({
-      host: account.imapSettings.host,
-      port: account.imapSettings.port,
-      secure: account.imapSettings.secure,
+      host: imapHost,
+      port: imapPort,
+      secure: imapSecure,
       auth: {
-        user: account.smtpSettings.username,
-        pass: account.smtpSettings.password
+        user: smtpUser,
+        pass: smtpPass
       }
     });
 

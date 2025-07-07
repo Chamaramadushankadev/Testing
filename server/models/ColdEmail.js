@@ -16,7 +16,7 @@ const emailAccountSchema = new mongoose.Schema({
   },
   provider: {
     type: String,
-    enum: ['gmail', 'outlook', 'smtp'],
+    enum: ['namecheap', 'gmail', 'outlook', 'smtp'],
     required: true
   },
   smtpSettings: {

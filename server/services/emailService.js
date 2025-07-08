@@ -93,6 +93,10 @@ export const sendEmail = async (account, emailData) => {
 // Sync inbox for replies and bounces
 export const syncInbox = async (account) => {
   try {
+    if (!account || !account.imapSettings || !account.imapSettings.host) {
+      throw new Error('Invalid account or missing IMAP settings');
+    }
+    
     const client = new ImapFlow({
       host: account.imapSettings.host,
       port: account.imapSettings.port,

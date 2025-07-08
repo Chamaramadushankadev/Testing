@@ -4,15 +4,10 @@ import { EmailAccount, Lead, Campaign, EmailLog, WarmupEmail, InboxSync, EmailTe
 import { authenticate } from '../middleware/auth.js';
 import { sendEmail, syncInbox, generateWarmupContent } from '../services/emailService.js';
 import { scheduleWarmupEmails, scheduleCampaignEmails } from '../services/emailScheduler.js';
-import { verifySMTP } from '../services/verifySMTP.js';
-
 import multer from 'multer';
 import csv from 'csv-parser';
-import nodemailer from 'nodemailer'; 
 import fs from 'fs';
 import path from 'path';
-
-
 
 // Configure multer for CSV uploads
 const upload = multer({
@@ -88,10 +83,6 @@ router.post('/accounts', authenticate, async (req, res) => {
       warmupSettings
     } = req.body;
 
-const smtpResult = await verifySMTP(req.body.smtpSettings);
-if (!smtpResult.success) {
-  return res.status(400).json({ message: 'SMTP login failed: ' + smtpResult.message });
-}
     const accountData = {
       name,
       email,
@@ -202,16 +193,24 @@ router.post('/accounts/:id/test', authenticate, async (req, res) => {
     }
 
     // Test SMTP connection
-    const testResult = await sendEmail(account, {
-      to: account.email,
-      subject: 'Test Connection - ProductivePro',
-      content: 'This is a test email to verify your email account connection.'
-    });
+    try {
+      const transporter = createTransporter(account);
+      await new Promise((resolve, reject) => {
+        transporter.verify(function (error, success) {
+          if (error) {
+            console.log('Verification error:', error);
+            reject(error);
+          } else {
+            console.log('Server is ready to take our messages');
+            resolve(success);
+          }
+        });
+      });
 
-    if (testResult.success) {
       res.json({ success: true, message: 'Email account connection successful' });
-    } else {
-      res.status(400).json({ success: false, message: testResult.error });
+    } catch (error) {
+      console.error('SMTP verification error:', error);
+      res.status(400).json({ success: false, message: error.message });
     }
   } catch (error) {
     console.error('Error testing email account:', error);

@@ -4,17 +4,19 @@ import { EmailLog, WarmupEmail, InboxSync, Lead, Campaign } from '../models/Cold
 
 // Create SMTP transporter
 export const createTransporter = (account) => {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: account.smtpSettings.host,
     port: account.smtpSettings.port,
-    secure: account.smtpSettings.secure,
+    secure: account.smtpSettings.port === 465,
     auth: {
       user: account.smtpSettings.username,
       pass: account.smtpSettings.password
     },
-    pool: true,
-    maxConnections: 5,
-    maxMessages: 100
+    tls: {
+      rejectUnauthorized: false
+    },
+    debug: true,
+    logger: true
   });
 };
 
@@ -91,20 +93,13 @@ export const sendEmail = async (account, emailData) => {
 // Sync inbox for replies and bounces
 export const syncInbox = async (account) => {
   try {
-    const imapHost = account.imapSettings?.host || 'mail.privateemail.com';
-    const imapPort = account.imapSettings?.port || 993;
-    const imapSecure = account.imapSettings?.secure ?? true;
-
-    const smtpUser = account.smtpSettings?.username;
-    const smtpPass = account.smtpSettings?.password;
-
     const client = new ImapFlow({
-      host: imapHost,
-      port: imapPort,
-      secure: imapSecure,
+      host: account.imapSettings.host,
+      port: account.imapSettings.port,
+      secure: account.imapSettings.secure,
       auth: {
-        user: smtpUser,
-        pass: smtpPass
+        user: account.smtpSettings.username,
+        pass: account.smtpSettings.password
       }
     });
 

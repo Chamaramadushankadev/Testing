@@ -146,6 +146,11 @@ export const coldEmailAPI = {
   deleteLead: (id: string) => api.delete(`/cold-email-system/leads/${id}`),
   bulkImportLeads: (leads: any[]) => api.post('/cold-email-system/leads/bulk-import', { leads }),
   
+  // Lead Categories
+  getCategories: () => api.get('/cold-email-system/lead-categories'),
+  createCategory: (data: any) => api.post('/cold-email-system/lead-categories', data),
+  deleteCategory: (id: string) => api.delete(`/cold-email-system/lead-categories/${id}`),
+
   // CSV Import
   previewCsv: (file: File) => {
     const formData = new FormData();
@@ -158,7 +163,7 @@ export const coldEmailAPI = {
     const formData = new FormData();
     formData.append('csvFile', file);
     formData.append('mapping', JSON.stringify(mapping));
-    if (tags) formData.append('tags', tags);
+    if (tags) formData.append('categoryId', tags);
     return api.post('/cold-email-system/leads/csv-import', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });

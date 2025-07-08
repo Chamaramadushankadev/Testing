@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { EmailAccount, Lead, Campaign, EmailLog, WarmupEmail, InboxSync, EmailTemplate, InboxMessage, CsvImport } from '../models/ColdEmailSystem.js';
+import LeadCategory from '../models/LeadCategory.js';
 import { authenticate } from '../middleware/auth.js';
 import { sendEmail, syncInbox, generateWarmupContent, createTransporter } from '../services/emailService.js';
 import { scheduleWarmupEmails, scheduleCampaignEmails } from '../services/emailScheduler.js';
@@ -8,6 +9,7 @@ import multer from 'multer';
 import csv from 'csv-parser';
 import fs from 'fs';
 import path from 'path';
+
 
 // Configure multer for CSV uploads
 const upload = multer({
@@ -55,7 +57,28 @@ const transformCampaign = (campaign) => {
     leadIds: campaignObj.leadIds.map(id => id.toString())
   };
 };
+// Lead Categories
+router.get('/categories', authenticate, async (req, res) => {
+  try {
+    const categories = await LeadCategory.find({ userId: req.user._id });
+    res.json(categories);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
+router.post('/categories', authenticate, async (req, res) => {
+  try {
+    const category = new LeadCategory({
+      name: req.body.name,
+      userId: req.user._id
+    });
+    await category.save();
+    res.status(201).json(category);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 // ==================== EMAIL ACCOUNTS ====================
 
 // Get all email accounts
@@ -214,6 +237,53 @@ router.post('/accounts/:id/test', authenticate, async (req, res) => {
     }
   } catch (error) {
     console.error('Error testing email account:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ==================== LEAD CATEGORIES ====================
+
+// Get all lead categories
+router.get('/lead-categories', authenticate, async (req, res) => {
+  try {
+    const categories = await LeadCategory.find({ userId: req.user._id }).sort({ name: 1 });
+    res.json(categories.map(cat => ({
+      id: cat._id.toString(),
+      name: cat.name
+    })));
+  } catch (error) {
+    console.error('Error fetching lead categories:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create lead category
+router.post('/lead-categories', authenticate, async (req, res) => {
+  try {
+    const { name } = req.body;
+    const category = new LeadCategory({
+      name,
+      userId: req.user._id
+    });
+    await category.save();
+    res.status(201).json({
+      id: category._id.toString(),
+      name: category.name
+    });
+  } catch (error) {
+    console.error('Error creating lead category:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete lead category
+router.delete('/lead-categories/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await LeadCategory.findOneAndDelete({ _id: id, userId: req.user._id });
+    res.json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting lead category:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -1087,7 +1157,8 @@ router.post('/leads/csv-import', authenticate, upload.single('csvFile'), async (
                 industry: row[parsedMapping.industry] || '',
                 website: row[parsedMapping.website] || '',
                 source: row[parsedMapping.source] || 'CSV Import',
-                tags: leadTags,
+                categoryId: categoryId && categoryId.trim() ? categoryId.trim() : null,
+                tags: leadTags.slice(1),
                 userId: req.user._id
               };
 

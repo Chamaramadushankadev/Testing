@@ -42,16 +42,16 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
   const handleAddOrUpdateLead = async (formData: FormData) => {
     try {
       const leadData = {
-        firstName: formData.get('firstName') as string,
-        lastName: formData.get('lastName') as string,
-        email: formData.get('email') as string,
-        company: formData.get('company') as string,
-        jobTitle: formData.get('jobTitle') as string,
-        industry: formData.get('industry') as string,
-        website: formData.get('website') as string,
-        category: formData.get('category') as string,
-        tags: (formData.get('tags') as string).split(',').map(t => t.trim()).filter(t => t),
-        notes: formData.get('notes') as string
+        firstName: formData.get('firstName') as string || '',
+        lastName: formData.get('lastName') as string || '',
+        email: formData.get('email') as string || '',
+        company: formData.get('company') as string || '',
+        jobTitle: formData.get('jobTitle') as string || '',
+        industry: formData.get('industry') as string || '',
+        website: formData.get('website') as string || '',
+        category: formData.get('category') as string || '',
+        tags: (formData.get('tags') as string || '').split(',').map(t => t.trim()).filter(t => t),
+        notes: formData.get('notes') as string || ''
       };
 
       if (editingLead) {
@@ -176,7 +176,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
             >
               <option value="all">All Categories</option>
               {leadCategories.map(category => (
-                <option key={category.id} value={category.id}>{category.name}</option>
+                <option key={category.id} value={category.id || category.name}>{category.name}</option>
               ))}
             </select>
             
@@ -421,12 +421,12 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                   <select
                     name="category"
-                    defaultValue={editingLead?.category || ''}
+                    defaultValue={editingLead?.category || selectedCategory || ''}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Select category</option>
                     {leadCategories.map(category => (
-                      <option key={category.id} value={category.id}>{category.name}</option>
+                      <option key={category.id} value={category.id || category.name}>{category.name}</option>
                     ))}
                   </select>
                 </div>
@@ -530,7 +530,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
             {!csvPreview ? (
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File (Required)</label>
                   <input
                     type="file"
                     accept=".csv"
@@ -546,7 +546,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Assign to Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Assign to Category (Required)</label>
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
@@ -554,7 +554,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                     required
                   >
                     <option value="">Select category</option>
-                    {leadCategories.map(category => (
+                    {leadCategories.length > 0 && leadCategories.map(category => (
                       <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
                   </select>
@@ -632,7 +632,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                 <button
                   onClick={handleCsvImport}
                   disabled={!selectedCategory}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Import Leads
                 </button>

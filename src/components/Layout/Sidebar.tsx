@@ -11,7 +11,8 @@ import {
   BarChart3,
   Settings,
   Home,
-  Send
+  Send,
+  Clock
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -26,6 +27,7 @@ const menuItems = [
   { id: 'notes', label: 'Notes', icon: StickyNote },
   { id: 'proposals', label: 'Proposals', icon: FileText },
   { id: 'reminders', label: 'Reminders', icon: Bell },
+  { id: 'pomodoro', label: 'Pomodoro', icon: Clock },
   { id: 'scripts', label: 'YouTube Scripts', icon: Video },
   { id: 'email', label: 'Email', icon: Mail },
   { id: 'cold-email', label: 'Cold Email', icon: Send },

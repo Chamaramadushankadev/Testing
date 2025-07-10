@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { Sidebar } from './components/Layout/Sidebar';
 import { Header } from './components/Layout/Header';
@@ -15,7 +15,8 @@ import { ColdEmailManager } from './components/ColdEmail/ColdEmailManager';
 import { AnalyticsManager } from './components/Analytics/AnalyticsManager';
 import { SettingsManager } from './components/Settings/SettingsManager';
 import { DatabaseStatus } from './components/DatabaseStatus/DatabaseStatus';
-import { Menu, X } from 'lucide-react';
+import PomodoroTimer from './components/PomodoroTimer/PomodoroTimer';
+import { Menu, X, Home, Target, CheckSquare, StickyNote, FileText, Bell, Video, Mail, Send, BarChart3, Settings, Clock } from 'lucide-react';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -47,6 +48,8 @@ function App() {
         return <AnalyticsManager />;
       case 'settings':
         return <SettingsManager />;
+      case 'pomodoro':
+        return <PomodoroTimer />;
       default:
         return <Dashboard />;
     }
@@ -80,7 +83,8 @@ function App() {
                   { id: 'notes', label: 'Notes', icon: StickyNote },
                   { id: 'proposals', label: 'Proposals', icon: FileText },
                   { id: 'reminders', label: 'Reminders', icon: Bell },
-                  { id: 'scripts', label:  'YouTube Scripts', icon: Video },
+                  { id: 'pomodoro', label: 'Pomodoro', icon: Clock },
+                  { id: 'scripts', label: 'YouTube Scripts', icon: Video },
                   { id: 'email', label: 'Email', icon: Mail },
                   { id: 'cold-email', label: 'Cold Email', icon: Send },
                   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
@@ -88,12 +92,12 @@ function App() {
                 ].map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
-                  
+
                   return (
                     <button
                       key={item.id}
                       onClick={() => {
-                        onTabChange(item.id);
+                        setActiveTab(item.id);
                         setSidebarOpen(false);
                       }}
                       className={`w-full flex items-center px-6 py-3 text-left transition-colors duration-200 ${
@@ -111,10 +115,10 @@ function App() {
             </div>
           </div>
         )}
-        
+
         {/* Desktop sidebar */}
         <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        
+
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="lg:hidden flex items-center p-4 border-b border-gray-200">
             <button
@@ -126,9 +130,7 @@ function App() {
             <h1 className="text-xl font-bold text-gray-900">ProductivePro</h1>
           </div>
           <Header activeTab={activeTab} />
-          <main className="flex-1 overflow-y-auto">
-            {renderContent()}
-          </main>
+          <main className="flex-1 overflow-y-auto">{renderContent()}</main>
           <DatabaseStatus />
         </div>
       </div>

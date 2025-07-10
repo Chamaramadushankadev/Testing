@@ -231,7 +231,15 @@ export const googleAlertsAPI = {
 export const analyticsAPI = {
   getDashboard: (params?: any) => api.get('/analytics/dashboard', { params }),
   getGoalsAnalytics: () => api.get('/analytics/goals'),
-  getTasksAnalytics: () => api.get('/analytics/tasks'),
+  getTasksAnalytics: () => api.get('/analytics/tasks')
+};
+
+// ---------------- POMODORO ----------------
+export const pomodoroAPI = {
+  getStats: (date?: string) => api.get('/pomodoro/stats', { params: { date } }),
+  getSessions: (params?: any) => api.get('/pomodoro/sessions', { params }),
+  createSession: (data: any) => api.post('/pomodoro/sessions', data),
+  getAnalytics: (period?: string) => api.get('/pomodoro/analytics', { params: { period } })
 };
 
 // ---------------- YOUTUBE CHANNELS ----------------

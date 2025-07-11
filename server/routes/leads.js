@@ -83,11 +83,15 @@ router.post('/', authenticate, async (req, res) => {
   try {
     const leadData = { ...req.body, userId: req.user._id };
     
-    // Convert category string to ObjectId if it's a valid ObjectId
+    // Handle category field
     if (leadData.category && mongoose.Types.ObjectId.isValid(leadData.category)) {
-      leadData.category = mongoose.Types.ObjectId(leadData.category);
+      leadData.category = new mongoose.Types.ObjectId(leadData.category);
+    } else if (leadData.category === '' || leadData.category === null) {
+      leadData.category = undefined;
     }
 
+    console.log('Creating lead with data:', JSON.stringify(leadData));
+    
     const lead = new Lead(leadData);
     await lead.save();
     
@@ -128,7 +132,7 @@ router.post('/bulk-import', authenticate, async (req, res) => {
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid lead ID format' });
@@ -139,9 +143,10 @@ router.put('/:id', authenticate, async (req, res) => {
       if (mongoose.Types.ObjectId.isValid(updateData.category)) {
         updateData.category = new mongoose.Types.ObjectId(updateData.category);
       }
-    } else if (updateData.category === '') {
-      // If empty string, set to null
-      updateData.category = null;
+    } else if (updateData.category === '' || updateData.category === null) {
+      // If empty string or null, use $unset to remove the field
+      delete updateData.category;
+      updateData.$unset = { category: 1 };
     }
 
     console.log('Updating lead with data:', JSON.stringify(updateData));
@@ -275,9 +280,15 @@ router.post('/csv-import', authenticate, upload.single('csvFile'), async (req, r
                 industry: row[parsedMapping.industry] || '',
                 website: row[parsedMapping.website] || '',
                 source: row[parsedMapping.source] || 'CSV Import',
-                category: categoryId || null,
                 userId: req.user._id
               };
+
+              // Handle category
+              if (categoryId && categoryId.trim() !== '') {
+                if (mongoose.Types.ObjectId.isValid(categoryId)) {
+                  leadData.category = new mongoose.Types.ObjectId(categoryId);
+                }
+              }
 
               // Validate required fields
               if (!leadData.email) {

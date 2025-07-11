@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { EmailAccount, Lead, ColdEmailCampaign } from '../models/ColdEmailIndex.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -63,7 +64,15 @@ router.get('/leads', authenticate, async (req, res) => {
 
     if (status) filter.status = status;
     if (tags) filter.tags = { $in: tags.split(',') };
-    if (category && category !== 'all') filter.category = category;
+    
+    // Handle category filtering
+    if (category && category !== 'all') {
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        filter.category = new mongoose.Types.ObjectId(category);
+      } else {
+        filter.category = category;
+      }
+    }
 
     let query = Lead.find(filter);
 
@@ -79,7 +88,7 @@ router.get('/leads', authenticate, async (req, res) => {
     }
 
     const leads = await query.sort({ createdAt: -1 });
-    res.json(leads);
+    res.json({ leads });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -89,10 +98,14 @@ router.post('/leads', authenticate, async (req, res) => {
   try {
     const leadData = { ...req.body, userId: req.user._id };
     
-    // Convert category string to ObjectId if it's a valid ObjectId
+    // Handle category field
     if (leadData.category && mongoose.Types.ObjectId.isValid(leadData.category)) {
       leadData.category = new mongoose.Types.ObjectId(leadData.category);
+    } else if (leadData.category === '' || leadData.category === null) {
+      delete leadData.category; // Remove the category field if it's empty
     }
+    
+    console.log('Creating lead with data:', JSON.stringify(leadData));
     
     const lead = new Lead(leadData);
     await lead.save();
@@ -104,16 +117,17 @@ router.post('/leads', authenticate, async (req, res) => {
 
 router.put('/leads/:id', authenticate, async (req, res) => {
   try {
-    const updateData = req.body;
+    const updateData = { ...req.body };
     
     // Handle category field
     if (updateData.category) {
       if (mongoose.Types.ObjectId.isValid(updateData.category)) {
         updateData.category = new mongoose.Types.ObjectId(updateData.category);
       }
-    } else if (updateData.category === '') {
-      // If empty string, set to null
-      updateData.category = null;
+    } else if (updateData.category === '' || updateData.category === null) {
+      // If empty string or null, use $unset to remove the field
+      delete updateData.category;
+      updateData.$unset = { category: 1 };
     }
     
     console.log('Updating lead with data:', JSON.stringify(updateData));
@@ -123,6 +137,7 @@ router.put('/leads/:id', authenticate, async (req, res) => {
       updateData,
       { new: true, runValidators: true }
     );
+    
     if (!lead) {
       return res.status(404).json({ message: 'Lead not found' });
     }

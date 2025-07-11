@@ -39,6 +39,10 @@ const leadSchema = new mongoose.Schema({
     default: 50
   },
   source: String,
+  category: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'LeadCategory'
+  },
   lastContactedAt: Date,
   notes: String
 }, {

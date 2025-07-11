@@ -42,7 +42,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
 
   const handleAddOrUpdateLead = async (formData: FormData) => {
     try {
-      const categoryValue = formData.get('category') as string || '';
+      const categoryValue = formData.get('category') as string;
       
       const leadData = {
         firstName: formData.get('firstName') as string || '',
@@ -52,7 +52,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
         jobTitle: formData.get('jobTitle') as string || '',
         industry: formData.get('industry') as string || '',
         website: formData.get('website') as string || '',
-        category: categoryValue.trim() !== '' ? categoryValue : null,
+        category: categoryValue && categoryValue.trim() !== '' ? categoryValue : null,
         tags: (formData.get('tags') as string || '').split(',').map(t => t.trim()).filter(t => t),
         notes: formData.get('notes') as string || ''
       };
@@ -60,7 +60,12 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
       console.log('Sending lead data:', leadData);
 
       if (editingLead) {
-        const response = await coldEmailAPI.updateLead(editingLead.id, leadData);
+        // Force a direct PUT request to ensure it goes through
+        const response = await coldEmailAPI.updateLead(editingLead.id, {
+          ...leadData,
+          // Explicitly handle category to ensure it's properly processed
+          category: leadData.category === null ? '' : leadData.category
+        });
         setLeads(leads.map(lead => lead.id === editingLead.id ? response.data : lead));
         showNotification('success', 'Lead updated successfully');
       } else {

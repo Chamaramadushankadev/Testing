@@ -17,6 +17,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   const [filterAccount, setFilterAccount] = useState<string>('all');
   const [filterRead, setFilterRead] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     loadInbox();
@@ -69,6 +70,35 @@ export const InboxTab: React.FC<InboxTabProps> = ({
     } catch (error: any) {
       console.error('Error starring message:', error);
       showNotification('error', 'Failed to update message');
+    }
+  };
+
+  const handleSyncInbox = async (accountId: string = 'all') => {
+    try {
+      setSyncing(true);
+      showNotification('success', 'Syncing inbox... This may take a moment.');
+      
+      if (accountId === 'all' && emailAccounts.length > 0) {
+        // Sync first account if 'all' is selected
+        accountId = emailAccounts[0].id;
+      }
+      
+      if (!accountId || accountId === 'all') {
+        showNotification('error', 'Please select an account to sync');
+        setSyncing(false);
+        return;
+      }
+      
+      const response = await coldEmailAPI.syncInbox(accountId);
+      showNotification('success', 'Inbox synced successfully');
+      
+      // Reload inbox after sync
+      await loadInbox();
+    } catch (error: any) {
+      console.error('Error syncing inbox:', error);
+      showNotification('error', 'Failed to sync inbox: ' + (error.message || 'Unknown error'));
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -132,11 +162,29 @@ export const InboxTab: React.FC<InboxTabProps> = ({
         </div>
         
         <button
-          onClick={loadInbox}
+          onClick={() => loadInbox()}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
         >
           <Inbox className="w-4 h-4" />
           <span>Refresh Inbox</span>
+        </button>
+        
+        <button
+          onClick={() => handleSyncInbox(filterAccount)}
+          disabled={syncing}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {syncing ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+              <span>Syncing...</span>
+            </>
+          ) : (
+            <>
+              <Mail className="w-4 h-4" />
+              <span>Sync Inbox</span>
+            </>
+          )}
         </button>
       </div>
 

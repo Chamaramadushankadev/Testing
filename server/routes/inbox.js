@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { InboxMessage, EmailAccount } from '../models/ColdEmailSystemIndex.js';
 import { authenticate } from '../middleware/auth.js';
+import { syncInbox } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -168,6 +169,35 @@ router.patch('/:id/labels', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error updating message labels:', error);
     res.status(400).json({ message: error.message });
+  }
+});
+
+// Manually sync inbox
+router.post('/sync/:accountId', authenticate, async (req, res) => {
+  try {
+    const { accountId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(accountId)) {
+      return res.status(400).json({ message: 'Invalid account ID format' });
+    }
+
+    const account = await EmailAccount.findOne({ _id: accountId, userId: req.user._id });
+    if (!account) {
+      return res.status(404).json({ message: 'Email account not found' });
+    }
+
+    console.log('🔄 Manual inbox sync requested for account:', account.email);
+    
+    // Run inbox sync
+    const result = await syncInbox(account);
+    
+    res.json({
+      message: 'Inbox sync completed successfully',
+      result
+    });
+  } catch (error) {
+    console.error('Error syncing inbox:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 

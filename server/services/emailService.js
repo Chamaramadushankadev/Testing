@@ -100,21 +100,34 @@ export const sendEmail = async (account, emailData) => {
 // Sync inbox for replies and bounces
 export const syncInbox = async (account) => {
   try {
-    if (!account || !account.imapSettings || !account.imapSettings.host) {
-      throw new Error('Invalid account or missing IMAP settings');
+    console.log('🔄 Starting inbox sync for account:', account.email);
+    
+    // Use SMTP settings for IMAP if not explicitly provided
+    const imapHost = account.imapSettings?.host || account.smtpSettings.host;
+    const imapPort = account.imapSettings?.port || 993;
+    const imapSecure = account.imapSettings?.secure !== false;
+    
+    if (!account || !imapHost) {
+      throw new Error('Invalid account or missing host settings');
     }
     
     const client = new ImapFlow({
-      host: account.imapSettings.host,
-      port: account.imapSettings.port,
-      secure: account.imapSettings.secure,
+      host: imapHost,
+      port: imapPort,
+      secure: imapSecure,
       auth: {
         user: account.smtpSettings.username,
         pass: account.smtpSettings.password
+      },
+      logger: false,
+      tls: {
+        rejectUnauthorized: false
       }
     });
 
+    console.log('🔌 Connecting to IMAP server:', imapHost);
     await client.connect();
+    console.log('✅ Connected to IMAP server');
 
     // Get inbox sync record
     let inboxSync = await InboxSync.findOne({ emailAccountId: account._id });
@@ -135,22 +148,27 @@ export const syncInbox = async (account) => {
     try {
       // Select INBOX
       await client.mailboxOpen('INBOX');
+      console.log('📬 Opened INBOX mailbox');
 
       // Get messages since last sync
       const searchCriteria = inboxSync.lastUid 
         ? { uid: `${inboxSync.lastUid + 1}:*` }
         : { since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }; // Last 7 days
 
+      console.log('🔍 Searching for messages with criteria:', JSON.stringify(searchCriteria));
+      
       for await (let message of client.fetch(searchCriteria, { 
         envelope: true, 
         bodyStructure: true,
         source: true 
       })) {
         emailsProcessed++;
+        console.log(`📨 Processing message ${emailsProcessed}: ${message.envelope.subject}`);
         
         // Check if this is a reply to our campaign emails
         const isReply = await checkIfReply(message, account);
         if (isReply) {
+          console.log('↩️ Found reply to campaign email');
           repliesFound++;
           await processReply(message, account);
         }
@@ -158,10 +176,14 @@ export const syncInbox = async (account) => {
         // Check if this is a bounce
         const isBounce = await checkIfBounce(message, account);
         if (isBounce) {
+          console.log('↩️ Found bounce notification');
           bouncesFound++;
           await processBounce(message, account);
         }
 
+        // Store the message in the inbox
+        await storeInboxMessage(message, account);
+        
         inboxSync.lastUid = message.uid;
       }
 
@@ -173,11 +195,13 @@ export const syncInbox = async (account) => {
       inboxSync.errorMessage = null;
 
     } catch (error) {
+      console.error('❌ Error during inbox sync:', error);
       inboxSync.syncStatus = 'error';
       inboxSync.errorMessage = error.message;
       throw error;
     } finally {
       await inboxSync.save();
+      console.log('🔌 Closing IMAP connection');
       await client.logout();
     }
 
@@ -196,23 +220,32 @@ export const syncInbox = async (account) => {
 // Check if email is a reply to our campaigns
 const checkIfReply = async (message, account) => {
   try {
+    console.log('🔍 Checking if message is a reply');
     // Check if the In-Reply-To or References headers match our sent emails
     const inReplyTo = message.envelope.inReplyTo;
     const references = message.envelope.references;
 
     if (inReplyTo) {
+      console.log('🔍 Checking In-Reply-To header:', inReplyTo);
       const originalEmail = await EmailLog.findOne({
         emailAccountId: account._id,
         messageId: inReplyTo[0]
       });
+      if (originalEmail) {
+        console.log('✅ Found matching original email by In-Reply-To');
+      }
       return !!originalEmail;
     }
 
     if (references && references.length > 0) {
+      console.log('🔍 Checking References headers:', references);
       const originalEmail = await EmailLog.findOne({
         emailAccountId: account._id,
         messageId: { $in: references }
       });
+      if (originalEmail) {
+        console.log('✅ Found matching original email by References');
+      }
       return !!originalEmail;
     }
 
@@ -226,6 +259,7 @@ const checkIfReply = async (message, account) => {
 // Process reply
 const processReply = async (message, account) => {
   try {
+    console.log('📝 Processing reply message');
     const fromEmail = message.envelope.from[0].address;
     
     // Find the lead
@@ -235,10 +269,12 @@ const processReply = async (message, account) => {
     });
 
     if (lead) {
+      console.log('👤 Found lead:', lead.email);
       // Update lead status
       lead.status = 'replied';
       lead.lastContactedAt = new Date();
       await lead.save();
+      console.log('✅ Updated lead status to replied');
 
       // Find and update the original email log
       const originalEmail = await EmailLog.findOne({
@@ -248,15 +284,19 @@ const processReply = async (message, account) => {
       }).sort({ sentAt: -1 });
 
       if (originalEmail) {
+        console.log('✉️ Found original email log');
         originalEmail.status = 'replied';
         originalEmail.repliedAt = new Date();
         await originalEmail.save();
+        console.log('✅ Updated email log status to replied');
 
         // Update campaign stats
         if (originalEmail.campaignId) {
+          console.log('📊 Updating campaign stats');
           await Campaign.findByIdAndUpdate(originalEmail.campaignId, {
             $inc: { 'stats.replied': 1 }
           });
+          console.log('✅ Campaign stats updated');
         }
       }
     }
@@ -268,6 +308,7 @@ const processReply = async (message, account) => {
 // Check if email is a bounce
 const checkIfBounce = async (message, account) => {
   try {
+    console.log('🔍 Checking if message is a bounce');
     const subject = message.envelope.subject || '';
     const from = message.envelope.from[0].address || '';
 
@@ -282,10 +323,16 @@ const checkIfBounce = async (message, account) => {
       'postmaster'
     ];
 
-    return bounceIndicators.some(indicator => 
+    const isBounce = bounceIndicators.some(indicator => 
       subject.toLowerCase().includes(indicator) || 
       from.toLowerCase().includes(indicator)
     );
+    
+    if (isBounce) {
+      console.log('✅ Message identified as bounce notification');
+    }
+    
+    return isBounce;
   } catch (error) {
     console.error('Error checking if bounce:', error);
     return false;
@@ -295,12 +342,14 @@ const checkIfBounce = async (message, account) => {
 // Process bounce
 const processBounce = async (message, account) => {
   try {
+    console.log('📝 Processing bounce message');
     // Extract the original recipient from bounce message
     // This is a simplified implementation - in production, you'd parse the bounce message more thoroughly
     const subject = message.envelope.subject || '';
     const emailMatch = subject.match(/[\w\.-]+@[\w\.-]+\.\w+/);
     
     if (emailMatch) {
+      console.log('📧 Found bounced email address:', emailMatch[0]);
       const bouncedEmail = emailMatch[0];
       
       // Find the lead
@@ -310,10 +359,12 @@ const processBounce = async (message, account) => {
       });
 
       if (lead) {
+        console.log('👤 Found lead:', lead.email);
         // Update lead status
         lead.status = 'bounced';
         lead.bounceCount = (lead.bounceCount || 0) + 1;
         await lead.save();
+        console.log('✅ Updated lead status to bounced');
 
         // Find and update the original email log
         const originalEmail = await EmailLog.findOne({
@@ -323,21 +374,100 @@ const processBounce = async (message, account) => {
         }).sort({ sentAt: -1 });
 
         if (originalEmail) {
+          console.log('✉️ Found original email log');
           originalEmail.status = 'bounced';
           originalEmail.bouncedAt = new Date();
           await originalEmail.save();
+          console.log('✅ Updated email log status to bounced');
 
           // Update campaign stats
           if (originalEmail.campaignId) {
+            console.log('📊 Updating campaign stats');
             await Campaign.findByIdAndUpdate(originalEmail.campaignId, {
               $inc: { 'stats.bounced': 1 }
             });
+            console.log('✅ Campaign stats updated');
           }
         }
       }
     }
   } catch (error) {
     console.error('Error processing bounce:', error);
+  }
+};
+
+// Store message in inbox
+const storeInboxMessage = async (message, account) => {
+  try {
+    console.log('💾 Storing message in inbox database');
+    
+    // Check if message already exists
+    const existingMessage = await InboxMessage.findOne({
+      messageId: message.envelope.messageId
+    });
+    
+    if (existingMessage) {
+      console.log('⚠️ Message already exists in database');
+      return;
+    }
+    
+    // Parse message content
+    let textContent = '';
+    let htmlContent = '';
+    
+    try {
+      // Try to extract text content
+      const parsed = await message.bodyStructure;
+      if (parsed) {
+        // Simple extraction - in production you'd use a more robust parser
+        const source = await message.source;
+        const sourceStr = source.toString();
+        
+        // Very basic content extraction
+        const textMatch = sourceStr.match(/Content-Type: text\/plain[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--)/i);
+        if (textMatch && textMatch[1]) {
+          textContent = textMatch[1].trim();
+        }
+        
+        const htmlMatch = sourceStr.match(/Content-Type: text\/html[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--)/i);
+        if (htmlMatch && htmlMatch[1]) {
+          htmlContent = htmlMatch[1].trim();
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing message content:', error);
+    }
+    
+    // Create inbox message
+    const inboxMessage = new InboxMessage({
+      userId: account.userId,
+      emailAccountId: account._id,
+      messageId: message.envelope.messageId,
+      threadId: message.envelope.messageId, // Simple implementation - in production you'd use proper threading
+      from: {
+        name: message.envelope.from[0].name || '',
+        email: message.envelope.from[0].address
+      },
+      to: message.envelope.to.map(recipient => ({
+        name: recipient.name || '',
+        email: recipient.address
+      })),
+      subject: message.envelope.subject || '(No Subject)',
+      content: {
+        text: textContent,
+        html: htmlContent
+      },
+      isRead: false,
+      isStarred: false,
+      receivedAt: message.envelope.date || new Date()
+    });
+    
+    await inboxMessage.save();
+    console.log('✅ Message stored in inbox database');
+    
+    return inboxMessage;
+  } catch (error) {
+    console.error('Error storing inbox message:', error);
   }
 };
 

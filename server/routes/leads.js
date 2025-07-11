@@ -29,7 +29,8 @@ const transformLead = (lead) => {
   return {
     ...leadObj,
     id: leadObj._id.toString(),
-    userId: leadObj.userId.toString()
+    userId: leadObj.userId.toString(),
+    category: leadObj.category ? leadObj.category.toString() : null
   };
 };
 
@@ -87,7 +88,7 @@ router.post('/', authenticate, async (req, res) => {
     if (leadData.category && mongoose.Types.ObjectId.isValid(leadData.category)) {
       leadData.category = new mongoose.Types.ObjectId(leadData.category);
     } else if (leadData.category === '' || leadData.category === null) {
-      leadData.category = undefined;
+      delete leadData.category;
     }
 
     console.log('Creating lead with data:', JSON.stringify(leadData));
@@ -199,7 +200,7 @@ router.delete('/category/:categoryId', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Invalid category ID format' });
     }
 
-    // Find all leads in this category
+    // Find and delete all leads in this category
     const result = await Lead.deleteMany({ 
       userId: req.user._id,
       category: new mongoose.Types.ObjectId(categoryId)

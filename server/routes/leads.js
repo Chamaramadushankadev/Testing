@@ -128,16 +128,23 @@ router.post('/bulk-import', authenticate, async (req, res) => {
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = { ...req.body };
+    const updateData = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid lead ID format' });
     }
 
-    // Convert category string to ObjectId if it's a valid ObjectId
-    if (updateData.category && mongoose.Types.ObjectId.isValid(updateData.category)) {
-      updateData.category = new mongoose.Types.ObjectId(updateData.category);
+    // Handle category field
+    if (updateData.category) {
+      if (mongoose.Types.ObjectId.isValid(updateData.category)) {
+        updateData.category = new mongoose.Types.ObjectId(updateData.category);
+      }
+    } else if (updateData.category === '') {
+      // If empty string, set to null
+      updateData.category = null;
     }
+
+    console.log('Updating lead with data:', JSON.stringify(updateData));
 
     const lead = await Lead.findOneAndUpdate(
       { _id: id, userId: req.user._id },
@@ -149,6 +156,7 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Lead not found' });
     }
 
+    console.log('Lead updated successfully:', lead);
     res.json(transformLead(lead));
   } catch (error) {
     console.error('Error updating lead:', error);

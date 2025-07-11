@@ -104,13 +104,20 @@ router.post('/leads', authenticate, async (req, res) => {
 
 router.put('/leads/:id', authenticate, async (req, res) => {
   try {
-    const updateData = { ...req.body };
+    const updateData = req.body;
     
-    // Convert category string to ObjectId if it's a valid ObjectId
-    if (updateData.category && mongoose.Types.ObjectId.isValid(updateData.category)) {
-      updateData.category = mongoose.Types.ObjectId(updateData.category);
+    // Handle category field
+    if (updateData.category) {
+      if (mongoose.Types.ObjectId.isValid(updateData.category)) {
+        updateData.category = new mongoose.Types.ObjectId(updateData.category);
+      }
+    } else if (updateData.category === '') {
+      // If empty string, set to null
+      updateData.category = null;
     }
     
+    console.log('Updating lead with data:', JSON.stringify(updateData));
+
     const lead = await Lead.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id },
       updateData,
@@ -119,6 +126,8 @@ router.put('/leads/:id', authenticate, async (req, res) => {
     if (!lead) {
       return res.status(404).json({ message: 'Lead not found' });
     }
+    
+    console.log('Lead updated successfully:', lead);
     res.json(lead);
   } catch (error) {
     res.status(400).json({ message: error.message });

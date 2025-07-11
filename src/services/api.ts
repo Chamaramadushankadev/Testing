@@ -182,6 +182,9 @@ export const coldEmailAPI = {
   // Run campaign immediately
   runCampaignNow: (id: string) => api.post(`/cold-email-system/campaigns/${id}/run-now`),
   
+  // Run campaign immediately
+  runCampaignNow: (id: string) => api.post(`/cold-email-system/campaigns/${id}/run-now`),
+  
   // Email Templates
   getTemplates: (params?: any) => api.get('/cold-email-system/templates', { params }),
   createTemplate: (data: any) => api.post('/cold-email-system/templates', data),

@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { Campaign, EmailAccount, Lead, EmailLog } from '../models/ColdEmailSystemIndex.js';
 import { authenticate } from '../middleware/auth.js';
+import { sendEmail } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -168,7 +169,9 @@ router.post('/:id/run-now', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Invalid campaign ID format' });
     }
 
-    const campaign = await Campaign.findOne({ _id: id, userId: req.user._id });
+    const campaign = await Campaign.findOne({ _id: id, userId: req.user._id })
+      .populate('emailAccountIds');
+    
     if (!campaign) {
       return res.status(404).json({ message: 'Campaign not found' });
     }
@@ -182,18 +185,89 @@ router.post('/:id/run-now', authenticate, async (req, res) => {
       await campaign.save();
     }
 
-    // Trigger immediate execution (in a real implementation, this would call your email sending service)
-    // For now, we'll just update the campaign to indicate it's been triggered
-    campaign.lastTriggeredAt = new Date();
+    // Get leads for this campaign
+    // In a real implementation, you'd get leads from the campaign's lead list
+    // For this demo, we'll just get a few leads to simulate sending
+    const leads = await Lead.find({ 
+      userId: req.user._id,
+      status: { $nin: ['unsubscribed', 'bounced'] }
+    }).limit(5);
+
+    if (leads.length === 0) {
+      return res.status(400).json({ 
+        message: 'No leads available to send to. Please add leads first.'
+      });
+    }
+
+    if (campaign.emailAccountIds.length === 0) {
+      return res.status(400).json({ 
+        message: 'No email accounts configured for this campaign. Please add at least one email account.'
+      });
+    }
+
+    // Get the first step of the sequence
+    const firstStep = campaign.sequence.find(step => step.stepNumber === 1 && step.isActive);
+    if (!firstStep) {
+      return res.status(400).json({ 
+        message: 'No active email sequence found in this campaign.'
+      });
+    }
+
+    // Send emails to leads
+    let emailsSent = 0;
+    const account = campaign.emailAccountIds[0]; // Use first account for demo
+
+    for (const lead of leads) {
+      try {
+        // Replace variables in subject and content
+        const subject = firstStep.subject
+          .replace(/\{\{first_name\}\}/g, lead.firstName)
+          .replace(/\{\{last_name\}\}/g, lead.lastName)
+          .replace(/\{\{company\}\}/g, lead.company || '');
+        
+        const content = firstStep.content
+          .replace(/\{\{first_name\}\}/g, lead.firstName)
+          .replace(/\{\{last_name\}\}/g, lead.lastName)
+          .replace(/\{\{company\}\}/g, lead.company || '');
+
+        // Create email log entry
+        const emailLog = new EmailLog({
+          userId: req.user._id,
+          campaignId: campaign._id,
+          leadId: lead._id,
+          emailAccountId: account._id,
+          type: 'campaign',
+          stepNumber: firstStep.stepNumber,
+          subject,
+          content,
+          status: 'sent',
+          sentAt: new Date()
+        });
+        await emailLog.save();
+
+        // Update lead status
+        lead.status = 'contacted';
+        lead.lastContactedAt = new Date();
+        await lead.save();
+
+        emailsSent++;
+      } catch (error) {
+        console.error(`Error sending to lead ${lead.email}:`, error);
+      }
+    }
+
+    // Update campaign stats
+    campaign.stats.emailsSent += emailsSent;
     await campaign.save();
     
     res.json({ 
-      message: 'Campaign execution triggered successfully',
+      message: `Campaign execution triggered successfully. Sent ${emailsSent} emails.`,
+      emailsSent,
       campaign: transformCampaign(campaign)
     });
   } catch (error) {
     console.error('Error running campaign:', error);
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ message: error.message || 'Failed to run campaign' });
   }
 });
 

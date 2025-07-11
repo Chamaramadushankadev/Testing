@@ -21,6 +21,7 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
   const [editingCampaign, setEditingCampaign] = useState<any>(null);
   const [showAnalytics, setShowAnalytics] = useState<string | null>(null);
   const [campaignAnalytics, setCampaignAnalytics] = useState<any>(null);
+  const [runningCampaign, setRunningCampaign] = useState<string | null>(null);
 
   const handleAddOrUpdateCampaign = async (formData: FormData) => {
     try {
@@ -131,11 +132,20 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
 
   const handleRunCampaignNow = async (campaignId: string) => {
     try {
+      setRunningCampaign(campaignId);
       const response = await coldEmailAPI.runCampaignNow(campaignId);
-      showNotification('success', 'Campaign execution triggered successfully');
+      
+      // Update campaign in state with new stats
+      if (response.data.campaign) {
+        setCampaigns(campaigns.map(c => c.id === campaignId ? response.data.campaign : c));
+      }
+      
+      showNotification('success', `Campaign execution successful! ${response.data.emailsSent} emails sent.`);
     } catch (error: any) {
       console.error('Error running campaign:', error);
-      showNotification('error', 'Failed to run campaign');
+      showNotification('error', error.message || 'Failed to run campaign');
+    } finally {
+      setRunningCampaign(null);
     }
   };
 
@@ -261,15 +271,25 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
               
               <button
                 onClick={() => handleRunCampaignNow(campaign.id)}
-                className="flex-1 bg-green-100 text-green-800 px-3 py-2 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium flex items-center justify-center space-x-2"
+                disabled={runningCampaign === campaign.id}
+                className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Play className="w-4 h-4" />
-                <span>Run Now</span>
+                {runningCampaign === campaign.id ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    <span>Running...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    <span>Run Now</span>
+                  </>
+                )}
               </button>
               
               <button
                 onClick={() => handleViewAnalytics(campaign.id)}
-                className="flex-1 bg-blue-100 text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium flex items-center justify-center space-x-2"
+                className="flex-1 bg-gray-100 text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium flex items-center justify-center space-x-2"
               >
                 <BarChart3 className="w-4 h-4" />
                 <span>Analytics</span>

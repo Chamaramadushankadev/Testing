@@ -47,7 +47,43 @@ export const sendEmail = async (account, emailData) => {
       from: `${account.name} <${account.email}>`,
       to: emailData.to,
       subject: emailData.subject,
-      html: emailData.content,
+      html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${emailData.subject}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    p {
+      margin-bottom: 16px;
+    }
+    .signature {
+      margin-top: 30px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  ${emailData.content}
+  
+  <div class="signature">
+    ${account.name}<br>
+    ${account.email}
+  </div>
+</body>
+</html>`,
       text: emailData.content.replace(/<[^>]*>/g, ''), // Strip HTML for text version
       headers: {
         'X-Mailer': 'ProductivePro Cold Email System',
@@ -262,10 +298,14 @@ export const syncInbox = async (account) => {
 // Check if email is a reply to our campaigns
 const checkIfReply = async (message, account) => {
   try {
-    console.log('🔍 Checking if message is a reply');
+    console.log('🔍 Checking if message is a reply:', message.envelope?.subject);
     // Check if the In-Reply-To or References headers match our sent emails
-    const inReplyTo = message.envelope.inReplyTo;
-    const references = message.envelope.references;
+    const inReplyTo = message.envelope?.inReplyTo;
+    const references = message.envelope?.references;
+    
+    // Also check subject line for Re: prefix
+    const subject = message.envelope?.subject || '';
+    const isReSubject = subject.toLowerCase().startsWith('re:');
 
     if (inReplyTo) {
       console.log('🔍 Checking In-Reply-To header:', inReplyTo);
@@ -279,7 +319,7 @@ const checkIfReply = async (message, account) => {
       return !!originalEmail;
     }
 
-    if (references && references.length > 0) {
+    if (references?.length > 0) {
       console.log('🔍 Checking References headers:', references);
       const originalEmail = await EmailLog.findOne({
         emailAccountId: account._id,
@@ -290,7 +330,26 @@ const checkIfReply = async (message, account) => {
       }
       return !!originalEmail;
     }
+    
+    // If it has Re: in subject, try to find a matching sent email
+    if (isReSubject) {
+      console.log('🔍 Found Re: prefix in subject, checking for original email');
+      const cleanSubject = subject.replace(/^re:\s*/i, '').trim();
+      
+      // Find sent emails with matching subject
+      const originalEmail = await EmailLog.findOne({
+        emailAccountId: account._id,
+        subject: cleanSubject,
+        status: { $in: ['sent', 'delivered', 'opened'] }
+      });
+      
+      if (originalEmail) {
+        console.log('✅ Found matching original email by subject');
+        return true;
+      }
+    }
 
+    console.log('❌ Not identified as a reply');
     return false;
   } catch (error) {
     console.error('Error checking if reply:', error);
@@ -301,8 +360,13 @@ const checkIfReply = async (message, account) => {
 // Process reply
 const processReply = async (message, account) => {
   try {
-    console.log('📝 Processing reply message');
-    const fromEmail = message.envelope.from[0].address;
+    console.log('📝 Processing reply message:', message.envelope?.subject);
+    const fromEmail = message.envelope?.from?.[0]?.address;
+    
+    if (!fromEmail) {
+      console.log('❌ No from email address found in message');
+      return;
+    }
     
     // Find the lead
     const lead = await Lead.findOne({
@@ -350,9 +414,9 @@ const processReply = async (message, account) => {
 // Check if email is a bounce
 const checkIfBounce = async (message, account) => {
   try {
-    console.log('🔍 Checking if message is a bounce');
-    const subject = message.envelope.subject || '';
-    const from = message.envelope.from[0].address || '';
+    console.log('🔍 Checking if message is a bounce:', message.envelope?.subject);
+    const subject = message.envelope?.subject || '';
+    const from = message.envelope?.from?.[0]?.address || '';
 
     // Common bounce indicators
     const bounceIndicators = [
@@ -441,15 +505,27 @@ const processBounce = async (message, account) => {
 // Store message in inbox
 const storeInboxMessage = async (message, account) => {
   try {
-    console.log('💾 Storing message in inbox database:', message.envelope.messageId);
+    console.log('💾 Storing message in inbox database:', message.envelope?.messageId);
     
     // Import InboxMessage model if not already available
     const { InboxMessage } = await import('../models/ColdEmailSystemIndex.js');
     
     // Check if message already exists
-    const existingMessage = await InboxMessage.findOne({
-      messageId: message.envelope.messageId
-    });
+    let messageId = message.envelope?.messageId;
+    if (!messageId && message.source) {
+      // Try to extract message ID from source if not in envelope
+      const messageIdMatch = message.source.toString().match(/Message-ID:\s*<([^>]+)>/i);
+      if (messageIdMatch && messageIdMatch[1]) {
+        messageId = messageIdMatch[1];
+      }
+    }
+    
+    if (!messageId) {
+      console.log('⚠️ No message ID found, generating a random one');
+      messageId = `generated-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    }
+    
+    const existingMessage = await InboxMessage.findOne({ messageId });
     
     if (existingMessage) {
       console.log('⚠️ Message already exists in database');
@@ -459,24 +535,58 @@ const storeInboxMessage = async (message, account) => {
     // Parse message content
     let textContent = '';
     let htmlContent = '';
+    let from = { name: '', email: '' };
+    let to = [];
+    let subject = '';
+    let receivedDate = new Date();
     
     try {
-      // Try to extract text content
-      const parsed = await message.bodyStructure;
-      if (parsed) {
-        // Simple extraction - in production you'd use a more robust parser
-        const source = await message.source;
-        const sourceStr = source.toString();
+      // Extract message details from envelope or source
+      if (message.envelope) {
+        from = {
+          name: message.envelope.from?.[0]?.name || '',
+          email: message.envelope.from?.[0]?.address || ''
+        };
+        to = message.envelope.to?.map(recipient => ({
+          name: recipient.name || '',
+          email: recipient.address
+        })) || [];
+        subject = message.envelope.subject || '(No Subject)';
+        receivedDate = message.envelope.date || new Date();
+      }
+      
+      // Extract content from source
+      if (message.source) {
+        const sourceStr = message.source.toString();
         
-        // Very basic content extraction
-        const textMatch = sourceStr.match(/Content-Type: text\/plain[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--)/i);
-        if (textMatch && textMatch[1]) {
-          textContent = textMatch[1].trim();
+        // Extract text content
+        const textMatches = sourceStr.match(/Content-Type: text\/plain[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--|\r\n\r\nContent-Type)/i);
+        if (textMatches && textMatches[1]) {
+          textContent = textMatches[1].trim();
         }
         
-        const htmlMatch = sourceStr.match(/Content-Type: text\/html[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--)/i);
-        if (htmlMatch && htmlMatch[1]) {
-          htmlContent = htmlMatch[1].trim();
+        // Extract HTML content
+        const htmlMatches = sourceStr.match(/Content-Type: text\/html[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--|\r\n\r\n$)/i);
+        if (htmlMatches && htmlMatches[1]) {
+          htmlContent = htmlMatches[1].trim();
+        }
+        
+        // If we couldn't extract from envelope, try from headers
+        if (!from.email) {
+          const fromMatch = sourceStr.match(/From:\s*"?([^"<]*)"?\s*<?([^>]*)>?/i);
+          if (fromMatch) {
+            from = {
+              name: fromMatch[1]?.trim() || '',
+              email: fromMatch[2]?.trim() || ''
+            };
+          }
+        }
+        
+        if (!subject) {
+          const subjectMatch = sourceStr.match(/Subject:\s*(.*?)(?:\r\n|\n)/i);
+          if (subjectMatch && subjectMatch[1]) {
+            subject = subjectMatch[1].trim();
+          }
         }
       }
     } catch (error) {
@@ -487,24 +597,18 @@ const storeInboxMessage = async (message, account) => {
     const inboxMessage = new InboxMessage({
       userId: account.userId.toString(),
       emailAccountId: account._id.toString(),
-      messageId: message.envelope.messageId,
-      threadId: message.envelope.messageId, // Simple implementation - in production you'd use proper threading
-      from: {
-        name: message.envelope.from[0].name || '',
-        email: message.envelope.from[0].address
-      },
-      to: message.envelope.to.map(recipient => ({
-        name: recipient.name || '',
-        email: recipient.address
-      })),
-      subject: message.envelope.subject || '(No Subject)',
+      messageId: messageId,
+      threadId: messageId, // Simple implementation - in production you'd use proper threading
+      from: from,
+      to: to,
+      subject: subject,
       content: {
         text: textContent,
         html: htmlContent
       },
       isRead: false,
       isStarred: false,
-      receivedAt: message.envelope.date || new Date()
+      receivedAt: receivedDate
     });
     
     await inboxMessage.save();

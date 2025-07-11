@@ -76,7 +76,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   const handleSyncInbox = async (accountId: string = 'all') => {
     try {
       setSyncing(true);
-      showNotification('success', 'Syncing inbox... This may take a moment');
+      showNotification('success', 'Syncing inbox... This may take a moment. Please wait.');
       
       if (accountId === 'all' && emailAccounts.length > 0) {
         // Sync first account if 'all' is selected
@@ -90,7 +90,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
       }
       
       const response = await coldEmailAPI.syncInbox(accountId);
-      showNotification('success', `Inbox synced successfully. ${response.data.result?.emailsProcessed || 0} emails processed.`);
+      showNotification('success', `Inbox synced successfully. ${response.data.result?.emailsProcessed || 0} emails processed. Refresh to see new messages.`);
       
       // Reload inbox after sync
       await loadInbox();
@@ -309,14 +309,20 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                     <div className="flex items-center space-x-2">
                       <p className="font-medium text-gray-900">
                         {selectedMessage.from.name || selectedMessage.from.email}
-                      </p>
+                      </p> 
                       {selectedMessage.campaignId && (
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                           Campaign
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600">{selectedMessage.from.email}</p>
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">From:</span> {selectedMessage.from.email}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">To:</span> {selectedMessage.to?.map((recipient: any) => 
+                        recipient.email).join(', ') || 'No recipients'}
+                    </p>
                     <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500">
                       <Clock className="w-3 h-3" />
                       <span>{new Date(selectedMessage.receivedAt).toLocaleString()}</span>
@@ -326,7 +332,12 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                 
                 <div className="prose max-w-none">
                   {selectedMessage.content.html ? (
-                    <div dangerouslySetInnerHTML={{ __html: selectedMessage.content.html }} />
+                    <iframe 
+                      srcDoc={selectedMessage.content.html}
+                      title="Email content"
+                      className="w-full min-h-[400px] border-0"
+                      sandbox="allow-same-origin"
+                    />
                   ) : (
                     <div className="whitespace-pre-line">{selectedMessage.content.text}</div>
                   )}

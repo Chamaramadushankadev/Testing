@@ -188,10 +188,22 @@ router.post('/:id/run-now', authenticate, async (req, res) => {
     // Get leads for this campaign
     // In a real implementation, you'd get leads from the campaign's lead list
     // For this demo, we'll just get a few leads to simulate sending
-    const leads = await Lead.find({ 
-      userId: req.user._id,
-      status: { $nin: ['unsubscribed', 'bounced'] }
-    }).limit(5);
+    let leads = [];
+    
+    // If campaign has specific lead categories, use those
+    if (campaign.leadCategories && campaign.leadCategories.length > 0) {
+      leads = await Lead.find({
+        userId: req.user._id,
+        category: { $in: campaign.leadCategories },
+        status: { $nin: ['unsubscribed', 'bounced'] }
+      }).limit(10);
+    } else {
+      // Otherwise get any leads
+      leads = await Lead.find({ 
+        userId: req.user._id,
+        status: { $nin: ['unsubscribed', 'bounced'] }
+      }).limit(10);
+    }
 
     if (leads.length === 0) {
       return res.status(400).json({ 
@@ -222,13 +234,17 @@ router.post('/:id/run-now', authenticate, async (req, res) => {
         // Replace variables in subject and content
         const subject = firstStep.subject
           .replace(/\{\{first_name\}\}/g, lead.firstName)
-          .replace(/\{\{last_name\}\}/g, lead.lastName)
-          .replace(/\{\{company\}\}/g, lead.company || '');
+          .replace(/\{\{last_name\}\}/g, lead.lastName || '')
+          .replace(/\{\{company\}\}/g, lead.company || '')
+          .replace(/\{\{job_title\}\}/g, lead.jobTitle || '')
+          .replace(/\{\{industry\}\}/g, lead.industry || '');
         
         const content = firstStep.content
           .replace(/\{\{first_name\}\}/g, lead.firstName)
-          .replace(/\{\{last_name\}\}/g, lead.lastName)
-          .replace(/\{\{company\}\}/g, lead.company || '');
+          .replace(/\{\{last_name\}\}/g, lead.lastName || '')
+          .replace(/\{\{company\}\}/g, lead.company || '')
+          .replace(/\{\{job_title\}\}/g, lead.jobTitle || '')
+          .replace(/\{\{industry\}\}/g, lead.industry || '');
 
         // Actually send the email
         const emailResult = await sendEmail(account, {

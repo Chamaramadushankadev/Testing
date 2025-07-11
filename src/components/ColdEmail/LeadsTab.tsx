@@ -32,6 +32,8 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
   // Function to get category name from ID
   const getCategoryName = (categoryId: string) => {
     if (!categoryId) return 'Uncategorized';
+    
+    // Find the category by ID
     const category = leadCategories.find(cat => cat.id === categoryId);
     return category ? category.name : 'Uncategorized';
   };
@@ -41,8 +43,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                          lead.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lead.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lead.company?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || lead.category === filterCategory || 
-                           (lead.category && lead.category.toString() === filterCategory);
+    const matchesCategory = filterCategory === 'all' || lead.category === filterCategory;
     const matchesStatus = filterStatus === 'all' || lead.status === filterStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -59,7 +60,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
         jobTitle: formData.get('jobTitle') as string || '',
         industry: formData.get('industry') as string || '',
         website: formData.get('website') as string || '',
-        category: categoryValue && categoryValue.trim() !== '' ? categoryValue : null,
+        category: categoryValue && categoryValue.trim() !== '' ? categoryValue : '',
         tags: (formData.get('tags') as string || '').split(',').map(t => t.trim()).filter(t => t),
         notes: formData.get('notes') as string || ''
       };
@@ -68,11 +69,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
 
       if (editingLead) {
         // Force a direct PUT request to ensure it goes through
-        const response = await coldEmailAPI.updateLead(editingLead.id, {
-          ...leadData,
-          // Explicitly handle category to ensure it's properly processed
-          category: leadData.category === null ? '' : leadData.category
-        });
+        const response = await coldEmailAPI.updateLead(editingLead.id, leadData);
         setLeads(leads.map(lead => lead.id === editingLead.id ? response.data : lead));
         showNotification('success', 'Lead updated successfully');
       } else {
@@ -150,19 +147,18 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
     }
   };
 
-const handleDeleteCategory = async (categoryId: string) => {
-  if (!window.confirm('Are you sure you want to delete this category?')) return;
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (!window.confirm('Are you sure you want to delete this category?')) return;
 
-  try {
-    await coldEmailAPI.deleteCategory(categoryId);
-    setLeadCategories(leadCategories.filter(cat => cat.id !== categoryId));
-    showNotification('success', 'Category deleted successfully');
-  } catch (error: any) {
-    console.error('Error deleting category:', error);
-    showNotification('error', 'Failed to delete category');
-  }
-};
-
+    try {
+      await coldEmailAPI.deleteCategory(categoryId);
+      setLeadCategories(leadCategories.filter(cat => cat.id !== categoryId));
+      showNotification('success', 'Category deleted successfully');
+    } catch (error: any) {
+      console.error('Error deleting category:', error);
+      showNotification('error', 'Failed to delete category');
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -200,7 +196,7 @@ const handleDeleteCategory = async (categoryId: string) => {
             >
               <option value="all">All Categories</option>
               {leadCategories.map(category => (
-                <option key={category.id} value={category.id || category.name}>{category.name}</option>
+                <option key={category.id} value={category.id}>{category.name}</option>
               ))}
             </select>
             
@@ -450,7 +446,7 @@ const handleDeleteCategory = async (categoryId: string) => {
                   >
                     <option value="">Select category</option>
                     {leadCategories.map(category => (
-                      <option key={category.id} value={category.id || category.name}>{category.name}</option>
+                      <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
                   </select>
                 </div>

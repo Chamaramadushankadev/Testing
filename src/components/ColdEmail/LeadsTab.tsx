@@ -42,6 +42,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
 
   const handleAddOrUpdateLead = async (formData: FormData) => {
     try {
+      const categoryValue = formData.get('category') as string;
       const leadData = {
         firstName: formData.get('firstName') as string || '',
         lastName: formData.get('lastName') as string || '',
@@ -50,7 +51,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
         jobTitle: formData.get('jobTitle') as string || '',
         industry: formData.get('industry') as string || '',
         website: formData.get('website') as string || '',
-        category: formData.get('category') as string || undefined,
+        category: categoryValue && categoryValue !== '' ? categoryValue : undefined,
         tags: (formData.get('tags') as string || '').split(',').map(t => t.trim()).filter(t => t),
         notes: formData.get('notes') as string || ''
       };

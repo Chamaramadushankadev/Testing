@@ -87,10 +87,14 @@ router.get('/leads', authenticate, async (req, res) => {
 
 router.post('/leads', authenticate, async (req, res) => {
   try {
-    const lead = new Lead({
-      ...req.body,
-      userId: req.user._id
-    });
+    const leadData = { ...req.body, userId: req.user._id };
+    
+    // Convert category string to ObjectId if it's a valid ObjectId
+    if (leadData.category && mongoose.Types.ObjectId.isValid(leadData.category)) {
+      leadData.category = mongoose.Types.ObjectId(leadData.category);
+    }
+    
+    const lead = new Lead(leadData);
     await lead.save();
     res.status(201).json(lead);
   } catch (error) {
@@ -100,9 +104,16 @@ router.post('/leads', authenticate, async (req, res) => {
 
 router.put('/leads/:id', authenticate, async (req, res) => {
   try {
+    const updateData = { ...req.body };
+    
+    // Convert category string to ObjectId if it's a valid ObjectId
+    if (updateData.category && mongoose.Types.ObjectId.isValid(updateData.category)) {
+      updateData.category = mongoose.Types.ObjectId(updateData.category);
+    }
+    
     const lead = await Lead.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id },
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
     if (!lead) {

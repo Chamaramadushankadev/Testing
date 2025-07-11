@@ -81,10 +81,12 @@ router.get('/', authenticate, async (req, res) => {
 // Create lead
 router.post('/', authenticate, async (req, res) => {
   try {
-    const leadData = {
-      ...req.body,
-      userId: req.user._id
-    };
+    const leadData = { ...req.body, userId: req.user._id };
+    
+    // Convert category string to ObjectId if it's a valid ObjectId
+    if (leadData.category && mongoose.Types.ObjectId.isValid(leadData.category)) {
+      leadData.category = mongoose.Types.ObjectId(leadData.category);
+    }
 
     const lead = new Lead(leadData);
     await lead.save();
@@ -126,14 +128,20 @@ router.post('/bulk-import', authenticate, async (req, res) => {
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
+    const updateData = { ...req.body };
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid lead ID format' });
     }
 
+    // Convert category string to ObjectId if it's a valid ObjectId
+    if (updateData.category && mongoose.Types.ObjectId.isValid(updateData.category)) {
+      updateData.category = mongoose.Types.ObjectId(updateData.category);
+    }
+
     const lead = await Lead.findOneAndUpdate(
       { _id: id, userId: req.user._id },
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 

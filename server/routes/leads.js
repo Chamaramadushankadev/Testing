@@ -259,7 +259,7 @@ router.post('/csv-import', authenticate, upload.single('csvFile'), async (req, r
                 industry: row[parsedMapping.industry] || '',
                 website: row[parsedMapping.website] || '',
                 source: row[parsedMapping.source] || 'CSV Import',
-                categoryId: categoryId || null,
+                category: categoryId || null,
                 userId: req.user._id
               };
 

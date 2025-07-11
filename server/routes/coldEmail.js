@@ -58,11 +58,12 @@ router.delete('/accounts/:id', authenticate, async (req, res) => {
 // Leads Routes
 router.get('/leads', authenticate, async (req, res) => {
   try {
-    const { status, tags, search } = req.query;
+    const { status, tags, search, category } = req.query;
     const filter = { userId: req.user._id };
 
     if (status) filter.status = status;
     if (tags) filter.tags = { $in: tags.split(',') };
+    if (category && category !== 'all') filter.category = category;
 
     let query = Lead.find(filter);
 

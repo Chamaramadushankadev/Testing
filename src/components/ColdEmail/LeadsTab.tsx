@@ -34,7 +34,8 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                          lead.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lead.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lead.company?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || lead.category === filterCategory;
+    const matchesCategory = filterCategory === 'all' || lead.category === filterCategory || 
+                           (lead.category && lead.category.toString() === filterCategory);
     const matchesStatus = filterStatus === 'all' || lead.status === filterStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -49,7 +50,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
         jobTitle: formData.get('jobTitle') as string || '',
         industry: formData.get('industry') as string || '',
         website: formData.get('website') as string || '',
-        category: formData.get('category') as string || '',
+        category: formData.get('category') as string || undefined,
         tags: (formData.get('tags') as string || '').split(',').map(t => t.trim()).filter(t => t),
         notes: formData.get('notes') as string || ''
       };

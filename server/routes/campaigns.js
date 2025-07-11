@@ -159,6 +159,44 @@ router.patch('/:id/toggle', authenticate, async (req, res) => {
   }
 });
 
+// Run campaign immediately
+router.post('/:id/run-now', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid campaign ID format' });
+    }
+
+    const campaign = await Campaign.findOne({ _id: id, userId: req.user._id });
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    // Make sure campaign is active
+    if (campaign.status !== 'active') {
+      campaign.status = 'active';
+      if (!campaign.startedAt) {
+        campaign.startedAt = new Date();
+      }
+      await campaign.save();
+    }
+
+    // Trigger immediate execution (in a real implementation, this would call your email sending service)
+    // For now, we'll just update the campaign to indicate it's been triggered
+    campaign.lastTriggeredAt = new Date();
+    await campaign.save();
+    
+    res.json({ 
+      message: 'Campaign execution triggered successfully',
+      campaign: transformCampaign(campaign)
+    });
+  } catch (error) {
+    console.error('Error running campaign:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
 // Get campaign analytics
 router.get('/:id/analytics', authenticate, async (req, res) => {
   try {

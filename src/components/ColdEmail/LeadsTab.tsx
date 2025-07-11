@@ -164,12 +164,15 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
     if (!window.confirm('Are you sure you want to delete ALL leads in this category? This action cannot be undone.')) return;
     
     try {
-      await coldEmailAPI.deleteCategory(categoryId);
-      setLeadCategories(leadCategories.filter(cat => cat.id !== categoryId));
-      showNotification('success', 'Category deleted successfully');
+      const response = await coldEmailAPI.deleteCategoryLeads(categoryId);
+      showNotification('success', `Successfully deleted ${response.data.deletedCount} leads from this category`);
+      
+      // Reload leads after deletion
+      const leadsResponse = await coldEmailAPI.getLeads();
+      setLeads(leadsResponse.data?.leads || []);
     } catch (error: any) {
-      console.error('Error deleting category:', error);
-      showNotification('error', 'Failed to delete category');
+      console.error('Error deleting category leads:', error);
+      showNotification('error', 'Failed to delete leads in this category');
     }
   };
 
@@ -268,14 +271,14 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
               <div className="flex items-center space-x-1">
                 <button
                   onClick={() => handleDeleteCategoryLeads(category.id)}
-                  className="text-red-600 hover:text-red-800 transition-colors"
+                  className="text-red-600 hover:text-red-800 transition-colors p-1"
                   title="Delete all leads in this category"
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>
                 <button
                   onClick={() => handleDeleteCategory(category.id)}
-                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                  className="text-blue-600 hover:text-blue-800 transition-colors p-1"
                   title="Delete category only"
                 >
                   <Tag className="w-3 h-3" />

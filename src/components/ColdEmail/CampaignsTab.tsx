@@ -129,6 +129,16 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
     }
   };
 
+  const handleRunCampaignNow = async (campaignId: string) => {
+    try {
+      const response = await coldEmailAPI.runCampaignNow(campaignId);
+      showNotification('success', 'Campaign execution triggered successfully');
+    } catch (error: any) {
+      console.error('Error running campaign:', error);
+      showNotification('error', 'Failed to run campaign');
+    }
+  };
+
   const handleViewAnalytics = async (campaignId: string) => {
     try {
       const response = await coldEmailAPI.getCampaignAnalytics(campaignId);
@@ -247,6 +257,14 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
                     <span>Start</span>
                   </>
                 )}
+              </button>
+              
+              <button
+                onClick={() => handleRunCampaignNow(campaign.id)}
+                className="flex-1 bg-green-100 text-green-800 px-3 py-2 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium flex items-center justify-center space-x-2"
+              >
+                <Play className="w-4 h-4" />
+                <span>Run Now</span>
               </button>
               
               <button

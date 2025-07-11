@@ -160,6 +160,19 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
     }
   };
 
+  const handleDeleteCategoryLeads = async (categoryId: string) => {
+    if (!window.confirm('Are you sure you want to delete ALL leads in this category? This action cannot be undone.')) return;
+    
+    try {
+      await coldEmailAPI.deleteCategory(categoryId);
+      setLeadCategories(leadCategories.filter(cat => cat.id !== categoryId));
+      showNotification('success', 'Category deleted successfully');
+    } catch (error: any) {
+      console.error('Error deleting category:', error);
+      showNotification('error', 'Failed to delete category');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'new': return 'bg-blue-100 text-blue-800';
@@ -252,12 +265,22 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
           {leadCategories.map((category) => (
             <div key={category.id} className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
               <span className="text-sm font-medium">{category.name}</span>
-              <button
-                onClick={() => handleDeleteCategory(category.id)}
-                className="text-blue-600 hover:text-blue-800 transition-colors"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => handleDeleteCategoryLeads(category.id)}
+                  className="text-red-600 hover:text-red-800 transition-colors"
+                  title="Delete all leads in this category"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => handleDeleteCategory(category.id)}
+                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                  title="Delete category only"
+                >
+                  <Tag className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           ))}
           {leadCategories.length === 0 && (

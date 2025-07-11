@@ -190,6 +190,33 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
+// Delete all leads in a category
+router.delete('/category/:categoryId', authenticate, async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({ message: 'Invalid category ID format' });
+    }
+
+    // Find all leads in this category
+    const result = await Lead.deleteMany({ 
+      userId: req.user._id,
+      category: new mongoose.Types.ObjectId(categoryId)
+    });
+
+    console.log(`Deleted ${result.deletedCount} leads from category ${categoryId}`);
+    
+    res.json({ 
+      message: `Successfully deleted ${result.deletedCount} leads from this category`,
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Error deleting category leads:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Upload and preview CSV
 router.post('/csv-preview', authenticate, upload.single('csvFile'), async (req, res) => {
   try {

@@ -150,6 +150,7 @@ export const coldEmailAPI = {
   getCategories: () => api.get('/cold-email-system/lead-categories'),
   createCategory: (data: any) => api.post('/cold-email-system/lead-categories', data),
   deleteCategory: (id: string) => api.delete(`/cold-email-system/lead-categories/${id}`),
+  deleteCategoryLeads: (categoryId: string) => api.delete(`/cold-email-system/leads/category/${categoryId}`),
 
   // CSV Import
   previewCsv: (file: File) => {

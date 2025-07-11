@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Star, Search, Filter, Inbox, Clock, Tag, Trash2, Reply } from 'lucide-react';
+import { Mail, Star, Search, Filter, Inbox, Clock, Tag, Trash2, Reply, Send, X } from 'lucide-react';
 import { coldEmailAPI } from '../../services/api';
 
 interface InboxTabProps {
@@ -18,6 +18,9 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   const [filterRead, setFilterRead] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replyContent, setReplyContent] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
 
   useEffect(() => {
     loadInbox();
@@ -99,6 +102,38 @@ export const InboxTab: React.FC<InboxTabProps> = ({
       showNotification('error', 'Failed to sync inbox: ' + (error.message || 'Unknown error'));
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleSendReply = async () => {
+    if (!selectedMessage || !replyContent.trim()) return;
+    
+    try {
+      setSendingReply(true);
+      
+      const replyData = {
+        to: selectedMessage.from.email,
+        subject: selectedMessage.subject.startsWith('Re:') 
+          ? selectedMessage.subject 
+          : `Re: ${selectedMessage.subject}`,
+        content: replyContent,
+        inReplyTo: selectedMessage.messageId,
+        threadId: selectedMessage.threadId || selectedMessage.messageId,
+        accountId: selectedMessage.emailAccountId
+      };
+      
+      const response = await coldEmailAPI.sendReply(replyData);
+      showNotification('success', 'Reply sent successfully');
+      setShowReplyForm(false);
+      setReplyContent('');
+      
+      // Refresh inbox after sending reply
+      await loadInbox();
+    } catch (error: any) {
+      console.error('Error sending reply:', error);
+      showNotification('error', 'Failed to send reply: ' + (error.message || 'Unknown error'));
+    } finally {
+      setSendingReply(false);
     }
   };
 
@@ -287,6 +322,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                   </button>
                   <button
                     className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400"
+                    onClick={() => setShowReplyForm(true)}
                   >
                     <Reply className="w-4 h-4" />
                   </button>
@@ -297,6 +333,76 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                   </button>
                 </div>
               </div>
+              
+              {/* Reply Form */}
+              {showReplyForm && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-medium text-gray-900">Reply</h4>
+                    <button
+                      onClick={() => setShowReplyForm(false)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">To</label>
+                      <input
+                        type="text"
+                        value={selectedMessage.from.email}
+                        readOnly
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-50"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                      <input
+                        type="text"
+                        value={selectedMessage.subject.startsWith('Re:') 
+                          ? selectedMessage.subject 
+                          : `Re: ${selectedMessage.subject}`}
+                        readOnly
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-50"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                      <textarea
+                        rows={8}
+                        value={replyContent}
+                        onChange={(e) => setReplyContent(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Type your reply here..."
+                      />
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleSendReply}
+                        disabled={!replyContent.trim() || sendingReply}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {sendingReply ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                            <span>Sending...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            <span>Send Reply</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="p-6">
                 <div className="flex items-start space-x-4 mb-6">

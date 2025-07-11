@@ -35,7 +35,7 @@ export const createTransporter = (account) => {
 // Send email function
 export const sendEmail = async (account, emailData) => {
   try {
-    console.log('📧 Attempting to send email with account:', account.email);
+    console.log('📧 Attempting to send email with account:', account.email, 'to:', emailData.to);
     
     if (!account.smtpSettings || !account.smtpSettings.host || !account.smtpSettings.username || !account.smtpSettings.password) {
       throw new Error('Invalid SMTP settings. Please check your email account configuration.');
@@ -43,7 +43,7 @@ export const sendEmail = async (account, emailData) => {
     
     const transporter = createTransporter(account);
     
-    const mailOptions = {
+    let mailOptions = {
       from: `${account.name} <${account.email}>`,
       to: emailData.to,
       subject: emailData.subject,
@@ -92,6 +92,15 @@ export const sendEmail = async (account, emailData) => {
       }
     };
 
+    // Add reply headers if this is a reply
+    if (emailData.type === 'reply' && emailData.inReplyTo) {
+      mailOptions.headers = {
+        ...mailOptions.headers,
+        'In-Reply-To': emailData.inReplyTo,
+        'References': emailData.threadId || emailData.inReplyTo
+      };
+    }
+
     // Add tracking pixel if enabled
     if (emailData.trackingEnabled) {
       const trackingPixelId = generateTrackingPixelId();
@@ -101,7 +110,7 @@ export const sendEmail = async (account, emailData) => {
     }
 
     console.log('📧 Sending email:', {
-      from: mailOptions.from,
+      from: account.email,
       to: mailOptions.to,
       subject: mailOptions.subject
     });
@@ -115,7 +124,7 @@ export const sendEmail = async (account, emailData) => {
         userId: account.userId,
         campaignId: emailData.campaignId,
         leadId: emailData.leadId,
-        emailAccountId: account._id,
+        emailAccountId: account._id.toString(),
         type: emailData.type || 'campaign',
         stepNumber: emailData.stepNumber,
         subject: emailData.subject,
@@ -123,6 +132,7 @@ export const sendEmail = async (account, emailData) => {
         status: 'sent',
         sentAt: new Date(),
         trackingPixelId: emailData.trackingPixelId,
+        inReplyTo: emailData.inReplyTo,
         messageId: info.messageId
       });
       await emailLog.save();

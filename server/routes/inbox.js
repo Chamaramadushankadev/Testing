@@ -2,7 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { InboxMessage, EmailAccount } from '../models/ColdEmailSystemIndex.js';
 import { authenticate } from '../middleware/auth.js';
-import { syncInbox } from '../services/emailService.js';
+import { syncInbox, sendEmail } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -212,6 +212,51 @@ router.post('/sync/:accountId', authenticate, async (req, res) => {
     
   } catch (error) {
     console.error('Error syncing inbox:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Send reply to a message
+router.post('/reply', authenticate, async (req, res) => {
+  try {
+    const { to, subject, content, inReplyTo, threadId, accountId } = req.body;
+    
+    if (!to || !subject || !content || !accountId) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(accountId)) {
+      return res.status(400).json({ message: 'Invalid account ID format' });
+    }
+    
+    // Get the email account
+    const account = await EmailAccount.findOne({ _id: accountId, userId: req.user._id });
+    if (!account) {
+      return res.status(404).json({ message: 'Email account not found' });
+    }
+    
+    // Send the reply
+    const emailData = {
+      to,
+      subject,
+      content,
+      type: 'reply',
+      inReplyTo,
+      threadId
+    };
+    
+    const result = await sendEmail(account, emailData);
+    
+    if (!result.success) {
+      return res.status(500).json({ message: 'Failed to send reply: ' + result.error });
+    }
+    
+    res.json({ 
+      message: 'Reply sent successfully',
+      messageId: result.messageId
+    });
+  } catch (error) {
+    console.error('Error sending reply:', error);
     res.status(500).json({ message: error.message });
   }
 });

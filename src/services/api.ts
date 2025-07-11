@@ -201,6 +201,7 @@ export const coldEmailAPI = {
   getInboxSyncStatus: () => api.get('/cold-email-system/inbox/sync-status'),
   syncInbox: (accountId: string) => api.post(`/cold-email-system/inbox/sync/${accountId}`),
   getEmailLogs: (params?: any) => api.get('/cold-email-system/logs', { params }),
+  sendReply: (data: any) => api.post('/cold-email-system/inbox/reply', data),
   getDashboardAnalytics: (params?: any) => api.get('/cold-email-system/analytics/dashboard', { params }),
   getAdvancedAnalytics: (params?: any) => api.get('/cold-email-system/analytics/advanced', { params }),
 };

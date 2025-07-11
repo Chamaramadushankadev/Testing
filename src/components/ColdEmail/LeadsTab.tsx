@@ -29,6 +29,13 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
   const [csvMapping, setCsvMapping] = useState<any>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
+  // Function to get category name from ID
+  const getCategoryName = (categoryId: string) => {
+    if (!categoryId) return 'Uncategorized';
+    const category = leadCategories.find(cat => cat.id === categoryId);
+    return category ? category.name : 'Uncategorized';
+  };
+
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = lead.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lead.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -299,7 +306,7 @@ const handleDeleteCategory = async (categoryId: string) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
-                      {lead.category || 'Uncategorized'}
+                      {getCategoryName(lead.category)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

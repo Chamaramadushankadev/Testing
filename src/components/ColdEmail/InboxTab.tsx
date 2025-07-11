@@ -76,7 +76,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   const handleSyncInbox = async (accountId: string = 'all') => {
     try {
       setSyncing(true);
-      showNotification('success', 'Syncing inbox... This may take a moment.');
+      showNotification('success', 'Syncing inbox... This may take a moment');
       
       if (accountId === 'all' && emailAccounts.length > 0) {
         // Sync first account if 'all' is selected
@@ -90,7 +90,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
       }
       
       const response = await coldEmailAPI.syncInbox(accountId);
-      showNotification('success', 'Inbox synced successfully');
+      showNotification('success', `Inbox synced successfully. ${response.data.result?.emailsProcessed || 0} emails processed.`);
       
       // Reload inbox after sync
       await loadInbox();
@@ -123,7 +123,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 mb-4">
         <div className="flex items-center space-x-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -161,31 +161,33 @@ export const InboxTab: React.FC<InboxTabProps> = ({
           </div>
         </div>
         
-        <button
-          onClick={() => loadInbox()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Inbox className="w-4 h-4" />
-          <span>Refresh Inbox</span>
-        </button>
-        
-        <button
-          onClick={() => handleSyncInbox(filterAccount)}
-          disabled={syncing}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {syncing ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-              <span>Syncing...</span>
-            </>
-          ) : (
-            <>
-              <Mail className="w-4 h-4" />
-              <span>Sync Inbox</span>
-            </>
-          )}
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => loadInbox()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Inbox className="w-4 h-4" />
+            <span>Refresh Inbox</span>
+          </button>
+          
+          <button
+            onClick={() => handleSyncInbox(filterAccount)}
+            disabled={syncing}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {syncing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                <span>Syncing...</span>
+              </>
+            ) : (
+              <>
+                <Mail className="w-4 h-4" />
+                <span>Sync Inbox</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Inbox */}
@@ -196,6 +198,13 @@ export const InboxTab: React.FC<InboxTabProps> = ({
             <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
               <h3 className="font-medium text-gray-900">Inbox</h3>
             </div>
+            
+            {loading && (
+              <div className="p-4 text-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent mx-auto mb-2"></div>
+                <p className="text-sm text-gray-600">Loading messages...</p>
+              </div>
+            )}
             
             <div className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
               {filteredMessages.length > 0 ? (

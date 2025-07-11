@@ -22,6 +22,7 @@ const transformMessage = (message) => {
 // Get inbox messages
 router.get('/', authenticate, async (req, res) => {
   try {
+    console.log('📬 Fetching inbox messages for user:', req.user._id);
     const { accountId, isRead, search, page = 1, limit = 50 } = req.query;
     const filter = { userId: req.user._id };
 
@@ -29,6 +30,7 @@ router.get('/', authenticate, async (req, res) => {
     if (isRead === 'true') filter.isRead = true;
     if (isRead === 'false') filter.isRead = false;
 
+    console.log('📬 Inbox filter:', JSON.stringify(filter));
     let query = InboxMessage.find(filter);
 
     if (search) {
@@ -48,6 +50,7 @@ router.get('/', authenticate, async (req, res) => {
       .skip((parseInt(page) - 1) * parseInt(limit))
       .populate('emailAccountId', 'name email');
 
+    console.log(`📬 Found ${messages.length} inbox messages`);
     const total = await InboxMessage.countDocuments(filter);
     const transformedMessages = messages.map(transformMessage);
 
@@ -175,6 +178,7 @@ router.patch('/:id/labels', authenticate, async (req, res) => {
 // Manually sync inbox
 router.post('/sync/:accountId', authenticate, async (req, res) => {
   try {
+    console.log('🔄 Manual inbox sync requested');
     const { accountId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(accountId)) {
@@ -186,15 +190,26 @@ router.post('/sync/:accountId', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Email account not found' });
     }
 
-    console.log('🔄 Manual inbox sync requested for account:', account.email);
+    console.log('🔄 Manual inbox sync requested for account:', account.email, account._id);
     
     // Run inbox sync
-    const result = await syncInbox(account);
+    try {
+      const result = await syncInbox(account);
+      console.log('✅ Inbox sync completed:', result);
+      
+      res.json({
+        message: 'Inbox sync completed successfully',
+        result
+      });
+    } catch (syncError) {
+      console.error('❌ Error during inbox sync:', syncError);
+      res.status(500).json({ 
+        message: 'Error syncing inbox', 
+        error: syncError.message,
+        stack: process.env.NODE_ENV !== 'production' ? syncError.stack : undefined
+      });
+    }
     
-    res.json({
-      message: 'Inbox sync completed successfully',
-      result
-    });
   } catch (error) {
     console.error('Error syncing inbox:', error);
     res.status(500).json({ message: error.message });

@@ -4,6 +4,17 @@ import { EmailLog, WarmupEmail, InboxSync, Lead, Campaign } from '../models/Cold
 
 // Create SMTP transporter
 export const createTransporter = (account) => {
+  console.log('Creating SMTP transporter for:', account.email);
+  console.log('SMTP Settings:', {
+    host: account.smtpSettings.host,
+    port: account.smtpSettings.port,
+    secure: account.smtpSettings.port === 465,
+    auth: {
+      user: account.smtpSettings.username,
+      pass: '********' // Password hidden for security
+    }
+  });
+
   return nodemailer.createTransport({
     host: account.smtpSettings.host,
     port: account.smtpSettings.port,
@@ -13,16 +24,23 @@ export const createTransporter = (account) => {
       pass: account.smtpSettings.password
     },
     tls: {
-      rejectUnauthorized: false
+      rejectUnauthorized: false,
+      minVersion: 'TLSv1'
     },
-    debug: true,
-    logger: true
+    debug: process.env.NODE_ENV !== 'production',
+    logger: process.env.NODE_ENV !== 'production'
   });
 };
 
 // Send email function
 export const sendEmail = async (account, emailData) => {
   try {
+    console.log('📧 Attempting to send email with account:', account.email);
+    
+    if (!account.smtpSettings || !account.smtpSettings.host || !account.smtpSettings.username || !account.smtpSettings.password) {
+      throw new Error('Invalid SMTP settings. Please check your email account configuration.');
+    }
+    
     const transporter = createTransporter(account);
     
     const mailOptions = {
@@ -56,21 +74,27 @@ export const sendEmail = async (account, emailData) => {
     console.log('📧 Email sent successfully:', info.messageId);
     
     // Log the email
-    const emailLog = new EmailLog({
-      userId: account.userId,
-      campaignId: emailData.campaignId,
-      leadId: emailData.leadId,
-      emailAccountId: account._id,
-      type: emailData.type || 'campaign',
-      stepNumber: emailData.stepNumber,
-      subject: emailData.subject,
-      content: emailData.content,
-      status: 'sent',
-      sentAt: new Date(),
-      trackingPixelId: emailData.trackingPixelId,
-      messageId: info.messageId
-    });
-    await emailLog.save();
+    try {
+      const emailLog = new EmailLog({
+        userId: account.userId,
+        campaignId: emailData.campaignId,
+        leadId: emailData.leadId,
+        emailAccountId: account._id,
+        type: emailData.type || 'campaign',
+        stepNumber: emailData.stepNumber,
+        subject: emailData.subject,
+        content: emailData.content,
+        status: 'sent',
+        sentAt: new Date(),
+        trackingPixelId: emailData.trackingPixelId,
+        messageId: info.messageId
+      });
+      await emailLog.save();
+      console.log('📝 Email log saved successfully');
+    } catch (logError) {
+      console.error('❌ Error saving email log:', logError);
+      // Continue execution even if logging fails
+    }
 
     // Update account daily count
     await updateDailyEmailCount(account._id);
@@ -100,16 +124,26 @@ export const sendEmail = async (account, emailData) => {
 // Sync inbox for replies and bounces
 export const syncInbox = async (account) => {
   try {
-    console.log('🔄 Starting inbox sync for account:', account.email);
+    console.log('🔄 Starting inbox sync for account:', account.email, account._id);
     
     // Use SMTP settings for IMAP if not explicitly provided
     const imapHost = account.imapSettings?.host || account.smtpSettings.host;
     const imapPort = account.imapSettings?.port || 993;
     const imapSecure = account.imapSettings?.secure !== false;
     
-    if (!account || !imapHost) {
-      throw new Error('Invalid account or missing host settings');
+    if (!account || !imapHost || !account.smtpSettings.username || !account.smtpSettings.password) {
+      throw new Error('Invalid account or missing IMAP/SMTP settings');
     }
+    
+    console.log('🔌 IMAP Settings:', {
+      host: imapHost,
+      port: imapPort,
+      secure: imapSecure,
+      auth: {
+        user: account.smtpSettings.username,
+        pass: '********' // Password hidden for security
+      }
+    });
     
     const client = new ImapFlow({
       host: imapHost,
@@ -130,8 +164,16 @@ export const syncInbox = async (account) => {
     console.log('✅ Connected to IMAP server');
 
     // Get inbox sync record
-    let inboxSync = await InboxSync.findOne({ emailAccountId: account._id });
+    let inboxSync;
+    try {
+      inboxSync = await InboxSync.findOne({ emailAccountId: account._id });
+      console.log('📋 Found existing inbox sync record:', inboxSync ? 'yes' : 'no');
+    } catch (findError) {
+      console.error('❌ Error finding inbox sync record:', findError);
+    }
+    
     if (!inboxSync) {
+      console.log('📝 Creating new inbox sync record for account:', account._id);
       inboxSync = new InboxSync({
         userId: account.userId,
         emailAccountId: account._id
@@ -399,7 +441,10 @@ const processBounce = async (message, account) => {
 // Store message in inbox
 const storeInboxMessage = async (message, account) => {
   try {
-    console.log('💾 Storing message in inbox database');
+    console.log('💾 Storing message in inbox database:', message.envelope.messageId);
+    
+    // Import InboxMessage model if not already available
+    const { InboxMessage } = await import('../models/ColdEmailSystemIndex.js');
     
     // Check if message already exists
     const existingMessage = await InboxMessage.findOne({
@@ -440,8 +485,8 @@ const storeInboxMessage = async (message, account) => {
     
     // Create inbox message
     const inboxMessage = new InboxMessage({
-      userId: account.userId,
-      emailAccountId: account._id,
+      userId: account.userId.toString(),
+      emailAccountId: account._id.toString(),
       messageId: message.envelope.messageId,
       threadId: message.envelope.messageId, // Simple implementation - in production you'd use proper threading
       from: {
@@ -463,11 +508,13 @@ const storeInboxMessage = async (message, account) => {
     });
     
     await inboxMessage.save();
-    console.log('✅ Message stored in inbox database');
+    console.log('✅ Message stored in inbox database:', inboxMessage._id);
     
     return inboxMessage;
   } catch (error) {
     console.error('Error storing inbox message:', error);
+    console.error('Error details:', error.stack);
+    return null;
   }
 };
 

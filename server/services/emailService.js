@@ -46,7 +46,14 @@ export const sendEmail = async (account, emailData) => {
       emailData.trackingPixelId = trackingPixelId;
     }
 
+    console.log('📧 Sending email:', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject
+    });
+
     const info = await transporter.sendMail(mailOptions);
+    console.log('📧 Email sent successfully:', info.messageId);
     
     // Log the email
     const emailLog = new EmailLog({
@@ -70,7 +77,7 @@ export const sendEmail = async (account, emailData) => {
 
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('❌ Error sending email:', error);
     
     // Log the failed email
     const emailLog = new EmailLog({

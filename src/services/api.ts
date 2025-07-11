@@ -178,8 +178,6 @@ export const coldEmailAPI = {
   deleteCampaign: (id: string) => api.delete(`/cold-email-system/campaigns/${id}`),
   toggleCampaign: (id: string) => api.patch(`/cold-email-system/campaigns/${id}/toggle`),
   getCampaignAnalytics: (id: string) => api.get(`/cold-email-system/campaigns/${id}/analytics`),
-  
-  // Run campaign immediately
   runCampaignNow: (id: string) => api.post(`/cold-email-system/campaigns/${id}/run-now`),
   
   // Email Templates

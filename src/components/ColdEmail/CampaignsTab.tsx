@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Play, Pause, Edit3, Trash2, BarChart3, Calendar, Users, Mail } from 'lucide-react';
 import { coldEmailAPI } from '../../services/api';
 

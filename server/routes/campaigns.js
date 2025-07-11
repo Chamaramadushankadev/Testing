@@ -230,27 +230,26 @@ router.post('/:id/run-now', authenticate, async (req, res) => {
           .replace(/\{\{last_name\}\}/g, lead.lastName)
           .replace(/\{\{company\}\}/g, lead.company || '');
 
-        // Create email log entry
-        const emailLog = new EmailLog({
-          userId: req.user._id,
-          campaignId: campaign._id,
-          leadId: lead._id,
-          emailAccountId: account._id,
-          type: 'campaign',
-          stepNumber: firstStep.stepNumber,
+        // Actually send the email
+        const emailResult = await sendEmail(account, {
+          to: lead.email,
           subject,
           content,
-          status: 'sent',
-          sentAt: new Date()
+          type: 'campaign',
+          campaignId: campaign._id,
+          leadId: lead._id,
+          stepNumber: firstStep.stepNumber,
+          trackingEnabled: campaign.settings.tracking.openTracking
         });
-        await emailLog.save();
 
-        // Update lead status
-        lead.status = 'contacted';
-        lead.lastContactedAt = new Date();
-        await lead.save();
+        if (emailResult.success) {
+          // Update lead status
+          lead.status = 'contacted';
+          lead.lastContactedAt = new Date();
+          await lead.save();
 
-        emailsSent++;
+          emailsSent++;
+        }
       } catch (error) {
         console.error(`Error sending to lead ${lead.email}:`, error);
       }

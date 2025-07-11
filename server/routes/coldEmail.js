@@ -1,5 +1,5 @@
 import express from 'express';
-import { EmailAccount, Lead, ColdEmailCampaign } from '../models/ColdEmail.js';
+import { EmailAccount, Lead, ColdEmailCampaign } from '../models/ColdEmailIndex.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();

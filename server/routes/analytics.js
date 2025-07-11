@@ -1,11 +1,11 @@
 import express from 'express';
-import Goal from '../models/Goal.js';
-import Task from '../models/Task.js';
-import { ColdEmailCampaign } from '../models/ColdEmail.js';
+import mongoose from 'mongoose';
+import { Campaign, Lead, EmailAccount, EmailLog } from '../models/ColdEmailSystemIndex.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Get dashboard analytics
 router.get('/dashboard', authenticate, async (req, res) => {
   try {
     const { timeRange = 'month' } = req.query;
@@ -28,133 +28,196 @@ router.get('/dashboard', authenticate, async (req, res) => {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    // Goals analytics
-    const goals = await Goal.find({ userId: req.user._id });
-    const goalsInRange = goals.filter(g => g.createdAt >= startDate);
-    
-    const goalStats = {
-      total: goals.length,
-      active: goals.filter(g => g.status === 'active').length,
-      completed: goals.filter(g => g.status === 'completed').length,
-      avgProgress: goals.length > 0 ? goals.reduce((sum, g) => sum + g.progress, 0) / goals.length : 0,
-      createdInRange: goalsInRange.length
-    };
-
-    // Tasks analytics
-    const tasks = await Task.find({ userId: req.user._id });
-    const tasksInRange = tasks.filter(t => t.createdAt >= startDate);
-    const completedTasks = tasks.filter(t => t.status === 'completed');
-    const overdueTasks = tasks.filter(t => 
-      t.status !== 'completed' && new Date(t.dueDate) < now
-    );
-
-    const taskStats = {
-      total: tasks.length,
-      completed: completedTasks.length,
-      pending: tasks.filter(t => t.status === 'pending').length,
-      inProgress: tasks.filter(t => t.status === 'in-progress').length,
-      overdue: overdueTasks.length,
-      completionRate: tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0,
-      createdInRange: tasksInRange.length
-    };
-
-    // Cold email analytics
-    const campaigns = await ColdEmailCampaign.find({ userId: req.user._id });
+    // Campaign analytics
+    const campaigns = await Campaign.find({ userId: req.user._id });
     const campaignsInRange = campaigns.filter(c => c.createdAt >= startDate);
+    const activeCampaigns = campaigns.filter(c => c.status === 'active');
     
-    const emailStats = campaigns.reduce((acc, campaign) => ({
-      totalCampaigns: acc.totalCampaigns + 1,
-      emailsSent: acc.emailsSent + campaign.stats.emailsSent,
-      opened: acc.opened + campaign.stats.opened,
-      replied: acc.replied + campaign.stats.replied,
-      interested: acc.interested + campaign.stats.interested
-    }), { totalCampaigns: 0, emailsSent: 0, opened: 0, replied: 0, interested: 0 });
+    // Lead analytics
+    const leads = await Lead.find({ userId: req.user._id });
+    const leadsInRange = leads.filter(l => l.createdAt >= startDate);
+    
+    // Email analytics
+    const emailLogs = await EmailLog.find({ 
+      userId: req.user._id,
+      sentAt: { $gte: startDate }
+    });
+    
+    // Account performance
+    const accounts = await EmailAccount.find({ userId: req.user._id });
+    const accountPerformance = [];
+    
+    for (const account of accounts) {
+      const accountLogs = emailLogs.filter(log => log.emailAccountId.toString() === account._id.toString());
+      const sent = accountLogs.length;
+      const opened = accountLogs.filter(log => log.status === 'opened').length;
+      const replied = accountLogs.filter(log => log.status === 'replied').length;
+      
+      accountPerformance.push({
+        accountId: account._id.toString(),
+        name: account.name,
+        email: account.email,
+        sent,
+        opened,
+        replied,
+        openRate: sent > 0 ? (opened / sent) * 100 : 0,
+        replyRate: sent > 0 ? (replied / sent) * 100 : 0
+      });
+    }
 
-    emailStats.openRate = emailStats.emailsSent > 0 ? (emailStats.opened / emailStats.emailsSent) * 100 : 0;
-    emailStats.replyRate = emailStats.emailsSent > 0 ? (emailStats.replied / emailStats.emailsSent) * 100 : 0;
-    emailStats.campaignsInRange = campaignsInRange.length;
-
-    // Activity timeline
-    const activityStats = {
-      goalsCreated: goalsInRange.length,
-      tasksAdded: tasksInRange.length,
-      campaignsStarted: campaignsInRange.filter(c => c.status === 'active').length
-    };
-
-    res.json({
+    // Compile analytics
+    const analytics = {
       timeRange,
       period: {
         start: startDate,
         end: now
       },
-      goals: goalStats,
-      tasks: taskStats,
-      email: emailStats,
-      activity: activityStats
+      campaigns: {
+        total: campaigns.length,
+        active: activeCampaigns.length,
+        createdInRange: campaignsInRange.length
+      },
+      leads: {
+        total: leads.length,
+        new: leadsInRange.length,
+        byStatus: {
+          new: leads.filter(l => l.status === 'new').length,
+          contacted: leads.filter(l => l.status === 'contacted').length,
+          replied: leads.filter(l => l.status === 'replied').length,
+          interested: leads.filter(l => l.status === 'interested').length
+        }
+      },
+      emails: {
+        totalSent: emailLogs.filter(log => log.status !== 'failed').length,
+        totalOpened: emailLogs.filter(log => log.status === 'opened' || log.status === 'clicked' || log.status === 'replied').length,
+        totalClicked: emailLogs.filter(log => log.status === 'clicked' || log.status === 'replied').length,
+        totalReplied: emailLogs.filter(log => log.status === 'replied').length,
+        totalBounced: emailLogs.filter(log => log.status === 'bounced').length,
+        openRate: emailLogs.length > 0 ? (emailLogs.filter(log => log.status === 'opened' || log.status === 'clicked' || log.status === 'replied').length / emailLogs.length) * 100 : 0,
+        replyRate: emailLogs.length > 0 ? (emailLogs.filter(log => log.status === 'replied').length / emailLogs.length) * 100 : 0,
+        bounceRate: emailLogs.length > 0 ? (emailLogs.filter(log => log.status === 'bounced').length / emailLogs.length) * 100 : 0
+      },
+      accountPerformance
+    };
+
+    res.json(analytics);
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get advanced analytics
+router.get('/advanced', authenticate, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate) : new Date();
+    
+    // Get email logs for the period
+    const emailLogs = await EmailLog.find({
+      userId: req.user._id,
+      sentAt: { $gte: start, $lte: end }
+    }).sort({ sentAt: 1 });
+    
+    // Group by day
+    const dailyStats = {};
+    emailLogs.forEach(log => {
+      const day = log.sentAt.toISOString().split('T')[0];
+      if (!dailyStats[day]) {
+        dailyStats[day] = {
+          date: day,
+          sent: 0,
+          delivered: 0,
+          opened: 0,
+          clicked: 0,
+          replied: 0,
+          bounced: 0
+        };
+      }
+      
+      dailyStats[day].sent++;
+      
+      if (log.status === 'delivered' || log.status === 'opened' || log.status === 'clicked' || log.status === 'replied') {
+        dailyStats[day].delivered++;
+      }
+      
+      if (log.status === 'opened' || log.status === 'clicked' || log.status === 'replied') {
+        dailyStats[day].opened++;
+      }
+      
+      if (log.status === 'clicked' || log.status === 'replied') {
+        dailyStats[day].clicked++;
+      }
+      
+      if (log.status === 'replied') {
+        dailyStats[day].replied++;
+      }
+      
+      if (log.status === 'bounced') {
+        dailyStats[day].bounced++;
+      }
+    });
+    
+    // Convert to array and sort by date
+    const dailyData = Object.values(dailyStats).sort((a, b) => a.date.localeCompare(b.date));
+    
+    // Campaign performance comparison
+    const campaignPerformance = await Campaign.find({
+      userId: req.user._id,
+      status: { $in: ['active', 'completed'] }
+    }).sort({ startedAt: -1 }).limit(5);
+    
+    const campaignComparison = campaignPerformance.map(campaign => ({
+      id: campaign._id.toString(),
+      name: campaign.name,
+      status: campaign.status,
+      emailsSent: campaign.stats.emailsSent,
+      openRate: campaign.stats.openRate,
+      clickRate: campaign.stats.clickRate,
+      replyRate: campaign.stats.replyRate,
+      bounceRate: campaign.stats.bounceRate
+    }));
+    
+    // Response time analysis
+    const responseTimeData = [];
+    const repliedLogs = emailLogs.filter(log => log.status === 'replied' && log.sentAt && log.repliedAt);
+    
+    repliedLogs.forEach(log => {
+      const responseTimeHours = (log.repliedAt - log.sentAt) / (1000 * 60 * 60);
+      responseTimeData.push({
+        emailId: log._id.toString(),
+        responseTimeHours,
+        sentAt: log.sentAt,
+        repliedAt: log.repliedAt
+      });
+    });
+    
+    // Average response time
+    const avgResponseTime = responseTimeData.length > 0 
+      ? responseTimeData.reduce((sum, item) => sum + item.responseTimeHours, 0) / responseTimeData.length
+      : 0;
+    
+    res.json({
+      period: {
+        start,
+        end
+      },
+      summary: {
+        totalSent: emailLogs.length,
+        totalOpened: emailLogs.filter(log => log.status === 'opened' || log.status === 'clicked' || log.status === 'replied').length,
+        totalReplied: emailLogs.filter(log => log.status === 'replied').length,
+        openRate: emailLogs.length > 0 ? (emailLogs.filter(log => log.status === 'opened' || log.status === 'clicked' || log.status === 'replied').length / emailLogs.length) * 100 : 0,
+        replyRate: emailLogs.length > 0 ? (emailLogs.filter(log => log.status === 'replied').length / emailLogs.length) * 100 : 0,
+        averageResponseTimeHours: avgResponseTime
+      },
+      dailyData,
+      campaignComparison,
+      responseTimeData: responseTimeData.sort((a, b) => a.responseTimeHours - b.responseTimeHours).slice(0, 20)
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.get('/goals', authenticate, async (req, res) => {
-  try {
-    const goals = await Goal.find({ userId: req.user._id });
-    
-    const analytics = {
-      totalGoals: goals.length,
-      byStatus: {
-        active: goals.filter(g => g.status === 'active').length,
-        completed: goals.filter(g => g.status === 'completed').length,
-        paused: goals.filter(g => g.status === 'paused').length
-      },
-      byPriority: {
-        high: goals.filter(g => g.priority === 'high').length,
-        medium: goals.filter(g => g.priority === 'medium').length,
-        low: goals.filter(g => g.priority === 'low').length
-      },
-      avgProgress: goals.length > 0 ? goals.reduce((sum, g) => sum + g.progress, 0) / goals.length : 0,
-      progressDistribution: {
-        notStarted: goals.filter(g => g.progress === 0).length,
-        inProgress: goals.filter(g => g.progress > 0 && g.progress < 100).length,
-        completed: goals.filter(g => g.progress === 100).length
-      }
-    };
-
-    res.json(analytics);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.get('/tasks', authenticate, async (req, res) => {
-  try {
-    const tasks = await Task.find({ userId: req.user._id });
-    const now = new Date();
-    
-    const analytics = {
-      totalTasks: tasks.length,
-      byStatus: {
-        pending: tasks.filter(t => t.status === 'pending').length,
-        inProgress: tasks.filter(t => t.status === 'in-progress').length,
-        completed: tasks.filter(t => t.status === 'completed').length
-      },
-      byPriority: {
-        high: tasks.filter(t => t.priority === 'high').length,
-        medium: tasks.filter(t => t.priority === 'medium').length,
-        low: tasks.filter(t => t.priority === 'low').length
-      },
-      completionRate: tasks.length > 0 ? (tasks.filter(t => t.status === 'completed').length / tasks.length) * 100 : 0,
-      overdueTasks: tasks.filter(t => t.status !== 'completed' && new Date(t.dueDate) < now).length,
-      dueSoon: tasks.filter(t => {
-        const dueDate = new Date(t.dueDate);
-        const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-        return t.status !== 'completed' && dueDate >= now && dueDate <= threeDaysFromNow;
-      }).length
-    };
-
-    res.json(analytics);
-  } catch (error) {
+    console.error('Error fetching advanced analytics:', error);
     res.status(500).json({ message: error.message });
   }
 });

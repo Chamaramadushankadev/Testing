@@ -1,8 +1,8 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import { EmailAccount, InboxSync } from '../../models/ColdEmailSystem.js';
-import { authenticate } from '../../middleware/auth.js';
-import { createTransporter } from '../../services/emailService.js';
+import { EmailAccount, InboxSync } from '../models/ColdEmailSystemIndex.js';
+import { authenticate } from '../middleware/auth.js';
+import { createTransporter } from '../services/emailService.js';
 
 const router = express.Router();
 

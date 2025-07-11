@@ -1,7 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import { Lead } from '../../models/ColdEmailSystem.js';
-import { authenticate } from '../../middleware/auth.js';
+import { Lead } from '../models/ColdEmailSystemIndex.js';
+import { authenticate } from '../middleware/auth.js';
 import multer from 'multer';
 import csv from 'csv-parser';
 import fs from 'fs';

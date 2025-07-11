@@ -1,7 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import LeadCategory from '../../models/LeadCategory.js';
-import { authenticate } from '../../middleware/auth.js';
+import LeadCategory from '../models/LeadCategory.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 

@@ -136,7 +136,7 @@ router.put('/:id', authenticate, async (req, res) => {
 
     // Convert category string to ObjectId if it's a valid ObjectId
     if (updateData.category && mongoose.Types.ObjectId.isValid(updateData.category)) {
-      updateData.category = mongoose.Types.ObjectId(updateData.category);
+      updateData.category = new mongoose.Types.ObjectId(updateData.category);
     }
 
     const lead = await Lead.findOneAndUpdate(

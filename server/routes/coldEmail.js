@@ -91,7 +91,7 @@ router.post('/leads', authenticate, async (req, res) => {
     
     // Convert category string to ObjectId if it's a valid ObjectId
     if (leadData.category && mongoose.Types.ObjectId.isValid(leadData.category)) {
-      leadData.category = mongoose.Types.ObjectId(leadData.category);
+      leadData.category = new mongoose.Types.ObjectId(leadData.category);
     }
     
     const lead = new Lead(leadData);

@@ -23,12 +23,13 @@ const transformMessage = (message) => {
 router.get('/', authenticate, async (req, res) => {
   try {
     console.log('📬 Fetching inbox messages for user:', req.user.email || req.user._id);
-    const { accountId, isRead, search, page = 1, limit = 50, excludeWarmup = true } = req.query;
+    const { accountId, isRead, search, page = 1, limit = 50, excludeWarmup = true, threadId, includeThread = false } = req.query;
     const filter = { userId: req.user._id };
 
     if (accountId && accountId !== 'all') filter.emailAccountId = accountId;
     if (isRead === 'true') filter.isRead = true;
     if (isRead === 'false') filter.isRead = false;
+    if (threadId) filter.threadId = threadId;
     
     // Exclude warmup emails if requested
     if (excludeWarmup === 'true' || excludeWarmup === true) {
@@ -59,7 +60,24 @@ router.get('/', authenticate, async (req, res) => {
 
     console.log(`📬 Found ${messages.length} inbox messages`);
     const total = await InboxMessage.countDocuments(filter);
-    const transformedMessages = messages.map(transformMessage);
+    
+    // Transform messages and add thread information if requested
+    const transformedMessages = await Promise.all(messages.map(async (message) => {
+      const transformed = transformMessage(message);
+      
+      // If includeThread is true, fetch thread messages
+      if (includeThread && message.threadId) {
+        const threadMessages = await InboxMessage.find({
+          userId: req.user._id,
+          threadId: message.threadId,
+          _id: { $ne: message._id } // Exclude the current message
+        }).sort({ receivedAt: 1 });
+        
+        transformed.thread = threadMessages.map(transformMessage);
+      }
+      
+      return transformed;
+    }));
 
     // Get email accounts for filtering
     const accounts = await EmailAccount.find({ userId: req.user._id, isActive: true })
@@ -254,14 +272,14 @@ router.post('/sync/:accountId', authenticate, async (req, res) => {
 // Send reply to a message
 router.post('/reply', authenticate, async (req, res) => {
   try {
-    const { to, subject, content, inReplyTo, threadId, accountId } = req.body;
+    const { to, subject, content, inReplyTo, threadId: messageThreadId, accountId } = req.body;
     
     if (!to || !subject || !content || !accountId) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
     
     if (!mongoose.Types.ObjectId.isValid(accountId)) {
-      return res.status(400).json({ message: 'Invalid account ID format' });
+      return res.status(400).json({ message: 'Invalid account ID format: ' + accountId });
     }
     
     // Get the email account
@@ -270,6 +288,9 @@ router.post('/reply', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Email account not found' });
     }
     
+    // Use a consistent threadId
+    const threadId = messageThreadId || inReplyTo || `thread-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    
     // Send the reply
     const emailData = {
       to,
@@ -277,13 +298,44 @@ router.post('/reply', authenticate, async (req, res) => {
       content,
       type: 'reply',
       inReplyTo,
-      threadId
+      threadId,
+      isReply: true
     };
     
     const result = await sendEmail(account, emailData);
     
     if (!result.success) {
       return res.status(500).json({ message: 'Failed to send reply: ' + result.error });
+    }
+    
+    // Create an inbox message for the sent reply
+    try {
+      const inboxMessage = new InboxMessage({
+        userId: req.user._id,
+        emailAccountId: account._id,
+        messageId: result.messageId,
+        threadId: threadId,
+        from: {
+          name: account.name,
+          email: account.email
+        },
+        to: [{ email: to }],
+        subject: subject,
+        content: {
+          text: content,
+          html: emailData.html
+        },
+        isRead: true,
+        isReply: true,
+        receivedAt: new Date(),
+        sentByMe: true
+      });
+      
+      await inboxMessage.save();
+      console.log('✅ Reply saved to inbox');
+    } catch (saveError) {
+      console.error('Error saving reply to inbox:', saveError);
+      // Continue even if saving to inbox fails
     }
     
     res.json({ 

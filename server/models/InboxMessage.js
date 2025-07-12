@@ -58,6 +58,10 @@ const inboxMessageSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  sentByMe: {
+    type: Boolean,
+    default: false
+  },
   isBounce: {
     type: Boolean,
     default: false

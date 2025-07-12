@@ -30,8 +30,11 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   const loadInbox = async () => {
     try {
       setLoading(true);
-      // Add filter to exclude warmup emails
-      const params: any = { excludeWarmup: true };
+      // Add filters
+      const params: any = { 
+        excludeWarmup: true,
+        includeThread: true  // Request to include thread messages
+      };
       if (filterAccount !== 'all') params.accountId = filterAccount;
       if (filterRead !== 'all') params.isRead = filterRead === 'unread' ? false : true;
       if (searchTerm) params.search = searchTerm;
@@ -154,8 +157,22 @@ export const InboxTab: React.FC<InboxTabProps> = ({
       setShowReplyForm(false);
       setReplyContent('');
       
-      // Refresh inbox after sending reply
+      // Refresh inbox and update the thread view
       await loadInbox();
+      
+      // Wait a moment for the server to process the reply
+      setTimeout(async () => {
+        // Find the updated message with the reply
+        const updatedResponse = await coldEmailAPI.getInboxMessages({
+          threadId: selectedMessage.threadId || selectedMessage.messageId || selectedMessage.id,
+          excludeWarmup: true
+        });
+        
+        if (updatedResponse.data.messages && updatedResponse.data.messages.length > 0) {
+          // Update the selected message to show the thread
+          setSelectedMessage(updatedResponse.data.messages[0]);
+        }
+      }, 1000);
     } catch (error: any) {
       console.error('Error sending reply:', error);
       showNotification('error', 'Failed to send reply: ' + (error.message || 'Unknown error'));
@@ -484,13 +501,45 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                     <iframe 
                       srcDoc={selectedMessage.content.html}
                       title="Email content"
-                      className="w-full min-h-[400px] border-0"
+                      className="w-full min-h-[300px] border-0"
                       sandbox="allow-same-origin"
                     />
                   ) : (
                     <div className="whitespace-pre-line bg-white p-4 rounded-lg border border-gray-100">{selectedMessage.content.text}</div>
                   )}
                 </div>
+                
+                {/* Thread messages */}
+                {selectedMessage.thread && selectedMessage.thread.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <h4 className="font-medium text-gray-900 mb-4">Previous Messages</h4>
+                    <div className="space-y-4">
+                      {selectedMessage.thread.map((threadMessage, index) => (
+                        <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                                <span className="text-gray-600 font-medium">
+                                  {threadMessage.from?.name?.[0] || threadMessage.from?.email?.[0] || '?'}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900">{threadMessage.from?.name || threadMessage.from?.email}</p>
+                                <p className="text-xs text-gray-500">{new Date(threadMessage.receivedAt).toLocaleString()}</p>
+                              </div>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {threadMessage.isReply ? 'Reply' : 'Original'}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-sm text-gray-700 whitespace-pre-line">
+                            {threadMessage.content?.text || threadMessage.content?.html || ''}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 {selectedMessage.attachments && selectedMessage.attachments.length > 0 && (
                   <div className="mt-6 pt-6 border-t border-gray-200 px-2">

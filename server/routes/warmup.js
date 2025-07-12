@@ -395,8 +395,8 @@ router.get('/logs', authenticate, async (req, res) => {
     // Get warmup emails
     const warmupEmails = await WarmupEmail.find(filter)
       .sort({ createdAt: -1 })
-      .skip((parseInt(page as string) - 1) * parseInt(limit as string))
-      .limit(parseInt(limit as string))
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .limit(parseInt(limit))
       .populate('fromAccountId', 'name email')
       .populate('toAccountId', 'name email');
     
@@ -424,7 +424,7 @@ router.get('/logs', authenticate, async (req, res) => {
     res.json({
       logs,
       pagination: {
-        page: parseInt(page as string),
+        page: parseInt(page),
         limit: parseInt(limit),
         total,
         pages: Math.ceil(total / parseInt(limit))

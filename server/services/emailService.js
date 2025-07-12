@@ -51,11 +51,8 @@ export const sendEmail = async (account, emailData) => {
     const transporter = createTransporter(account);
     
     // Improved HTML email template with better formatting
-    let mailOptions = {
-      from: `${account.name} <${account.email}>`,
-      to: emailData.to,
-      subject: emailData.subject,
-      html: `
+    // Create HTML content from text
+    const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -78,6 +75,17 @@ export const sendEmail = async (account, emailData) => {
       padding: 30px; 
       box-shadow: 0 3px 10px rgba(0,0,0,0.08); 
       border: 1px solid #eaeaea;
+    }
+    .header { 
+      margin-bottom: 25px; 
+      padding-bottom: 15px; 
+      border-bottom: 1px solid #f0f0f0; 
+    }
+    .header h1 { 
+      margin: 0; 
+      font-size: 20px; 
+      color: #1f2937; 
+      font-weight: 600;
     }
     .content { 
       margin-bottom: 25px; 
@@ -104,17 +112,6 @@ export const sendEmail = async (account, emailData) => {
     p { margin-bottom: 16px; }
     a { color: #3b82f6; text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .header { 
-      margin-bottom: 25px; 
-      padding-bottom: 15px; 
-      border-bottom: 1px solid #f0f0f0; 
-    }
-    .header h1 { 
-      margin: 0; 
-      font-size: 20px; 
-      color: #1f2937; 
-      font-weight: 600;
-    }
   </style>
 </head>
 <body>
@@ -123,7 +120,7 @@ export const sendEmail = async (account, emailData) => {
       <h1>${emailData.subject}</h1>
     </div>
     <div class="content">
-      ${emailData.content}
+      ${emailData.content.replace(/\n/g, '<br>')}
     </div>
     
     <div class="signature">
@@ -135,8 +132,19 @@ export const sendEmail = async (account, emailData) => {
     </div>
   </div>
 </body>
-</html>`,
-      text: emailData.content.replace(/<[^>]*>/g, ''), // Strip HTML for text version
+</html>`;
+
+    // Clean up text content - remove virus scanner messages
+    const cleanTextContent = emailData.content
+      .replace(/\s*Virus-free\..*avast\.com\s*$/i, '')
+      .replace(/\s*This email has been checked for viruses by.*$/im, '');
+
+    let mailOptions = {
+      from: `${account.name} <${account.email}>`,
+      to: emailData.to,
+      subject: emailData.subject,
+      html: htmlContent,
+      text: cleanTextContent.replace(/<[^>]*>/g, ''), // Strip HTML for text version
       headers: {
         'X-Mailer': 'ProductivePro Cold Email System',
         'List-Unsubscribe': `<mailto:unsubscribe@${account.email.split('@')[1]}>`,
@@ -642,17 +650,21 @@ const storeInboxMessage = async (message, account) => {
         // Extract text content
         const textMatches = sourceStr.match(/Content-Type: text\/plain[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--|\r\n\r\nContent-Type)/i);
         if (textMatches && textMatches[1]) {
-          textContent = textMatches[1].trim();
+          textContent = textMatches[1].trim()
           // Remove virus-free message
-          textContent = textContent.replace(/\s*Virus-free\..*avast\.com\s*$/i, '');
+            .replace(/\s*Virus-free\..*avast\.com\s*$/i, '')
+            .replace(/\s*This email has been checked for viruses by.*$/im, '');
         }
         
         // Extract HTML content
         const htmlMatches = sourceStr.match(/Content-Type: text\/html[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--|\r\n\r\n$)/i);
         if (htmlMatches && htmlMatches[1]) {
-          htmlContent = htmlMatches[1].trim();
+          htmlContent = htmlMatches[1].trim()
           // Remove virus-free message
-          htmlContent = htmlContent.replace(/<div.*?Virus-free.*?avast\.com.*?<\/div>/i, '');
+            .replace(/<div.*?Virus-free.*?avast\.com.*?<\/div>/i, '')
+            .replace(/<div.*?This email has been checked for viruses by.*?<\/div>/i, '')
+            .replace(/Virus-free\..*?avast\.com/i, '')
+            .replace(/This email has been checked for viruses by.*/i, '');
         }
         
         // If we couldn't extract from envelope, try from headers
@@ -682,7 +694,7 @@ const storeInboxMessage = async (message, account) => {
       userId: account.userId.toString(),
       emailAccountId: account._id.toString(),
       messageId: messageId,
-      threadId: messageId, // Simple implementation - in production you'd use proper threading
+      threadId: emailData.threadId || messageId, // Use provided threadId or fallback to messageId
       from: from,
       to: to,
       subject: subject,
@@ -691,7 +703,10 @@ const storeInboxMessage = async (message, account) => {
         html: htmlContent
       },
       isRead: false,
+      isWarmup: subject.toLowerCase().includes('warmup') || from.email.includes('warmup'),
       isStarred: false,
+      isReply: emailData.isReply || false,
+      sentByMe: false,
       receivedAt: receivedDate
     });
     

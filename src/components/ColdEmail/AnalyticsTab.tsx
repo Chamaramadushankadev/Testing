@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, Calendar, Mail, RefreshCw } from 'lucide-react';
-import { coldEmailAPI } from '../../services/api';
+import api, { coldEmailAPI } from '../../services/api';
 
 interface AnalyticsTabProps {
   campaigns: any[];
@@ -24,14 +24,84 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const loadAnalytics = async () => {
     try {
       setLoading(true);
+      
+      // First try to get data from the dashboard endpoint
       try {
-        const response = await coldEmailAPI.getAnalytics({ timeRange });
-        setAnalytics(response.data || createEmptyAnalyticsData());
+        const response = await api.get('/analytics/dashboard', { params: { timeRange } });
+        if (response.data) {
+          setAnalytics(response.data);
+          return;
+        }
       } catch (error) {
-        console.error('Error fetching analytics:', error);
-        // If API fails, use empty data structure instead of showing error
-        setAnalytics(createEmptyAnalyticsData());
+        console.log('Dashboard endpoint failed, trying cold email analytics endpoint');
       }
+      
+      // If that fails, try the cold email specific endpoint
+      try {
+        const response = await api.get('/cold-email-system/analytics/dashboard', { params: { timeRange } });
+        if (response.data) {
+          setAnalytics(response.data);
+          return;
+        }
+      } catch (error) {
+        console.log('Cold email analytics endpoint failed, trying fallback');
+      }
+      
+      // If both fail, try to construct analytics from campaigns and accounts directly
+      if (campaigns.length > 0 || emailAccounts.length > 0) {
+        const manualAnalytics = {
+          campaigns: {
+            total: campaigns.length,
+            active: campaigns.filter(c => c.status === 'active').length,
+            createdInRange: campaigns.filter(c => {
+              const createdDate = new Date(c.createdAt);
+              const now = new Date();
+              const daysAgo = timeRange === 'week' ? 7 : timeRange === 'month' ? 30 : 90;
+              const startDate = new Date(now.setDate(now.getDate() - daysAgo));
+              return createdDate >= startDate;
+            }).length
+          },
+          leads: {
+            total: 0, // We don't have this data directly
+            new: 0,
+            byStatus: {
+              new: 0,
+              contacted: 0,
+              replied: 0,
+              interested: 0
+            }
+          },
+          emails: {
+            totalSent: campaigns.reduce((sum, c) => sum + (c.stats?.emailsSent || 0), 0),
+            totalOpened: campaigns.reduce((sum, c) => sum + (c.stats?.opened || 0), 0),
+            totalClicked: campaigns.reduce((sum, c) => sum + (c.stats?.clicked || 0), 0),
+            totalReplied: campaigns.reduce((sum, c) => sum + (c.stats?.replied || 0), 0),
+            totalBounced: campaigns.reduce((sum, c) => sum + (c.stats?.bounced || 0), 0),
+            openRate: campaigns.length > 0 ? 
+              campaigns.reduce((sum, c) => sum + (c.stats?.openRate || 0), 0) / campaigns.length : 0,
+            replyRate: campaigns.length > 0 ? 
+              campaigns.reduce((sum, c) => sum + (c.stats?.replyRate || 0), 0) / campaigns.length : 0,
+            bounceRate: campaigns.length > 0 ? 
+              campaigns.reduce((sum, c) => sum + (c.stats?.bounceRate || 0), 0) / campaigns.length : 0
+          },
+          accountPerformance: emailAccounts.map(account => ({
+            accountId: account.id,
+            name: account.name,
+            email: account.email,
+            sent: 0,
+            opened: 0,
+            replied: 0,
+            openRate: 0,
+            replyRate: 0
+          }))
+        };
+        
+        setAnalytics(manualAnalytics);
+        return;
+      }
+      
+      // If all else fails, use empty data structure
+      setAnalytics(createEmptyAnalyticsData());
     } catch (error: any) {
       console.error('Error loading analytics:', error);
       setAnalytics(createEmptyAnalyticsData());
@@ -43,6 +113,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   // Create empty analytics data structure for when API fails or returns no data
   const createEmptyAnalyticsData = () => {
     return {
+      timeRange,
+      period: {
+        start: new Date(),
+        end: new Date()
+      },
       campaigns: {
         total: 0,
         active: 0,
@@ -308,17 +383,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {analytics?.accountPerformance?.find((a: any) => a?.accountId === account.id)?.sent || 0}
+                          {analytics?.accountPerformance?.find((a: any) => a?.accountId === account.id || a?.email === account.email)?.sent || 0}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {Math.round(analytics?.accountPerformance?.find((a: any) => a?.accountId === account.id)?.openRate || 0)}%
+                          {Math.round(analytics?.accountPerformance?.find((a: any) => a?.accountId === account.id || a?.email === account.email)?.openRate || 0)}%
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {Math.round(analytics?.accountPerformance?.find((a: any) => a?.accountId === account.id)?.replyRate || 0)}%
+                          {Math.round(analytics?.accountPerformance?.find((a: any) => a?.accountId === account.id || a?.email === account.email)?.replyRate || 0)}%
                         </div>
                       </td>
                     </tr>

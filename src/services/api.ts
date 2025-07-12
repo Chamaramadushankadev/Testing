@@ -237,6 +237,7 @@ export const googleAlertsAPI = {
 // ---------------- ANALYTICS ----------------
 export const analyticsAPI = {
   getDashboard: (params?: any) => api.get('/analytics/dashboard', { params }),
+  getColdEmailDashboard: (params?: any) => api.get('/cold-email-system/analytics/dashboard', { params }),
   getGoalsAnalytics: () => api.get('/analytics/goals'),
   getTasksAnalytics: () => api.get('/analytics/tasks'),
   getColdEmailAnalytics: (params?: any) => api.get('/cold-email-system/analytics', { params })

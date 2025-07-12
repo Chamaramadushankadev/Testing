@@ -198,17 +198,6 @@ export const coldEmailAPI = {
   // Warmup & Analytics
   getWarmupStatus: () => api.get('/cold-email-system/warmup/status'),
   startWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/start`),
-  getInboxSyncStatus: () => api.get('/cold-email-system/inbox/sync-status'),
-  syncInbox: (accountId: string) => api.post(`/cold-email-system/inbox/sync/${accountId}`),
-  getEmailLogs: (params?: any) => api.get('/cold-email-system/logs', { params }),
-  sendReply: (data: any) => api.post('/cold-email-system/inbox/reply', data),
-  getDashboardAnalytics: (params?: any) => api.get('/cold-email-system/analytics/dashboard', { params }),
-  getAdvancedAnalytics: (params?: any) => api.get('/cold-email-system/analytics/advanced', { params }),
-  
-  // Warmup
-  getWarmupStatus: () => api.get('/cold-email-system/warmup/status'),
-  startWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/start`),
-  pauseWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/pause`),
   resumeWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/resume`),
   stopWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/stop`),
   updateWarmupSettings: (accountId: string, settings: any) => api.put(`/cold-email-system/warmup/${accountId}/settings`, settings),

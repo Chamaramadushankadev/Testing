@@ -313,8 +313,8 @@ router.post('/reply', authenticate, async (req, res) => {
       const inboxMessage = new InboxMessage({
         userId: req.user._id,
         emailAccountId: account._id,
-        messageId: result.messageId,
-        threadId: threadId,
+        messageId: result.messageId || `reply-${Date.now()}`,
+        threadId: threadId, // Use the same threadId to maintain the conversation
         from: {
           name: account.name,
           email: account.email
@@ -333,6 +333,15 @@ router.post('/reply', authenticate, async (req, res) => {
       
       await inboxMessage.save();
       console.log('✅ Reply saved to inbox');
+      
+      // Update the original message to ensure it has the same threadId
+      if (inReplyTo) {
+        await InboxMessage.updateMany(
+          { messageId: inReplyTo },
+          { $set: { threadId: threadId } }
+        );
+        console.log('✅ Updated original message threadId');
+      }
     } catch (saveError) {
       console.error('Error saving reply to inbox:', saveError);
       // Continue even if saving to inbox fails

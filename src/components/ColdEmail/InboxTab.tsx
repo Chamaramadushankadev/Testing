@@ -159,20 +159,25 @@ export const InboxTab: React.FC<InboxTabProps> = ({
       
       // Refresh inbox and update the thread view
       await loadInbox();
+
+      // Get the thread ID from the selected message
+      const threadId = selectedMessage.threadId || selectedMessage.messageId || selectedMessage.id;
       
-      // Wait a moment for the server to process the reply
-      setTimeout(async () => {
-        // Find the updated message with the reply
-        const updatedResponse = await coldEmailAPI.getInboxMessages({
-          threadId: selectedMessage.threadId || selectedMessage.messageId || selectedMessage.id,
+      // Reload the thread with the new reply
+      try {
+        const threadResponse = await coldEmailAPI.getInboxMessages({
+          threadId: threadId,
+          includeThread: true,
           excludeWarmup: true
         });
         
-        if (updatedResponse.data.messages && updatedResponse.data.messages.length > 0) {
-          // Update the selected message to show the thread
-          setSelectedMessage(updatedResponse.data.messages[0]);
+        if (threadResponse.data.messages && threadResponse.data.messages.length > 0) {
+          // Update the selected message to show the thread with the new reply
+          setSelectedMessage(threadResponse.data.messages[0]);
         }
-      }, 1000);
+      } catch (threadError) {
+        console.error('Error loading thread after reply:', threadError);
+      }
     } catch (error: any) {
       console.error('Error sending reply:', error);
       showNotification('error', 'Failed to send reply: ' + (error.message || 'Unknown error'));

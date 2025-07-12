@@ -519,22 +519,6 @@ export const InboxTab: React.FC<InboxTabProps> = ({
         </div>
       </div>
 
-      {/* Delete Message Confirmation Modal */}
-      {/* Bulk Delete Button */}
-      <div className="fixed bottom-4 right-4">
-        <button
-          onClick={() => {
-            if (window.confirm('Are you sure you want to delete selected messages?')) {
-              // TODO: Implement bulk delete
-              // For now, just refresh the inbox
-              loadInbox();
-            }
-          }}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 shadow-md"
-        >
-          <span>Delete Selected</span>
-        </button>
-      </div>
     </div>
   );
 };

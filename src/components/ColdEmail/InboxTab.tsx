@@ -347,7 +347,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                     </button>
                   </div>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-4 px-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
                       <input
@@ -376,16 +376,16 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                         rows={8}
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                         placeholder="Type your reply here..."
                       />
                     </div>
                     
-                    <div className="flex justify-end pt-2">
+                    <div className="flex justify-end pt-4 pb-2">
                       <button
                         onClick={handleSendReply}
                         disabled={!replyContent.trim() || sendingReply}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                       >
                         {sendingReply ? (
                           <>
@@ -405,7 +405,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
               )}
               
               <div className="p-6">
-                <div className="flex items-start space-x-4 mb-6">
+                <div className="flex items-start space-x-4 mb-6 px-2">
                   <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
                     <span className="text-gray-600 font-medium">
                       {selectedMessage.from.name?.[0] || selectedMessage.from.email?.[0] || '?'}
@@ -436,7 +436,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                   </div>
                 </div>
                 
-                <div className="prose max-w-none">
+                <div className="prose max-w-none px-2">
                   {selectedMessage.content.html ? (
                     <iframe 
                       srcDoc={selectedMessage.content.html}
@@ -445,12 +445,12 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                       sandbox="allow-same-origin"
                     />
                   ) : (
-                    <div className="whitespace-pre-line">{selectedMessage.content.text}</div>
+                    <div className="whitespace-pre-line bg-white p-4 rounded-lg border border-gray-100">{selectedMessage.content.text}</div>
                   )}
                 </div>
                 
                 {selectedMessage.attachments && selectedMessage.attachments.length > 0 && (
-                  <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="mt-6 pt-6 border-t border-gray-200 px-2">
                     <h4 className="font-medium text-gray-900 mb-3">Attachments</h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedMessage.attachments.map((attachment: any) => (
@@ -477,6 +477,25 @@ export const InboxTab: React.FC<InboxTabProps> = ({
           )}
         </div>
       </div>
+
+      {/* Delete Message Confirmation Modal */}
+      {selectedMessage && (
+        <div className="fixed bottom-4 right-4">
+          <button
+            onClick={() => {
+              if (window.confirm('Are you sure you want to delete this message?')) {
+                // Handle delete logic here
+                setSelectedMessage(null);
+                loadInbox();
+              }
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 shadow-md"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Delete Message</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

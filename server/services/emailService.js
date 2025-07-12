@@ -63,42 +63,23 @@ export const sendEmail = async (account, emailData) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${emailData.subject}</title>
   <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #f9f9f9;
-    }
-    .email-container {
-      background-color: #ffffff;
-      border-radius: 8px;
-      padding: 25px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    .content {
-      margin-bottom: 25px;
-      white-space: pre-line;
-    }
-    .signature {
-      margin-top: 30px;
-      padding-top: 10px;
-      border-top: 1px solid #eee;
-      font-size: 14px;
-      color: #666;
-    }
-    .footer {
-      margin-top: 20px;
-      font-size: 12px;
-      color: #999;
-      text-align: center;
-    }
+    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
+    .email-container { background-color: #ffffff; border-radius: 8px; padding: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .content { margin-bottom: 25px; white-space: pre-line; font-size: 15px; }
+    .signature { margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee; font-size: 14px; color: #666; }
+    .footer { margin-top: 20px; font-size: 12px; color: #999; text-align: center; }
+    p { margin-bottom: 16px; }
+    a { color: #3b82f6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #f0f0f0; }
+    .header h1 { margin: 0; font-size: 18px; color: #1f2937; }
   </style>
 </head>
 <body>
   <div class="email-container">
+    <div class="header">
+      <h1>${emailData.subject}</h1>
+    </div>
     <div class="content">
       ${emailData.content}
     </div>
@@ -107,9 +88,9 @@ export const sendEmail = async (account, emailData) => {
       ${account.name}<br>
       ${account.email}
     </div>
-  </div>
-  <div class="footer">
-    Sent via ProductivePro
+    <div class="footer">
+      Sent via ProductivePro
+    </div>
   </div>
 </body>
 </html>`,

@@ -3,6 +3,9 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+// 🟢 Add this import at the top
+import webhookRoute from './webhook.js';
+
 // Import routes
 import authRoutes from './routes/auth.js';
 import goalsRoutes from './routes/goals.js';
@@ -15,7 +18,7 @@ import googleAlertsRoutes from './routes/googleAlerts.js';
 import scriptsRoutes from './routes/scripts.js';
 import emailRoutes from './routes/email.js';
 import coldEmailRoutes from './routes/coldEmail.js';
-import coldEmailSystemRoutes from './routes/coldEmailSystem.js'; 
+import coldEmailSystemRoutes from './routes/coldEmailSystem.js';
 import analyticsRoutes from './routes/analytics.js';
 import youtubeChannelsRoutes from './routes/youtubeChannels.js';
 import youtubeScriptsRoutes from './routes/youtubeScripts.js';
@@ -26,9 +29,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5002;
 
-// Allow all CORS (for local/dev)
-app.use(cors({ origin: '*' }));
+// 🟢 Webhook route MUST come before JSON parser
+app.use('/webhook', webhookRoute);
 
+// CORS and body parsing
+app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -95,8 +100,7 @@ app.use('*', (req, res) => {
 // Start server
 const startServer = async () => {
   await connectToMongoDB();
-  
-  // Start background jobs for email system
+
   if (isMongoConnected) {
     startBackgroundJobs();
   }

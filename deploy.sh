@@ -2,8 +2,6 @@
 
 cd ~/Productivityapp
 
-git clone https://github.com/Chamaramadushankadev/Productivityapp.git
-
 echo "🔁 Pulling latest code..."
 git fetch --all
 git reset --hard origin/main

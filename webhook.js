@@ -1,40 +1,37 @@
-// ~/Productivityapp/webhook.js
 import express from 'express';
 import crypto from 'crypto';
 import { exec } from 'child_process';
-import bodyParser from 'body-parser';
 
-const app = express();
-const PORT = 4000;
-const SECRET = 'your_webhook_secret'; // Replace with your real webhook secret
+const router = express.Router();
 
-app.use(bodyParser.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf;
-  }
-}));
+const SECRET = 'Chamara@1234'; // Your GitHub webhook secret
 
-app.post('/github-webhook', (req, res) => {
-  const signature = req.headers['x-hub-signature-256'];
-  const hmac = crypto.createHmac('sha256', SECRET);
-  const digest = 'sha256=' + hmac.update(req.rawBody).digest('hex');
+router.post('/webhook', express.raw({ type: '*/*' }), (req, res) => {
+  const signature = `sha256=${crypto
+    .createHmac('sha256', SECRET)
+    .update(req.body)
+    .digest('hex')}`;
 
-  if (signature !== digest) {
-    return res.status(403).send('Invalid signature');
+  const trusted = req.headers['x-hub-signature-256'] === signature;
+
+  if (!trusted) {
+    console.log('❌ Invalid webhook signature');
+    return res.status(403).send('Forbidden');
   }
 
-  // Run the deployment script
-  exec('/bin/bash ~/Productivityapp/deploy.sh', (err, stdout, stderr) => {
+  console.log('✅ Valid webhook triggered. Pulling latest code...');
+
+  exec('sh ./deploy.sh', (err, stdout, stderr) => {
     if (err) {
-      console.error('❌ Deploy error:', stderr);
+      console.error(`Error: ${err.message}`);
       return res.status(500).send('Deployment failed');
     }
 
-    console.log('✅ Deploy output:', stdout);
-    res.status(200).send('Deployment successful');
+    if (stderr) console.error(`stderr: ${stderr}`);
+    if (stdout) console.log(`stdout: ${stdout}`);
+
+    res.status(200).send('Deployed!');
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Webhook listening on port ${PORT}`);
-});
+export default router;

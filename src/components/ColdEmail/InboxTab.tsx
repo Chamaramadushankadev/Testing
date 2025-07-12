@@ -137,14 +137,14 @@ export const InboxTab: React.FC<InboxTabProps> = ({
       setSendingReply(true);
       
       const replyData = {
-        to: selectedMessage.from?.email || '',
+        to: selectedMessage.from.email,
         subject: selectedMessage.subject.startsWith('Re:') 
           ? selectedMessage.subject 
           : `Re: ${selectedMessage.subject}`,
         content: replyContent,
-        inReplyTo: selectedMessage.messageId || '',
-        threadId: selectedMessage.threadId || selectedMessage.messageId || '',
-        accountId: selectedMessage.emailAccountId?._id || selectedMessage.emailAccountId || ''
+        inReplyTo: selectedMessage.messageId,
+        threadId: selectedMessage.threadId || selectedMessage.messageId,
+        accountId: selectedMessage.emailAccountId
       };
       
       const response = await coldEmailAPI.sendReply(replyData);
@@ -368,8 +368,9 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                         handleDeleteMessage(selectedMessage.id);
                       }
                     }}
-                  <Trash2 className="w-4 h-4" />
-                  <span>Delete</span>
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
                   </button>
                 </div>
               </div>
@@ -531,7 +532,6 @@ export const InboxTab: React.FC<InboxTabProps> = ({
           }}
           className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 shadow-md"
         >
-          {/* <span>Delete Selected</span> */}
           <span>Delete Selected</span>
         </button>
       </div>

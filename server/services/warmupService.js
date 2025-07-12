@@ -26,6 +26,140 @@ const BLACKLISTED_DOMAINS = [
   'fakeinbox.com'
 ];
 
+// Store message in inbox
+const storeInboxMessage = async (message, account) => {
+  try {
+    console.log('💾 Storing message in inbox database:', message.envelope?.messageId);
+    
+    // Import InboxMessage model if not already available
+    const { InboxMessage } = await import('../models/ColdEmailSystemIndex.js');
+    
+    // Check if message already exists
+    let messageId = message.envelope?.messageId;
+    if (!messageId && message.source) {
+      // Try to extract message ID from source if not in envelope
+      const messageIdMatch = message.source.toString().match(/Message-ID:\s*<([^>]+)>/i);
+      if (messageIdMatch && messageIdMatch[1]) {
+        messageId = messageIdMatch[1];
+      }
+    }
+    
+    if (!messageId) {
+      console.log('⚠️ No message ID found, generating a random one');
+      messageId = `generated-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    }
+    
+    const existingMessage = await InboxMessage.findOne({ messageId });
+    
+    if (existingMessage) {
+      console.log('⚠️ Message already exists in database');
+      return;
+    }
+    
+    // Parse message content
+    let textContent = '';
+    let htmlContent = '';
+    let from = { name: '', email: '' };
+    let to = [];
+    let subject = '';
+    let receivedDate = new Date();
+    
+    try {
+      // Extract message details from envelope or source
+      if (message.envelope) {
+        from = {
+          name: message.envelope.from?.[0]?.name || '',
+          email: message.envelope.from?.[0]?.address || ''
+        };
+        to = message.envelope.to?.map(recipient => ({
+          name: recipient.name || '',
+          email: recipient.address
+        })) || [];
+        subject = message.envelope.subject || '(No Subject)';
+        receivedDate = message.envelope.date || new Date();
+      }
+      
+      // Extract content from source
+      if (message.source) {
+        const sourceStr = message.source.toString();
+        
+        // Extract text content
+        const textMatches = sourceStr.match(/Content-Type: text\/plain[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--|\r\n\r\nContent-Type)/i);
+        if (textMatches && textMatches[1]) {
+          textContent = textMatches[1].trim();
+        }
+        
+        // Extract HTML content
+        const htmlMatches = sourceStr.match(/Content-Type: text\/html[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--|\r\n\r\n$)/i);
+        if (htmlMatches && htmlMatches[1]) {
+          htmlContent = htmlMatches[1].trim();
+        }
+        
+        // If we couldn't extract from envelope, try from headers
+        if (!from.email) {
+          const fromMatch = sourceStr.match(/From:\s*"?([^"<]*)"?\s*<?([^>]*)>?/i);
+          if (fromMatch) {
+            from = {
+              name: fromMatch[1]?.trim() || '',
+              email: fromMatch[2]?.trim() || ''
+            };
+          }
+        }
+        
+        if (!subject) {
+          const subjectMatch = sourceStr.match(/Subject:\s*(.*?)(?:\r\n|\n)/i);
+          if (subjectMatch && subjectMatch[1]) {
+            subject = subjectMatch[1].trim();
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing message content:', error);
+    }
+    
+    // Check if this is a warmup email
+    const isWarmup = await WarmupEmail.findOne({
+      $or: [
+        { messageId: messageId },
+        { 
+          $and: [
+            { fromAccountId: { $ne: account._id } },
+            { toAccountId: account._id }
+          ]
+        }
+      ]
+    });
+    
+    // Create inbox message
+    const inboxMessage = new InboxMessage({
+      userId: account.userId.toString(),
+      emailAccountId: account._id.toString(),
+      messageId: messageId,
+      threadId: messageId, // Simple implementation - in production you'd use proper threading
+      from: from,
+      to: to,
+      subject: subject,
+      content: {
+        text: textContent,
+        html: htmlContent
+      },
+      isRead: false,
+      isStarred: false,
+      isWarmup: !!isWarmup,
+      receivedAt: receivedDate
+    });
+    
+    await inboxMessage.save();
+    console.log('✅ Message stored in inbox database:', inboxMessage._id);
+    
+    return inboxMessage;
+  } catch (error) {
+    console.error('Error storing inbox message:', error);
+    console.error('Error details:', error.stack);
+    return null;
+  }
+};
+
 // Start warmup for an account
 export const startWarmupForAccount = async (account) => {
   try {

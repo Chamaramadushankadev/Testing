@@ -272,13 +272,7 @@ router.post('/sync/:accountId', authenticate, async (req, res) => {
 // Send reply to a message
 router.post('/reply', authenticate, async (req, res) => {
   try {
-    const { to, subject, content, inReplyTo, threadId } = req.body;
-    let { accountId } = req.body;
-    
-    // Convert accountId to string if it's not already
-    if (accountId && typeof accountId !== 'string') {
-      accountId = String(accountId);
-    }
+    const { to, subject, content, inReplyTo, threadId, accountId } = req.body;
     
     if (!to || !subject || !content || !accountId) {
       return res.status(400).json({ 
@@ -290,7 +284,7 @@ router.post('/reply', authenticate, async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(accountId)) {
       return res.status(400).json({ 
         message: 'Invalid account ID format', 
-        details: `ID: ${accountId}, Type: ${typeof accountId}, Valid: ${mongoose.Types.ObjectId.isValid(accountId)}` 
+        details: `ID: ${accountId}` 
       });
     }
     

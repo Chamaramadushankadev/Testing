@@ -142,10 +142,14 @@ export const InboxTab: React.FC<InboxTabProps> = ({
           ? selectedMessage.subject 
           : `Re: ${selectedMessage.subject}`,
         content: replyContent,
-        inReplyTo: selectedMessage.messageId || '',
-        threadId: selectedMessage.threadId || selectedMessage.messageId || '',
-        accountId: selectedMessage.emailAccountId?._id || selectedMessage.emailAccountId || ''
+        inReplyTo: selectedMessage.messageId || selectedMessage.id || '',
+        threadId: selectedMessage.threadId || selectedMessage.messageId || selectedMessage.id || '',
+        accountId: typeof selectedMessage.emailAccountId === 'object' 
+          ? selectedMessage.emailAccountId._id || selectedMessage.emailAccountId.id
+          : selectedMessage.emailAccountId
       };
+      
+      console.log('Sending reply with data:', replyData);
       
       const response = await coldEmailAPI.sendReply(replyData);
       showNotification('success', 'Reply sent successfully');

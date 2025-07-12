@@ -3,14 +3,14 @@ import crypto from 'crypto';
 import { exec } from 'child_process';
 
 const router = express.Router();
-
-const SECRET = 'Chamara@1234'; // Your GitHub webhook secret
+const SECRET = 'Chamara@1234'; // Match GitHub
 
 router.post('/', express.json(), (req, res) => {
   console.log('📩 GitHub Webhook Hit');
+
   const signature = `sha256=${crypto
     .createHmac('sha256', SECRET)
-    .update(req.body)
+    .update(JSON.stringify(req.body))
     .digest('hex')}`;
 
   const trusted = req.headers['x-hub-signature-256'] === signature;

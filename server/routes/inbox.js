@@ -295,10 +295,10 @@ router.post('/reply', authenticate, async (req, res) => {
     const emailData = {
       to,
       subject,
-      content,
+      content: content.trim(),
       type: 'reply',
       inReplyTo,
-      threadId,
+      threadId: threadId,
       isReply: true
     };
     
@@ -311,10 +311,10 @@ router.post('/reply', authenticate, async (req, res) => {
     // Create an inbox message for the sent reply
     try {
       const inboxMessage = new InboxMessage({
-        userId: req.user._id,
-        emailAccountId: account._id,
+        userId: req.user._id.toString(),
+        emailAccountId: account._id.toString(),
         messageId: result.messageId || `reply-${Date.now()}`,
-        threadId: threadId, // Use the same threadId to maintain the conversation
+        threadId: threadId,
         from: {
           name: account.name,
           email: account.email
@@ -336,10 +336,30 @@ router.post('/reply', authenticate, async (req, res) => {
       
       // Update the original message to ensure it has the same threadId
       if (inReplyTo) {
-        await InboxMessage.updateMany(
-          { messageId: inReplyTo },
-          { $set: { threadId: threadId } }
-        );
+        // Find the original message first
+        const originalMessage = await InboxMessage.findOne({ 
+          userId: req.user._id.toString(),
+          $or: [
+            { messageId: inReplyTo },
+            { _id: inReplyTo }
+          ]
+        });
+        
+        if (originalMessage) {
+          console.log('✅ Found original message to update threadId');
+          // Update all messages in this conversation to have the same threadId
+          await InboxMessage.updateMany(
+            { 
+              userId: req.user._id.toString(),
+              $or: [
+                { threadId: originalMessage.threadId },
+                { messageId: originalMessage.messageId },
+                { _id: originalMessage._id.toString() }
+              ]
+            },
+            { $set: { threadId: threadId } }
+          );
+        }
         console.log('✅ Updated original message threadId');
       }
     } catch (saveError) {

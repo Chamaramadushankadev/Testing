@@ -136,8 +136,22 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   const handleSendReply = async () => {
     if (!selectedMessage || !replyContent.trim()) return;
     
+    // Get the account ID to use for the reply
+    const replyAccountId = filterAccount !== 'all' 
+      ? filterAccount 
+      : (selectedMessage.emailAccountId?._id || selectedMessage.emailAccountId || emailAccounts[0]?.id);
+    
+    if (!replyAccountId) {
+      showNotification('error', 'No email account available to send reply');
+      return;
+    }
+    
     try {
       setSendingReply(true);
+      
+      // Get the message ID and thread ID
+      const messageId = selectedMessage.messageId || selectedMessage.id;
+      const threadId = selectedMessage.threadId || messageId;
       
       const replyData = {
         to: selectedMessage.from?.email || '',
@@ -145,9 +159,9 @@ export const InboxTab: React.FC<InboxTabProps> = ({
           ? selectedMessage.subject 
           : `Re: ${selectedMessage.subject}`,
         content: replyContent,
-        inReplyTo: selectedMessage.messageId || selectedMessage.id || '',
-        threadId: selectedMessage.threadId || selectedMessage.messageId || selectedMessage.id || '',
-        accountId: filterAccount !== 'all' ? filterAccount : emailAccounts[0]?.id
+        inReplyTo: messageId,
+        threadId: threadId,
+        accountId: replyAccountId
       };
       
       console.log('Sending reply with data:', replyData);
@@ -157,27 +171,30 @@ export const InboxTab: React.FC<InboxTabProps> = ({
       setShowReplyForm(false);
       setReplyContent('');
       
-      // Refresh inbox and update the thread view
-      await loadInbox();
-
       // Get the thread ID from the selected message
-      const threadId = selectedMessage.threadId || selectedMessage.messageId || selectedMessage.id;
+      const messageThreadId = selectedMessage.threadId || selectedMessage.messageId || selectedMessage.id;
       
-      // Reload the thread with the new reply
-      try {
-        const threadResponse = await coldEmailAPI.getInboxMessages({
-          threadId: threadId,
-          includeThread: true,
-          excludeWarmup: true
-        });
+      // Wait a moment for the server to process the reply
+      setTimeout(async () => {
+        // Refresh inbox and update the thread view
+        await loadInbox();
         
-        if (threadResponse.data.messages && threadResponse.data.messages.length > 0) {
-          // Update the selected message to show the thread with the new reply
-          setSelectedMessage(threadResponse.data.messages[0]);
+        // Reload the thread with the new reply
+        try {
+          const threadResponse = await coldEmailAPI.getInboxMessages({
+            threadId: messageThreadId,
+            includeThread: true,
+            excludeWarmup: true
+          });
+          
+          if (threadResponse.data.messages && threadResponse.data.messages.length > 0) {
+            // Update the selected message to show the thread with the new reply
+            setSelectedMessage(threadResponse.data.messages[0]);
+          }
+        } catch (threadError) {
+          console.error('Error loading thread after reply:', threadError);
         }
-      } catch (threadError) {
-        console.error('Error loading thread after reply:', threadError);
-      }
+      }, 1000);
     } catch (error: any) {
       console.error('Error sending reply:', error);
       showNotification('error', 'Failed to send reply: ' + (error.message || 'Unknown error'));

@@ -136,18 +136,22 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   const handleSendReply = async () => {
     if (!selectedMessage || !replyContent.trim()) return;
     
-    // Get account ID as a string
-    const replyAccountId = typeof selectedMessage.emailAccountId === 'string' 
-      ? selectedMessage.emailAccountId 
-      : selectedMessage.emailAccountId?.id || selectedMessage.emailAccountId?._id || emailAccounts[0]?.id;
-    
-    if (!replyAccountId) {
+    // Find the account ID - use the first account as fallback
+    let accountId = emailAccounts[0]?.id;
+
+    // Try to get account ID from the selected message
+    if (selectedMessage.emailAccountId) {
+      if (typeof selectedMessage.emailAccountId === 'string') {
+        accountId = selectedMessage.emailAccountId;
+      } else if (typeof selectedMessage.emailAccountId === 'object') {
+        accountId = selectedMessage.emailAccountId.id || selectedMessage.emailAccountId._id;
+      }
+    }
+
+    if (!accountId) {
       showNotification('error', 'No email account available to send reply');
       return;
     }
-    
-    // Ensure account ID is a string
-    const accountIdString = String(replyAccountId);
     
     try {
       setSendingReply(true);
@@ -158,6 +162,9 @@ export const InboxTab: React.FC<InboxTabProps> = ({
       // Use existing threadId
       const threadId = selectedMessage.threadId;
       
+      console.log('Account ID type:', typeof accountId);
+      console.log('Account ID value:', accountId);
+      
       const replyData = {
         to: selectedMessage.from?.email || '',
         subject: selectedMessage.subject.startsWith('Re:') 
@@ -166,7 +173,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
         content: replyContent,
         inReplyTo: messageId,
         threadId,
-        accountId: accountIdString
+        accountId: String(accountId)
       };
       
       console.log('Sending reply with data:', JSON.stringify({
@@ -174,7 +181,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
         subject: replyData.subject,
         inReplyTo: replyData.inReplyTo,
         threadId: replyData.threadId,
-        accountId: accountIdString
+        accountId: replyData.accountId
       }));
       
       const response = await coldEmailAPI.sendReply(replyData);

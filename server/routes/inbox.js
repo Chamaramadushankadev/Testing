@@ -272,25 +272,25 @@ router.post('/sync/:accountId', authenticate, async (req, res) => {
 // Send reply to a message
 router.post('/reply', authenticate, async (req, res) => {
   try {
-    let { to, subject, content, inReplyTo, threadId, accountId } = req.body;
+    const { to, subject, content, inReplyTo, threadId } = req.body;
+    let { accountId } = req.body;
     
-    // Ensure accountId is a string and valid
-    if (!accountId || typeof accountId !== 'string') {
-      console.error('Invalid accountId format:', accountId, typeof accountId);
-      return res.status(400).json({ 
-        message: 'Invalid account ID format', 
-        details: `ID: ${accountId}, Type: ${typeof accountId}` 
-      });
+    // Convert accountId to string if it's not already
+    if (accountId && typeof accountId !== 'string') {
+      accountId = String(accountId);
     }
     
     if (!to || !subject || !content || !accountId) {
-      return res.status(400).json({ message: 'Missing required fields' });
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        details: { to, subject, contentLength: content?.length, accountId }
+      });
     }
     
     if (!mongoose.Types.ObjectId.isValid(accountId)) {
       return res.status(400).json({ 
         message: 'Invalid account ID format', 
-        details: `ID: ${accountId}, Type: ${typeof accountId}` 
+        details: `ID: ${accountId}, Type: ${typeof accountId}, Valid: ${mongoose.Types.ObjectId.isValid(accountId)}` 
       });
     }
     

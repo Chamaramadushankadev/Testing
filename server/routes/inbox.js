@@ -272,14 +272,20 @@ router.post('/sync/:accountId', authenticate, async (req, res) => {
 // Send reply to a message
 router.post('/reply', authenticate, async (req, res) => {
   try {
-    const { to, subject, content, inReplyTo, threadId: messageThreadId, accountId } = req.body;
+    let { to, subject, content, inReplyTo, threadId: messageThreadId, accountId } = req.body;
     
     if (!to || !subject || !content || !accountId) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
     
+    // Ensure accountId is a string
+    accountId = String(accountId);
+    
     if (!mongoose.Types.ObjectId.isValid(accountId)) {
-      return res.status(400).json({ message: 'Invalid account ID format: ' + accountId });
+      return res.status(400).json({ 
+        message: 'Invalid account ID format', 
+        details: `ID: ${accountId}, Type: ${typeof accountId}` 
+      });
     }
     
     // Get the email account

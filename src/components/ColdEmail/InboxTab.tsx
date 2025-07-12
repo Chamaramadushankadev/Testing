@@ -137,14 +137,14 @@ export const InboxTab: React.FC<InboxTabProps> = ({
       setSendingReply(true);
       
       const replyData = {
-        to: selectedMessage.from.email,
+        to: selectedMessage.from?.email || '',
         subject: selectedMessage.subject.startsWith('Re:') 
           ? selectedMessage.subject 
           : `Re: ${selectedMessage.subject}`,
         content: replyContent,
-        inReplyTo: selectedMessage.messageId,
-        threadId: selectedMessage.threadId || selectedMessage.messageId,
-        accountId: selectedMessage.emailAccountId
+        inReplyTo: selectedMessage.messageId || '',
+        threadId: selectedMessage.threadId || selectedMessage.messageId || '',
+        accountId: selectedMessage.emailAccountId?._id || selectedMessage.emailAccountId || ''
       };
       
       const response = await coldEmailAPI.sendReply(replyData);

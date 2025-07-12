@@ -50,6 +50,7 @@ export const sendEmail = async (account, emailData) => {
     
     const transporter = createTransporter(account);
     
+    // Improved HTML email template with better formatting
     let mailOptions = {
       from: `${account.name} <${account.email}>`,
       to: emailData.to,
@@ -63,15 +64,23 @@ export const sendEmail = async (account, emailData) => {
   <title>${emailData.subject}</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Arial, sans-serif;
       line-height: 1.6;
       color: #333;
       max-width: 600px;
       margin: 0 auto;
       padding: 20px;
+      background-color: #f9f9f9;
     }
-    p {
-      margin-bottom: 16px;
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 25px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .content {
+      margin-bottom: 25px;
+      white-space: pre-line;
     }
     .signature {
       margin-top: 30px;
@@ -80,14 +89,27 @@ export const sendEmail = async (account, emailData) => {
       font-size: 14px;
       color: #666;
     }
+    .footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  ${emailData.content}
-  
-  <div class="signature">
-    ${account.name}<br>
-    ${account.email}
+  <div class="email-container">
+    <div class="content">
+      ${emailData.content}
+    </div>
+    
+    <div class="signature">
+      ${account.name}<br>
+      ${account.email}
+    </div>
+  </div>
+  <div class="footer">
+    Sent via ProductivePro
   </div>
 </body>
 </html>`,

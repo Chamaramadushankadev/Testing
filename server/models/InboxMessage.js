@@ -66,6 +66,10 @@ const inboxMessageSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isWarmup: {
+    type: Boolean,
+    default: false
+  },
   labels: [{
     type: String,
     trim: true

@@ -22,13 +22,18 @@ const transformMessage = (message) => {
 // Get inbox messages
 router.get('/', authenticate, async (req, res) => {
   try {
-    console.log('📬 Fetching inbox messages for user:', req.user._id);
-    const { accountId, isRead, search, page = 1, limit = 50 } = req.query;
+    console.log('📬 Fetching inbox messages for user:', req.user.email || req.user._id);
+    const { accountId, isRead, search, page = 1, limit = 50, excludeWarmup = false } = req.query;
     const filter = { userId: req.user._id };
 
     if (accountId && accountId !== 'all') filter.emailAccountId = accountId;
     if (isRead === 'true') filter.isRead = true;
     if (isRead === 'false') filter.isRead = false;
+    
+    // Exclude warmup emails if requested
+    if (excludeWarmup === 'true' || excludeWarmup === true) {
+      filter.isWarmup = { $ne: true };
+    }
 
     console.log('📬 Inbox filter:', JSON.stringify(filter));
     let query = InboxMessage.find(filter);

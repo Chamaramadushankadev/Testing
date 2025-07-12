@@ -97,6 +97,57 @@ const emailAccountSchema = new mongoose.Schema({
     rampUpDays: {
       type: Number,
       default: 30
+    },
+    maxDailyEmails: {
+      type: Number,
+      default: 40,
+      min: 10,
+      max: 100
+    },
+    throttleRate: {
+      type: Number,
+      default: 5,
+      min: 1,
+      max: 20
+    },
+    startDate: {
+      type: String
+    },
+    endDate: {
+      type: String
+    },
+    workingDays: [{
+      type: Number,
+      min: 0,
+      max: 6
+    }],
+    startTime: {
+      type: String,
+      default: '09:00'
+    },
+    endTime: {
+      type: String,
+      default: '17:00'
+    },
+    autoReply: {
+      type: Boolean,
+      default: true
+    },
+    autoArchive: {
+      type: Boolean,
+      default: true
+    },
+    replyDelay: {
+      type: Number,
+      default: 30,
+      min: 5,
+      max: 120
+    },
+    maxThreadLength: {
+      type: Number,
+      default: 3,
+      min: 1,
+      max: 5
     }
   }
 }, {

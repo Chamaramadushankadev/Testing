@@ -33,12 +33,14 @@ const warmupEmailSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'WarmupEmail'
   },
+  threadId: String,
+  messageId: String,
   sentAt: Date,
   openedAt: Date,
   repliedAt: Date,
   status: {
     type: String,
-    enum: ['pending', 'sent', 'opened', 'replied', 'failed'],
+    enum: ['pending', 'sent', 'opened', 'replied', 'failed', 'spam'],
     default: 'pending'
   }
 }, {

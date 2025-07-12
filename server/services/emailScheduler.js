@@ -1,6 +1,12 @@
 import cron from 'node-cron';
 import { EmailAccount, Campaign, Lead, WarmupEmail } from '../models/ColdEmailSystem.js';
 import { sendEmail, generateWarmupContent } from './emailService.js';
+import { 
+  scheduleWarmupEmails, 
+  processSpamFolder, 
+  autoPauseOnSpamAlert, 
+  updateInboxHealthScore 
+} from './warmupService.js';
 
 // Schedule warmup emails
 export const scheduleWarmupEmails = async (account) => {
@@ -217,4 +223,110 @@ export const startBackgroundJobs = () => {
   });
 
   console.log('Background jobs started');
+};
+// Schedule daily warmup emails for all accounts
+export const scheduleDailyWarmupEmails = async () => {
+  try {
+    console.log('🔄 Scheduling daily warmup emails');
+    
+    // Get all accounts in warmup
+    const accounts = await EmailAccount.find({
+      warmupStatus: 'in-progress',
+      isActive: true,
+      'warmupSettings.enabled': true
+    });
+    
+    console.log(`📊 Found ${accounts.length} accounts in active warmup`);
+    
+    for (const account of accounts) {
+      try {
+        await scheduleWarmupEmails(account);
+      } catch (accountError) {
+        console.error(`Error scheduling warmup for account ${account.email}:`, accountError);
+      }
+    }
+    
+    console.log('✅ Completed scheduling daily warmup emails');
+  } catch (error) {
+    console.error('Error in daily warmup scheduler:', error);
+  }
+};
+
+// Process spam folders for all accounts
+export const processAllSpamFolders = async () => {
+  try {
+    console.log('🔄 Processing spam folders for all accounts');
+    
+    // Get all active accounts
+    const accounts = await EmailAccount.find({
+      isActive: true
+    });
+    
+    console.log(`📊 Found ${accounts.length} active accounts`);
+    
+    for (const account of accounts) {
+      try {
+        await processSpamFolder(account);
+      } catch (accountError) {
+        console.error(`Error processing spam folder for account ${account.email}:`, accountError);
+      }
+    }
+    
+    console.log('✅ Completed processing spam folders');
+  } catch (error) {
+    console.error('Error in spam folder processor:', error);
+  }
+};
+
+// Check for spam alerts and auto-pause if needed
+export const checkAllSpamAlerts = async () => {
+  try {
+    console.log('🔄 Checking spam alerts for all accounts');
+    
+    // Get all accounts in warmup
+    const accounts = await EmailAccount.find({
+      warmupStatus: 'in-progress',
+      isActive: true
+    });
+    
+    console.log(`📊 Found ${accounts.length} accounts in active warmup`);
+    
+    for (const account of accounts) {
+      try {
+        await autoPauseOnSpamAlert(account);
+      } catch (accountError) {
+        console.error(`Error checking spam alerts for account ${account.email}:`, accountError);
+      }
+    }
+    
+    console.log('✅ Completed checking spam alerts');
+  } catch (error) {
+    console.error('Error in spam alert checker:', error);
+  }
+};
+
+// Update health scores for all accounts
+export const updateAllHealthScores = async () => {
+  try {
+    console.log('🔄 Updating health scores for all accounts');
+    
+    // Get all active accounts
+    const accounts = await EmailAccount.find({
+      isActive: true
+    });
+    
+    console.log(`📊 Found ${accounts.length} active accounts`);
+    
+    for (const account of accounts) {
+      try {
+        await updateInboxHealthScore(account);
+      } catch (accountError) {
+        console.error(`Error updating health score for account ${account.email}:`, accountError);
+      }
+    }
+    
+    console.log('✅ Completed updating health scores');
+  } catch (error) {
+    console.error('Error in health score updater:', error);
+  }
 };

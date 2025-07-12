@@ -5,10 +5,11 @@ import { LeadsTab } from './LeadsTab';
 import { CampaignsTab } from './CampaignsTab';
 import { InboxTab } from './InboxTab';
 import { AnalyticsTab } from './AnalyticsTab';
+import { WarmupTab } from './WarmupTab';
 import { coldEmailAPI } from '../../services/api';
 
 export const ColdEmailManager: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'accounts' | 'leads' | 'campaigns' | 'inbox' | 'analytics'>('accounts');
+  const [activeTab, setActiveTab] = useState<'accounts' | 'leads' | 'campaigns' | 'inbox' | 'analytics' | 'warmup'>('accounts');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -54,6 +55,7 @@ export const ColdEmailManager: React.FC = () => {
     { id: 'leads', label: 'Leads', icon: Users },
     { id: 'campaigns', label: 'Campaigns', icon: Send },
     { id: 'inbox', label: 'Inbox', icon: Mail },
+    { id: 'warmup', label: 'Warmup', icon: Flame },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 }
   ];
 
@@ -139,6 +141,13 @@ export const ColdEmailManager: React.FC = () => {
       {activeTab === 'inbox' && (
         <InboxTab 
           emailAccounts={emailAccounts}
+          showNotification={showNotification}
+        />
+      )}
+      {activeTab === 'warmup' && (
+        <WarmupTab 
+          emailAccounts={emailAccounts}
+          setEmailAccounts={setEmailAccounts}
           showNotification={showNotification}
         />
       )}

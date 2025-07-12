@@ -31,6 +31,10 @@ const inboxSyncSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  spamPlacements: {
+    type: Number,
+    default: 0
+  },
   bouncesFound: {
     type: Number,
     default: 0

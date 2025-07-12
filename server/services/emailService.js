@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { ImapFlow } from 'imapflow';
 import { EmailLog, WarmupEmail, InboxSync, Lead, Campaign } from '../models/ColdEmailSystem.js';
+import { processWarmupReply, isDomainBlacklisted } from './warmupService.js';
 
 // Create SMTP transporter
 export const createTransporter = (account) => {
@@ -36,6 +37,12 @@ export const createTransporter = (account) => {
 export const sendEmail = async (account, emailData) => {
   try {
     console.log('📧 Attempting to send email with account:', account.email, 'to:', emailData.to);
+    
+    // Skip blacklisted domains for warmup emails
+    if (emailData.type === 'warmup' && isDomainBlacklisted(emailData.to)) {
+      console.log(`⚠️ Skipping blacklisted domain for warmup: ${emailData.to}`);
+      return { success: false, error: 'Recipient domain is blacklisted for warmup' };
+    }
     
     if (!account.smtpSettings || !account.smtpSettings.host || !account.smtpSettings.username || !account.smtpSettings.password) {
       throw new Error('Invalid SMTP settings. Please check your email account configuration.');
@@ -108,6 +115,13 @@ export const sendEmail = async (account, emailData) => {
       mailOptions.html += trackingPixel;
       emailData.trackingPixelId = trackingPixelId;
     }
+    
+    // Add message ID for tracking
+    const messageId = `<${Date.now()}.${Math.random().toString(36).substring(2, 15)}@${account.email.split('@')[1]}>`;
+    mailOptions.headers = {
+      ...mailOptions.headers,
+      'Message-ID': messageId
+    };
 
     console.log('📧 Sending email:', {
       from: account.email,
@@ -117,6 +131,9 @@ export const sendEmail = async (account, emailData) => {
 
     const info = await transporter.sendMail(mailOptions);
     console.log('📧 Email sent successfully:', info.messageId);
+    
+    // Store message ID for tracking
+    emailData.messageId = info.messageId || messageId;
     
     // Log the email
     try {
@@ -133,7 +150,7 @@ export const sendEmail = async (account, emailData) => {
         sentAt: new Date(),
         trackingPixelId: emailData.trackingPixelId,
         inReplyTo: emailData.inReplyTo,
-        messageId: info.messageId
+        messageId: info.messageId || messageId
       });
       await emailLog.save();
       console.log('📝 Email log saved successfully');
@@ -145,7 +162,7 @@ export const sendEmail = async (account, emailData) => {
     // Update account daily count
     await updateDailyEmailCount(account._id);
 
-    return { success: true, messageId: info.messageId };
+    return { success: true, messageId: info.messageId || messageId };
   } catch (error) {
     console.error('❌ Error sending email:', error);
     
@@ -259,6 +276,14 @@ export const syncInbox = async (account) => {
           console.log('↩️ Found reply to campaign email');
           repliesFound++;
           await processReply(message, account);
+        }
+
+        // Check if this is a warmup email reply
+        const isWarmupReply = await checkIfWarmupReply(message, account);
+        if (isWarmupReply.isReply) {
+          console.log('↩️ Found reply to warmup email');
+          repliesFound++;
+          await processWarmupReply(account, message, isWarmupReply.originalEmail);
         }
 
         // Check if this is a bounce
@@ -629,6 +654,71 @@ const storeInboxMessage = async (message, account) => {
     console.error('Error storing inbox message:', error);
     console.error('Error details:', error.stack);
     return null;
+  }
+};
+
+// Check if email is a reply to our warmup emails
+const checkIfWarmupReply = async (message, account) => {
+  try {
+    console.log('🔍 Checking if message is a warmup reply:', message.envelope?.subject);
+    
+    // Check if the In-Reply-To or References headers match our sent warmup emails
+    const inReplyTo = message.envelope?.inReplyTo;
+    const references = message.envelope?.references;
+    
+    // Also check subject line for Re: prefix
+    const subject = message.envelope?.subject || '';
+    const isReSubject = subject.toLowerCase().startsWith('re:');
+    
+    if (inReplyTo) {
+      console.log('🔍 Checking In-Reply-To header:', inReplyTo);
+      const originalEmail = await WarmupEmail.findOne({
+        toAccountId: account._id,
+        messageId: inReplyTo[0]
+      });
+      
+      if (originalEmail) {
+        console.log('✅ Found matching original warmup email by In-Reply-To');
+        return { isReply: true, originalEmail };
+      }
+    }
+    
+    if (references?.length > 0) {
+      console.log('🔍 Checking References headers:', references);
+      const originalEmail = await WarmupEmail.findOne({
+        toAccountId: account._id,
+        messageId: { $in: references }
+      });
+      
+      if (originalEmail) {
+        console.log('✅ Found matching original warmup email by References');
+        return { isReply: true, originalEmail };
+      }
+    }
+    
+    // If it has Re: in subject, try to find a matching sent email
+    if (isReSubject) {
+      console.log('🔍 Found Re: prefix in subject, checking for original warmup email');
+      const cleanSubject = subject.replace(/^re:\s*/i, '').trim();
+      
+      // Find sent warmup emails with matching subject
+      const originalEmail = await WarmupEmail.findOne({
+        toAccountId: account._id,
+        subject: cleanSubject,
+        status: { $in: ['sent', 'opened'] }
+      });
+      
+      if (originalEmail) {
+        console.log('✅ Found matching original warmup email by subject');
+        return { isReply: true, originalEmail };
+      }
+    }
+    
+    console.log('❌ Not identified as a warmup reply');
+    return { isReply: false, originalEmail: null };
+  } catch (error) {
+    console.error('Error checking if warmup reply:', error);
+    return { isReply: false, originalEmail: null };
   }
 };
 

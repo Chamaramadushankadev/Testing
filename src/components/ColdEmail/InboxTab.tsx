@@ -136,10 +136,16 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   const handleSendReply = async () => {
     if (!selectedMessage || !replyContent.trim()) return;
     
-    // Get account ID - use selected account or first available account
-    const replyAccountId = filterAccount !== 'all' 
-      ? filterAccount 
-      : (emailAccounts.length > 0 ? emailAccounts[0].id : '');
+    // Get account ID from the selected message or filter
+    let replyAccountId;
+    
+    if (filterAccount !== 'all') {
+      replyAccountId = filterAccount;
+    } else if (selectedMessage.emailAccountId) {
+      replyAccountId = selectedMessage.emailAccountId;
+    } else if (emailAccounts.length > 0) {
+      replyAccountId = emailAccounts[0].id;
+    }
     
     if (!replyAccountId) {
       showNotification('error', 'No email account available to send reply');
@@ -149,11 +155,11 @@ export const InboxTab: React.FC<InboxTabProps> = ({
     try {
       setSendingReply(true);
       
-      // Get the message ID for reply
-      const messageId = selectedMessage.messageId || selectedMessage.id || '';
+      // Use the original message ID for reply
+      const messageId = selectedMessage.messageId;
       
-      // Use existing threadId or create a consistent one based on the message ID
-      const threadId = selectedMessage.threadId || `thread-${messageId}`;
+      // Use existing threadId
+      const threadId = selectedMessage.threadId;
       
       const replyData = {
         to: selectedMessage.from?.email || '',
@@ -166,32 +172,21 @@ export const InboxTab: React.FC<InboxTabProps> = ({
         accountId: replyAccountId
       };
       
+      console.log('Sending reply with data:', JSON.stringify({
+        to: replyData.to,
+        subject: replyData.subject,
+        inReplyTo: replyData.inReplyTo,
+        threadId: replyData.threadId,
+        accountId: replyData.accountId
+      }));
+      
       const response = await coldEmailAPI.sendReply(replyData);
       showNotification('success', 'Reply sent successfully');
       setShowReplyForm(false);
       setReplyContent('');
       
-      // Wait a moment for the server to process the reply
-      setTimeout(async () => {
-        // Refresh inbox and update the thread view
-        await loadInbox();
-        
-        // Reload the thread with the new reply
-        try {
-          const threadResponse = await coldEmailAPI.getInboxMessages({
-            threadId: threadId,
-            includeThread: true,
-            excludeWarmup: true
-          });
-          
-          if (threadResponse.data.messages && threadResponse.data.messages.length > 0) {
-            // Update the selected message to show the thread with the new reply
-            setSelectedMessage(threadResponse.data.messages[0]);
-          }
-        } catch (threadError) {
-          console.error('Error loading thread after reply:', threadError);
-        }
-      }, 1500);
+      // Reload inbox with a delay to allow server processing
+      setTimeout(() => loadInbox(), 2000);
     } catch (error: any) {
       console.error('Error sending reply:', error);
       showNotification('error', 'Failed to send reply: ' + (error.message || 'Unknown error'));

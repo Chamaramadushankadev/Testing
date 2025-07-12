@@ -272,14 +272,11 @@ router.post('/sync/:accountId', authenticate, async (req, res) => {
 // Send reply to a message
 router.post('/reply', authenticate, async (req, res) => {
   try {
-    let { to, subject, content, inReplyTo, threadId: messageThreadId, accountId } = req.body;
+    let { to, subject, content, inReplyTo, threadId, accountId } = req.body;
     
     if (!to || !subject || !content || !accountId) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    
-    // Ensure accountId is a string
-    accountId = String(accountId);
     
     if (!mongoose.Types.ObjectId.isValid(accountId)) {
       return res.status(400).json({ 
@@ -294,8 +291,10 @@ router.post('/reply', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Email account not found' });
     }
     
-    // Use a consistent threadId
-    const threadId = messageThreadId || inReplyTo || `thread-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    // If no threadId provided, create one or use inReplyTo
+    if (!threadId) {
+      threadId = inReplyTo || `thread-${Date.now()}`;
+    }
     
     // Send the reply
     const emailData = {
@@ -342,22 +341,35 @@ router.post('/reply', authenticate, async (req, res) => {
       
       // Update the original message to ensure it has the same threadId
       if (inReplyTo) {
-        console.log('🔄 Updating all related messages to use the same threadId:', threadId);
+        console.log('🔄 Updating original message to use threadId:', threadId);
         
-        // Update all messages that might be related to this conversation
-        await InboxMessage.updateMany(
-          { 
-            userId: req.user._id,
-            $or: [
-              { messageId: inReplyTo },
-              { 'content.text': { $regex: inReplyTo, $options: 'i' } },
-              { subject: { $regex: subject.replace(/^Re:\s*/i, ''), $options: 'i' } }
-            ]
-          },
-          { $set: { threadId: threadId } }
-        );
+        // Find the original message by messageId
+        const originalMessage = await InboxMessage.findOne({
+          userId: req.user._id,
+          messageId: inReplyTo
+        });
         
-        console.log('✅ Updated related messages with threadId:', threadId);
+        if (originalMessage) {
+          // Set the threadId on the original message
+          originalMessage.threadId = threadId;
+          await originalMessage.save();
+          console.log('✅ Updated original message with threadId:', threadId);
+          
+          // Also update any other messages with the same subject (ignoring Re: prefix)
+          const cleanSubject = subject.replace(/^Re:\s*/i, '').trim();
+          if (cleanSubject) {
+            await InboxMessage.updateMany(
+              {
+                userId: req.user._id,
+                _id: { $ne: originalMessage._id },
+                subject: new RegExp(`^(Re:\\s*)?${cleanSubject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+              },
+              { $set: { threadId: threadId } }
+            );
+          }
+        }
+        
+        console.log('✅ Thread update complete');
       }
     } catch (saveError) {
       console.error('Error saving reply to inbox:', saveError);

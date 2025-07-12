@@ -191,11 +191,17 @@ router.delete('/:id', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Invalid message ID format' });
     }
 
-    const message = await InboxMessage.findOneAndDelete({ _id: id, userId: req.user._id });
+    console.log(`🗑️ Deleting message ${id} for user ${req.user._id}`);
+    const message = await InboxMessage.findOne({ _id: id, userId: req.user._id });
 
     if (!message) {
+      console.log(`❌ Message not found or access denied`);
       return res.status(404).json({ message: 'Message not found' });
     }
+    
+    // Delete the message
+    await InboxMessage.deleteOne({ _id: id });
+    console.log(`✅ Message deleted successfully`);
 
     res.json({ message: 'Message deleted successfully' });
   } catch (error) {

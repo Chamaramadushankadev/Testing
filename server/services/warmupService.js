@@ -297,21 +297,21 @@ export const sendWarmupEmail = async (fromAccount, toAccount) => {
 export const generateWarmupContent = () => {
   // Random subjects
   const subjects = [
-    '[WARMUP] Quick update on our project',
-    '[WARMUP] Following up on our conversation',
-    '[WARMUP] Thoughts on the latest developments',
-    '[WARMUP] Checking in - how are things going?',
-    '[WARMUP] Quick question about our collaboration',
-    '[WARMUP] Updates from our team',
-    '[WARMUP] Interesting article you might enjoy',
-    '[WARMUP] Feedback on your recent work',
-    '[WARMUP] Just wanted to touch base',
-    '[WARMUP] Ideas for our next steps',
-    '[WARMUP] Proposal for improvement',
-    '[WARMUP] Great news to share',
-    '[WARMUP] Important information for you',
-    '[WARMUP] Scheduling our next meeting',
-    '[WARMUP] Resources you might find helpful'
+    '【WARMUP】Quick update on our project',
+    '【WARMUP】Following up on our conversation',
+    '【WARMUP】Thoughts on the latest developments',
+    '【WARMUP】Checking in - how are things going?',
+    '【WARMUP】Quick question about our collaboration',
+    '【WARMUP】Updates from our team',
+    '【WARMUP】Interesting article you might enjoy',
+    '【WARMUP】Feedback on your recent work',
+    '【WARMUP】Just wanted to touch base',
+    '【WARMUP】Ideas for our next steps',
+    '【WARMUP】Proposal for improvement',
+    '【WARMUP】Great news to share',
+    '【WARMUP】Important information for you',
+    '【WARMUP】Scheduling our next meeting',
+    '【WARMUP】Resources you might find helpful'
   ];
   
   // Random greetings

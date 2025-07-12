@@ -21,6 +21,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
+  const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
 
   useEffect(() => {
     loadInbox();
@@ -73,6 +74,30 @@ export const InboxTab: React.FC<InboxTabProps> = ({
     } catch (error: any) {
       console.error('Error starring message:', error);
       showNotification('error', 'Failed to update message');
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await coldEmailAPI.deleteMessage(messageId);
+      setMessages(messages.filter(msg => msg.id !== messageId));
+      
+      if (selectedMessage?.id === messageId) {
+        setSelectedMessage(null);
+      }
+      
+      showNotification('success', 'Message deleted successfully');
+    } catch (error: any) {
+      console.error('Error deleting message:', error);
+      showNotification('error', 'Failed to delete message');
+    }
+  };
+
+  const handleToggleSelectMessage = (messageId: string) => {
+    if (selectedMessages.includes(messageId)) {
+      setSelectedMessages(selectedMessages.filter(id => id !== messageId));
+    } else {
+      setSelectedMessages([...selectedMessages, messageId]);
     }
   };
 
@@ -249,15 +274,25 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                     className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
                       !message.isRead ? 'bg-blue-50' : ''
                     } ${selectedMessage?.id === message.id ? 'border-l-4 border-blue-500' : ''}`}
-                    onClick={() => {
-                      setSelectedMessage(message);
-                      if (!message.isRead) {
-                        handleMarkAsRead(message.id);
+                    onClick={(e) => {
+                      // Check if the click was on the checkbox
+                      if (e.target.type !== 'checkbox') {
+                        setSelectedMessage(message);
+                        if (!message.isRead) {
+                          handleMarkAsRead(message.id);
+                        }
                       }
                     }}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedMessages.includes(message.id)}
+                          onChange={() => handleToggleSelectMessage(message.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -327,7 +362,12 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                     <Reply className="w-4 h-4" />
                   </button>
                   <button
-                    className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400"
+                    className="p-2 rounded-full hover:bg-gray-100 hover:bg-red-50 hover:text-red-600 transition-colors text-gray-400"
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this message?')) {
+                        handleDeleteMessage(selectedMessage.id);
+                      }
+                    }}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -336,8 +376,8 @@ export const InboxTab: React.FC<InboxTabProps> = ({
               
               {/* Reply Form */}
               {showReplyForm && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="mt-6 pt-6 border-t border-gray-200 px-6">
+                  <div className="flex items-center justify-between mb-4 px-4">
                     <h4 className="font-medium text-gray-900">Compose Reply</h4>
                     <button
                       onClick={() => setShowReplyForm(false)}
@@ -479,23 +519,22 @@ export const InboxTab: React.FC<InboxTabProps> = ({
       </div>
 
       {/* Delete Message Confirmation Modal */}
-      {selectedMessage && (
-        <div className="fixed bottom-4 right-4">
-          <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to delete this message?')) {
-                // Handle delete logic here
-                setSelectedMessage(null);
-                loadInbox();
-              }
-            }}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 shadow-md"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>Delete Message</span>
-          </button>
-        </div>
-      )}
+      {/* Bulk Delete Button */}
+      <div className="fixed bottom-4 right-4">
+        <button
+          onClick={() => {
+            if (window.confirm('Are you sure you want to delete selected messages?')) {
+              // TODO: Implement bulk delete
+              // For now, just refresh the inbox
+              loadInbox();
+            }
+          }}
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 shadow-md"
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Delete Selected</span>
+        </button>
+      </div>
     </div>
   );
 };

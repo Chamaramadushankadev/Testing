@@ -63,16 +63,58 @@ export const sendEmail = async (account, emailData) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${emailData.subject}</title>
   <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
-    .email-container { background-color: #ffffff; border-radius: 8px; padding: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-    .content { margin-bottom: 25px; white-space: pre-line; font-size: 15px; }
-    .signature { margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee; font-size: 14px; color: #666; }
-    .footer { margin-top: 20px; font-size: 12px; color: #999; text-align: center; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+      line-height: 1.6; 
+      color: #333; 
+      max-width: 650px; 
+      margin: 0 auto; 
+      padding: 20px; 
+      background-color: #f9f9f9; 
+    }
+    .email-container { 
+      background-color: #ffffff; 
+      border-radius: 12px; 
+      padding: 30px; 
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08); 
+      border: 1px solid #eaeaea;
+    }
+    .content { 
+      margin-bottom: 25px; 
+      white-space: pre-line; 
+      font-size: 16px; 
+      color: #333;
+      line-height: 1.7;
+    }
+    .signature { 
+      margin-top: 30px; 
+      padding-top: 15px; 
+      border-top: 1px solid #eee; 
+      font-size: 14px; 
+      color: #666; 
+    }
+    .footer { 
+      margin-top: 20px; 
+      font-size: 12px; 
+      color: #999; 
+      text-align: center; 
+      padding-top: 10px;
+      border-top: 1px solid #f0f0f0;
+    }
     p { margin-bottom: 16px; }
     a { color: #3b82f6; text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #f0f0f0; }
-    .header h1 { margin: 0; font-size: 18px; color: #1f2937; }
+    .header { 
+      margin-bottom: 25px; 
+      padding-bottom: 15px; 
+      border-bottom: 1px solid #f0f0f0; 
+    }
+    .header h1 { 
+      margin: 0; 
+      font-size: 20px; 
+      color: #1f2937; 
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -89,7 +131,7 @@ export const sendEmail = async (account, emailData) => {
       ${account.email}
     </div>
     <div class="footer">
-      Sent via ProductivePro
+      Sent with ProductivePro
     </div>
   </div>
 </body>
@@ -601,12 +643,16 @@ const storeInboxMessage = async (message, account) => {
         const textMatches = sourceStr.match(/Content-Type: text\/plain[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--|\r\n\r\nContent-Type)/i);
         if (textMatches && textMatches[1]) {
           textContent = textMatches[1].trim();
+          // Remove virus-free message
+          textContent = textContent.replace(/\s*Virus-free\..*avast\.com\s*$/i, '');
         }
         
         // Extract HTML content
         const htmlMatches = sourceStr.match(/Content-Type: text\/html[\s\S]*?\r\n\r\n([\s\S]*?)(?:\r\n--|\r\n\r\n$)/i);
         if (htmlMatches && htmlMatches[1]) {
           htmlContent = htmlMatches[1].trim();
+          // Remove virus-free message
+          htmlContent = htmlContent.replace(/<div.*?Virus-free.*?avast\.com.*?<\/div>/i, '');
         }
         
         // If we couldn't extract from envelope, try from headers

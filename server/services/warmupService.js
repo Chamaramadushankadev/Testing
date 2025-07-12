@@ -120,7 +120,7 @@ const storeInboxMessage = async (message, account) => {
     // Check if this is a warmup email
     const isWarmup = await WarmupEmail.findOne({
       $or: [
-        { messageId: messageId },
+        { messageId },
         { 
           $and: [
             { fromAccountId: { $ne: account._id } },
@@ -145,7 +145,7 @@ const storeInboxMessage = async (message, account) => {
       },
       isRead: false,
       isStarred: false,
-      isWarmup: !!isWarmup,
+      isWarmup: !!isWarmup || subject.toLowerCase().includes('warmup') || from.email.includes('warmup'),
       receivedAt: receivedDate
     });
     
@@ -297,21 +297,21 @@ export const sendWarmupEmail = async (fromAccount, toAccount) => {
 export const generateWarmupContent = () => {
   // Random subjects
   const subjects = [
-    'Quick update on our project',
-    'Following up on our conversation',
-    'Thoughts on the latest developments',
-    'Checking in - how are things going?',
-    'Quick question about our collaboration',
-    'Updates from our team',
-    'Interesting article you might enjoy',
-    'Feedback on your recent work',
-    'Just wanted to touch base',
-    'Ideas for our next steps',
-    'Proposal for improvement',
-    'Great news to share',
-    'Important information for you',
-    'Scheduling our next meeting',
-    'Resources you might find helpful'
+    '[WARMUP] Quick update on our project',
+    '[WARMUP] Following up on our conversation',
+    '[WARMUP] Thoughts on the latest developments',
+    '[WARMUP] Checking in - how are things going?',
+    '[WARMUP] Quick question about our collaboration',
+    '[WARMUP] Updates from our team',
+    '[WARMUP] Interesting article you might enjoy',
+    '[WARMUP] Feedback on your recent work',
+    '[WARMUP] Just wanted to touch base',
+    '[WARMUP] Ideas for our next steps',
+    '[WARMUP] Proposal for improvement',
+    '[WARMUP] Great news to share',
+    '[WARMUP] Important information for you',
+    '[WARMUP] Scheduling our next meeting',
+    '[WARMUP] Resources you might find helpful'
   ];
   
   // Random greetings

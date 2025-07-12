@@ -23,7 +23,7 @@ const transformMessage = (message) => {
 router.get('/', authenticate, async (req, res) => {
   try {
     console.log('📬 Fetching inbox messages for user:', req.user.email || req.user._id);
-    const { accountId, isRead, search, page = 1, limit = 50, excludeWarmup = false } = req.query;
+    const { accountId, isRead, search, page = 1, limit = 50, excludeWarmup = true } = req.query;
     const filter = { userId: req.user._id };
 
     if (accountId && accountId !== 'all') filter.emailAccountId = accountId;
@@ -33,6 +33,8 @@ router.get('/', authenticate, async (req, res) => {
     // Exclude warmup emails if requested
     if (excludeWarmup === 'true' || excludeWarmup === true) {
       filter.isWarmup = { $ne: true };
+      // Also exclude emails with warmup-related subjects
+      filter.subject = { $not: /warmup|check-in|quick question|following up/i };
     }
 
     console.log('📬 Inbox filter:', JSON.stringify(filter));
@@ -177,6 +179,28 @@ router.patch('/:id/labels', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error updating message labels:', error);
     res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete message
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid message ID format' });
+    }
+
+    const message = await InboxMessage.findOneAndDelete({ _id: id, userId: req.user._id });
+
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    res.json({ message: 'Message deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 

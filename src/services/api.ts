@@ -191,9 +191,12 @@ export const coldEmailAPI = {
   getInboxMessages: (params?: any) => api.get('/cold-email-system/inbox', { params }),
   markAsRead: (id: string, isRead?: boolean) => api.patch(`/cold-email-system/inbox/${id}/read`, { isRead }),
   toggleStar: (id: string, isStarred?: boolean) => api.patch(`/cold-email-system/inbox/${id}/star`, { isStarred }),
+  deleteMessage: (id: string) => api.delete(`/cold-email-system/inbox/${id}`),
   updateLabels: (id: string, labels: string[], action: 'add' | 'remove' | 'set') => 
     api.patch(`/cold-email-system/inbox/${id}/labels`, { labels, action }),
   getInboxStats: (params?: any) => api.get('/cold-email-system/inbox/stats', { params }),
+  syncInbox: (accountId: string) => api.post(`/cold-email-system/inbox/sync/${accountId}`),
+  sendReply: (data: any) => api.post('/cold-email-system/inbox/reply', data),
 
   // Warmup & Analytics
   getWarmupStatus: () => api.get('/cold-email-system/warmup/status'),

@@ -136,14 +136,10 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   const handleSendReply = async () => {
     if (!selectedMessage || !replyContent.trim()) return;
     
-    // Get a valid account ID string
-    let replyAccountId = '';
-    
-    if (filterAccount !== 'all') {
-      replyAccountId = filterAccount;
-    } else if (emailAccounts.length > 0) {
-      replyAccountId = emailAccounts[0].id;
-    }
+    // Get account ID - use selected account or first available account
+    const replyAccountId = filterAccount !== 'all' 
+      ? filterAccount 
+      : (emailAccounts.length > 0 ? emailAccounts[0].id : '');
     
     if (!replyAccountId) {
       showNotification('error', 'No email account available to send reply');
@@ -153,9 +149,11 @@ export const InboxTab: React.FC<InboxTabProps> = ({
     try {
       setSendingReply(true);
       
-      // Get the message ID and thread ID
-      const messageId = selectedMessage.messageId || selectedMessage.id;
-      const threadId = selectedMessage.threadId || messageId;
+      // Get the message ID for reply
+      const messageId = selectedMessage.messageId || selectedMessage.id || '';
+      
+      // Use existing threadId or create a consistent one based on the message ID
+      const threadId = selectedMessage.threadId || `thread-${messageId}`;
       
       const replyData = {
         to: selectedMessage.from?.email || '',
@@ -164,19 +162,14 @@ export const InboxTab: React.FC<InboxTabProps> = ({
           : `Re: ${selectedMessage.subject}`,
         content: replyContent,
         inReplyTo: messageId,
-        threadId: threadId,
-        accountId: String(replyAccountId)
+        threadId,
+        accountId: replyAccountId
       };
-      
-      console.log('Sending reply with account ID:', replyAccountId, 'type:', typeof replyAccountId);
       
       const response = await coldEmailAPI.sendReply(replyData);
       showNotification('success', 'Reply sent successfully');
       setShowReplyForm(false);
       setReplyContent('');
-      
-      // Get the thread ID from the selected message
-      const messageThreadId = selectedMessage.threadId || selectedMessage.messageId || selectedMessage.id;
       
       // Wait a moment for the server to process the reply
       setTimeout(async () => {
@@ -186,7 +179,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
         // Reload the thread with the new reply
         try {
           const threadResponse = await coldEmailAPI.getInboxMessages({
-            threadId: messageThreadId,
+            threadId: threadId,
             includeThread: true,
             excludeWarmup: true
           });
@@ -198,7 +191,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
         } catch (threadError) {
           console.error('Error loading thread after reply:', threadError);
         }
-      }, 1000);
+      }, 1500);
     } catch (error: any) {
       console.error('Error sending reply:', error);
       showNotification('error', 'Failed to send reply: ' + (error.message || 'Unknown error'));

@@ -155,9 +155,14 @@ export const sendEmail = async (account, emailData) => {
     // Add reply headers if this is a reply
     if (emailData.type === 'reply' && emailData.inReplyTo) {
       // Make sure we're using the same threadId for replies
-      const threadId = emailData.threadId || `thread-${Date.now()}`;
-      mailOptions.headers['In-Reply-To'] = `<${emailData.inReplyTo}>`;
-      mailOptions.headers['References'] = `<${threadId}>`;
+      const threadId = emailData.threadId || `thread-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      
+      // Ensure proper formatting of message IDs in headers
+      const formattedInReplyTo = emailData.inReplyTo.includes('<') ? emailData.inReplyTo : `<${emailData.inReplyTo}>`;
+      
+      mailOptions.headers['In-Reply-To'] = formattedInReplyTo;
+      mailOptions.headers['References'] = formattedInReplyTo;
+      
       // Store the threadId for later use
       emailData.threadId = threadId;
     }

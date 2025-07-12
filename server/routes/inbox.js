@@ -302,9 +302,9 @@ router.post('/reply', authenticate, async (req, res) => {
       to,
       subject,
       content: content.trim(),
-      type: 'reply',
+      type: 'reply', 
       inReplyTo,
-      threadId: threadId,
+      threadId,
       isReply: true
     };
     
@@ -317,8 +317,8 @@ router.post('/reply', authenticate, async (req, res) => {
     // Create an inbox message for the sent reply
     try {
       const inboxMessage = new InboxMessage({
-        userId: req.user._id.toString(),
-        emailAccountId: account._id.toString(),
+        userId: req.user._id,
+        emailAccountId: account._id,
         messageId: result.messageId || `reply-${Date.now()}`,
         threadId: threadId,
         from: {
@@ -342,31 +342,22 @@ router.post('/reply', authenticate, async (req, res) => {
       
       // Update the original message to ensure it has the same threadId
       if (inReplyTo) {
-        // Find the original message first
-        const originalMessage = await InboxMessage.findOne({ 
-          userId: req.user._id.toString(),
-          $or: [
-            { messageId: inReplyTo },
-            { _id: inReplyTo }
-          ]
-        });
+        console.log('🔄 Updating all related messages to use the same threadId:', threadId);
         
-        if (originalMessage) {
-          console.log('✅ Found original message to update threadId');
-          // Update all messages in this conversation to have the same threadId
-          await InboxMessage.updateMany(
-            { 
-              userId: req.user._id.toString(),
-              $or: [
-                { threadId: originalMessage.threadId },
-                { messageId: originalMessage.messageId },
-                { _id: originalMessage._id.toString() }
-              ]
-            },
-            { $set: { threadId: threadId } }
-          );
-        }
-        console.log('✅ Updated original message threadId');
+        // Update all messages that might be related to this conversation
+        await InboxMessage.updateMany(
+          { 
+            userId: req.user._id,
+            $or: [
+              { messageId: inReplyTo },
+              { 'content.text': { $regex: inReplyTo, $options: 'i' } },
+              { subject: { $regex: subject.replace(/^Re:\s*/i, ''), $options: 'i' } }
+            ]
+          },
+          { $set: { threadId: threadId } }
+        );
+        
+        console.log('✅ Updated related messages with threadId:', threadId);
       }
     } catch (saveError) {
       console.error('Error saving reply to inbox:', saveError);

@@ -144,9 +144,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
         content: replyContent,
         inReplyTo: selectedMessage.messageId || selectedMessage.id || '',
         threadId: selectedMessage.threadId || selectedMessage.messageId || selectedMessage.id || '',
-        accountId: typeof selectedMessage.emailAccountId === 'object' 
-          ? selectedMessage.emailAccountId._id || selectedMessage.emailAccountId.id
-          : selectedMessage.emailAccountId
+        accountId: filterAccount !== 'all' ? filterAccount : emailAccounts[0]?.id
       };
       
       console.log('Sending reply with data:', replyData);

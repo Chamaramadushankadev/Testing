@@ -354,7 +354,10 @@ export const syncInbox = async (account) => {
         }
 
         // Store the message in the inbox
-        await storeInboxMessage(message, account);
+        await storeInboxMessage(message, account, {
+  threadId: inferredThreadId,   // If you know it
+  isReply: true                 // Or whatever applies
+});
         
         inboxSync.lastUid = message.uid;
       }
@@ -597,7 +600,7 @@ const processBounce = async (message, account) => {
 };
 
 // Store message in inbox
-const storeInboxMessage = async (message, account) => {
+const storeInboxMessage = async (message, account, emailData = {}) => {
   try {
     console.log('💾 Storing message in inbox database:', message.envelope?.messageId);
     

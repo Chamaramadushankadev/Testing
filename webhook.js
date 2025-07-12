@@ -6,7 +6,8 @@ const router = express.Router();
 
 const SECRET = 'Chamara@1234'; // Your GitHub webhook secret
 
-router.post('/webhook', express.raw({ type: '*/*' }), (req, res) => {
+router.post('/webhook', express.json(), (req, res) => {
+  console.log('📩 GitHub Webhook Hit');
   const signature = `sha256=${crypto
     .createHmac('sha256', SECRET)
     .update(req.body)

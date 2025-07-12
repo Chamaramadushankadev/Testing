@@ -24,7 +24,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      const response = await coldEmailAPI.getDashboardAnalytics({ timeRange });
+      const response = await coldEmailAPI.getAnalytics({ timeRange });
       setAnalytics(response.data);
     } catch (error: any) {
       console.error('Error loading analytics:', error);

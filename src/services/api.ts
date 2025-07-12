@@ -207,6 +207,7 @@ export const coldEmailAPI = {
   sendWarmupNow: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/send-now`),
   getWarmupLogs: (params?: any) => api.get('/cold-email-system/warmup/logs', { params }),
   checkDnsRecords: (accountId: string) => api.get(`/cold-email-system/warmup/${accountId}/dns-check`),
+  getAnalytics: (params?: any) => api.get('/cold-email-system/analytics', { params })
 };
 
 // ---------------- SCRIPTS ----------------
@@ -237,7 +238,8 @@ export const googleAlertsAPI = {
 export const analyticsAPI = {
   getDashboard: (params?: any) => api.get('/analytics/dashboard', { params }),
   getGoalsAnalytics: () => api.get('/analytics/goals'),
-  getTasksAnalytics: () => api.get('/analytics/tasks')
+  getTasksAnalytics: () => api.get('/analytics/tasks'),
+  getColdEmailAnalytics: (params?: any) => api.get('/cold-email-system/analytics', { params })
 };
 
 // ---------------- POMODORO ----------------

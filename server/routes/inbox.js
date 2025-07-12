@@ -274,6 +274,15 @@ router.post('/reply', authenticate, async (req, res) => {
   try {
     let { to, subject, content, inReplyTo, threadId, accountId } = req.body;
     
+    // Ensure accountId is a string and valid
+    if (!accountId || typeof accountId !== 'string') {
+      console.error('Invalid accountId format:', accountId, typeof accountId);
+      return res.status(400).json({ 
+        message: 'Invalid account ID format', 
+        details: `ID: ${accountId}, Type: ${typeof accountId}` 
+      });
+    }
+    
     if (!to || !subject || !content || !accountId) {
       return res.status(400).json({ message: 'Missing required fields' });
     }

@@ -136,21 +136,18 @@ export const InboxTab: React.FC<InboxTabProps> = ({
   const handleSendReply = async () => {
     if (!selectedMessage || !replyContent.trim()) return;
     
-    // Get account ID from the selected message or filter
-    let replyAccountId;
-    
-    if (filterAccount !== 'all') {
-      replyAccountId = filterAccount;
-    } else if (selectedMessage.emailAccountId) {
-      replyAccountId = selectedMessage.emailAccountId;
-    } else if (emailAccounts.length > 0) {
-      replyAccountId = emailAccounts[0].id;
-    }
+    // Get account ID as a string
+    const replyAccountId = typeof selectedMessage.emailAccountId === 'string' 
+      ? selectedMessage.emailAccountId 
+      : selectedMessage.emailAccountId?.id || selectedMessage.emailAccountId?._id || emailAccounts[0]?.id;
     
     if (!replyAccountId) {
       showNotification('error', 'No email account available to send reply');
       return;
     }
+    
+    // Ensure account ID is a string
+    const accountIdString = String(replyAccountId);
     
     try {
       setSendingReply(true);
@@ -169,7 +166,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
         content: replyContent,
         inReplyTo: messageId,
         threadId,
-        accountId: replyAccountId
+        accountId: accountIdString
       };
       
       console.log('Sending reply with data:', JSON.stringify({
@@ -177,7 +174,7 @@ export const InboxTab: React.FC<InboxTabProps> = ({
         subject: replyData.subject,
         inReplyTo: replyData.inReplyTo,
         threadId: replyData.threadId,
-        accountId: replyData.accountId
+        accountId: accountIdString
       }));
       
       const response = await coldEmailAPI.sendReply(replyData);

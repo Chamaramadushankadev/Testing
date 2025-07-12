@@ -425,9 +425,9 @@ router.get('/logs', authenticate, async (req, res) => {
       logs,
       pagination: {
         page: parseInt(page as string),
-        limit: parseInt(limit as string),
+        limit: parseInt(limit),
         total,
-        pages: Math.ceil(total / parseInt(limit as string))
+        pages: Math.ceil(total / parseInt(limit))
       }
     });
   } catch (error) {

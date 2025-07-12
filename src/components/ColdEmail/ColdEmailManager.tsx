@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Mail, Users, BarChart3, Settings, Send } from 'lucide-react';
+import { Plus, Mail, Users, BarChart3, Settings, Send, Flame } from 'lucide-react';
 import { EmailAccountsTab } from './EmailAccountsTab';
 import { LeadsTab } from './LeadsTab';
 import { CampaignsTab } from './CampaignsTab';

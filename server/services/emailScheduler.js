@@ -8,68 +8,6 @@ import {
   updateInboxHealthScore 
 } from './warmupService.js';
 
-// Schedule warmup emails
-export const scheduleWarmupEmails = async (account) => {
-  try {
-    if (!account.warmupSettings.enabled) return;
-
-    const otherAccounts = await EmailAccount.find({
-      userId: account.userId,
-      _id: { $ne: account._id },
-      isActive: true
-    });
-
-    if (otherAccounts.length === 0) {
-      console.log('No other accounts available for warmup');
-      return;
-    }
-
-    const dailyWarmupEmails = account.warmupSettings.dailyWarmupEmails;
-    const emailsPerAccount = Math.ceil(dailyWarmupEmails / otherAccounts.length);
-
-    for (let i = 0; i < emailsPerAccount; i++) {
-      const targetAccount = otherAccounts[i % otherAccounts.length];
-      const { subject, content } = generateWarmupContent();
-
-      // Schedule email with random delay (1-5 minutes)
-      const delay = Math.floor(Math.random() * 5 * 60 * 1000) + 60 * 1000;
-      
-      setTimeout(async () => {
-        try {
-          const emailData = {
-            to: targetAccount.email,
-            subject,
-            content,
-            type: 'warmup'
-          };
-
-          const result = await sendEmail(account, emailData);
-          
-          if (result.success) {
-            // Create warmup email record
-            const warmupEmail = new WarmupEmail({
-              userId: account.userId,
-              fromAccountId: account._id,
-              toAccountId: targetAccount._id,
-              subject,
-              content,
-              sentAt: new Date(),
-              status: 'sent'
-            });
-            await warmupEmail.save();
-
-            console.log(`Warmup email sent from ${account.email} to ${targetAccount.email}`);
-          }
-        } catch (error) {
-          console.error('Error sending warmup email:', error);
-        }
-      }, delay);
-    }
-  } catch (error) {
-    console.error('Error scheduling warmup emails:', error);
-  }
-};
-
 // Schedule campaign emails
 export const scheduleCampaignEmails = async (campaign) => {
   try {

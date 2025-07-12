@@ -7,7 +7,6 @@ import InboxSync from './InboxSync.js';
 import EmailTemplate from './EmailTemplate.js';
 import InboxMessage from './InboxMessage.js';
 import CsvImport from './CsvImport.js';
-import WarmupEmail from './WarmupEmail.js';
 import mongoose from 'mongoose';
 
 // Create InboxMessage model if it doesn't exist

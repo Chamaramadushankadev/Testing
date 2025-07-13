@@ -201,7 +201,7 @@ export const coldEmailAPI = {
   // Warmup & Analytics
   getWarmupStatus: () => api.get('/cold-email-system/warmup/status'),
   startWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/start`),
-  resumeWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/resume`),
+  resumeWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/start`),
   stopWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/stop`),
   updateWarmupSettings: (accountId: string, settings: any) => api.put(`/cold-email-system/warmup/${accountId}/settings`, settings),
   sendWarmupNow: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/send-now`),

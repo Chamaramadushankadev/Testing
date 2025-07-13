@@ -355,6 +355,7 @@ export const syncInbox = async (account) => {
           bouncesFound++;
           await processBounce(message, account);
         }
+        const inferredThreadId = message.threadId || message.messageId || null;
 
         // Store the message in the inbox
         await storeInboxMessage(message, account, {

@@ -21,7 +21,9 @@ npm run build
 echo "🚀 Restarting frontend..."
 pm2 stop frontend
 pm2 delete frontend
-pm2 start "npx serve -s dist" --name frontend
+pm2 start --name frontend --interpreter none -- "npx" "serve" "-s" "dist"
 
 pm2 save
+pm2 startup
+
 echo "✅ Deployment finished!"

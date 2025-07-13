@@ -869,7 +869,7 @@ export const WarmupTab: React.FC<WarmupTabProps> = ({
                       <label key={index} className="flex items-center space-x-2 p-2 border border-gray-200 rounded-lg">
                         <input
                           type="checkbox"
-                          defaultChecked={warmupSettings.workingDays.includes(index)}
+                          checked={warmupSettings.workingDays.includes(index)}
                           onChange={(e) => {
                             const newWorkingDays = e.target.checked
                               ? [...warmupSettings.workingDays, index].sort()

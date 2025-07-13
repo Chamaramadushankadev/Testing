@@ -201,13 +201,15 @@ export const coldEmailAPI = {
   // Warmup & Analytics
   getWarmupStatus: () => api.get('/cold-email-system/warmup/status'),
   startWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/start`),
-  resumeWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/start`),
+  resumeWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/resume`),
   stopWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/stop`),
+  pauseWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/pause`),
   updateWarmupSettings: (accountId: string, settings: any) => api.put(`/cold-email-system/warmup/${accountId}/settings`, settings),
   sendWarmupNow: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/send-now`),
   getWarmupLogs: (params?: any) => api.get('/cold-email-system/warmup/logs', { params }),
   checkDnsRecords: (accountId: string) => api.get(`/cold-email-system/warmup/${accountId}/dns-check`),
-  getAnalytics: (params?: any) => api.get('/cold-email-system/analytics', { params })
+  getAnalytics: (params?: any) => api.get('/cold-email-system/analytics', { params }),
+  getDashboardAnalytics: (params?: any) => api.get('/cold-email-system/analytics/dashboard', { params })
 };
 
 // ---------------- SCRIPTS ----------------

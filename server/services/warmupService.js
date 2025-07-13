@@ -802,11 +802,7 @@ export const scheduleWarmupEmails = async (account) => {
     }
     
     // Get other accounts for warmup
-    const otherAccounts = await EmailAccount.find({
-      userId: account.userId,
-      _id: { $ne: account._id },
-      isActive: true
-    });
+
     
     if (otherAccounts.length === 0) {
       console.log(`❌ No other active accounts available for warmup: ${account.email}`);

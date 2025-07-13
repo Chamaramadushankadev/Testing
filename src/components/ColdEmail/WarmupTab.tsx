@@ -139,21 +139,21 @@ export const WarmupTab: React.FC<WarmupTabProps> = ({
   const handlePauseWarmup = async (accountId: string) => {
     try {
       setWarmupAction({ accountId, action: 'pause' });
-      const response = await coldEmailAPI.pauseWarmup(accountId);
+      const response = await coldEmailAPI.stopWarmup(accountId);
       
       // Update the account in the list
       const updatedAccounts = emailAccounts.map(account => 
         account.id === accountId 
-          ? { ...account, warmupStatus: 'paused' } 
+          ? { ...account, warmupStatus: 'not-started' } 
           : account
       );
       setEmailAccounts(updatedAccounts);
       
-      showNotification('success', 'Warmup paused successfully');
+      showNotification('success', 'Warmup stopped successfully');
       loadWarmupStats();
     } catch (error: any) {
-      console.error('Error pausing warmup:', error);
-      showNotification('error', error.message || 'Failed to pause warmup');
+      console.error('Error stopping warmup:', error);
+      showNotification('error', error.message || 'Failed to stop warmup');
     } finally {
       setWarmupAction(null);
     }
@@ -239,6 +239,18 @@ export const WarmupTab: React.FC<WarmupTabProps> = ({
 
   const handleUpdateWarmupSettings = async (accountId: string, settings: any) => {
     try {
+      // Ensure workingDays is an array of numbers
+      if (settings.workingDays && !Array.isArray(settings.workingDays)) {
+        settings.workingDays = [];
+      }
+      
+      // Convert any string values to numbers
+      if (settings.workingDays) {
+        settings.workingDays = settings.workingDays.map((day: any) => 
+          typeof day === 'string' ? parseInt(day) : day
+        );
+      }
+      
       const response = await coldEmailAPI.updateWarmupSettings(accountId, settings);
       
       // Update the account in the list
@@ -468,17 +480,17 @@ export const WarmupTab: React.FC<WarmupTabProps> = ({
                   <button
                     onClick={() => handlePauseWarmup(account.id)}
                     disabled={warmupAction?.accountId === account.id && warmupAction?.action === 'pause'}
-                    className="w-full bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {warmupAction?.accountId === account.id && warmupAction?.action === 'pause' ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                        <span>Pausing...</span>
+                        <span>Stopping...</span>
                       </>
                     ) : (
                       <>
                         <Pause className="w-4 h-4" />
-                        <span>Pause Warmup</span>
+                        <span>Stop Warmup</span>
                       </>
                     )}
                   </button>
@@ -857,7 +869,7 @@ export const WarmupTab: React.FC<WarmupTabProps> = ({
                       <label key={index} className="flex items-center space-x-2 p-2 border border-gray-200 rounded-lg">
                         <input
                           type="checkbox"
-                          checked={warmupSettings.workingDays.includes(index)}
+                          defaultChecked={warmupSettings.workingDays.includes(index)}
                           onChange={(e) => {
                             const newWorkingDays = e.target.checked
                               ? [...warmupSettings.workingDays, index].sort()

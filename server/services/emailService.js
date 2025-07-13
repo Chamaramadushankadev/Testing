@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { ImapFlow } from 'imapflow';
-import { EmailLog, WarmupEmail, InboxSync, Lead, Campaign } from '../models/ColdEmailSystem.js';
+import { EmailAccount, EmailLog, WarmupEmail, InboxSync, Lead, Campaign } from '../models/ColdEmailSystem.js';
 import { processWarmupReply, isDomainBlacklisted } from './warmupService.js';
 
 // Create SMTP transporter

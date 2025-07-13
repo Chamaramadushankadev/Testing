@@ -355,13 +355,14 @@ export const syncInbox = async (account) => {
           bouncesFound++;
           await processBounce(message, account);
         }
+        // Define threadId BEFORE usage
         const inferredThreadId = message.threadId || message.messageId || null;
-
+        
         // Store the message in the inbox
         await storeInboxMessage(message, account, {
-  threadId: inferredThreadId,   // If you know it
-  isReply: true                 // Or whatever applies
-});
+          threadId: inferredThreadId,
+          isReply: true
+        });
         
         inboxSync.lastUid = message.uid;
       }

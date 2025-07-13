@@ -178,7 +178,7 @@ export const startWarmupForAccount = async (account) => {
         throttleRate: 5,
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        workingDays: [1, 2, 3, 4, 5], // Monday to Friday
+        workingDays: [0, 1, 2, 3, 4, 5, 6], // All days of the week
         startTime: '09:00',
         endTime: '17:00',
         autoReply: true,
@@ -189,6 +189,9 @@ export const startWarmupForAccount = async (account) => {
     }
     
     await account.save();
+    
+    // Schedule warmup emails immediately
+    await scheduleWarmupEmails(account);
     
     console.log(`✅ Warmup started for account: ${account.email}`);
     return account;
@@ -753,6 +756,28 @@ export const scheduleWarmupEmails = async (account) => {
       return;
     }
     
+    // Send one email immediately after starting warmup
+    const otherAccounts = await EmailAccount.find({
+      userId: account.userId,
+      _id: { $ne: account._id },
+      isActive: true
+    });
+    
+    if (otherAccounts.length === 0) {
+      console.log(`❌ No other active accounts available for warmup: ${account.email}`);
+      return;
+    }
+    
+    // Select random target account for immediate sending
+    const targetAccount = otherAccounts[Math.floor(Math.random() * otherAccounts.length)];
+    console.log(`🚀 Sending immediate warmup email from ${account.email} to ${targetAccount.email}`);
+    
+    try {
+      await sendWarmupEmail(account, targetAccount);
+    } catch (sendError) {
+      console.error(`Error sending immediate warmup email:`, sendError);
+    }
+    
     // Check if today is a working day
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
@@ -853,7 +878,7 @@ export const scheduleWarmupEmails = async (account) => {
     // Calculate throttle rate (emails per hour)
     const throttleRate = Math.min(
       account.warmupSettings.throttleRate || 5,
-      Math.ceil(emailsToSend / timeRemainingHours)
+      Math.max(1, Math.ceil((emailsToSend - 1) / timeRemainingHours)) // Subtract 1 because we already sent one
     );
     
     console.log(`📊 Throttle rate for ${account.email}: ${throttleRate} emails/hour`);
@@ -861,10 +886,12 @@ export const scheduleWarmupEmails = async (account) => {
     // Schedule emails with throttling
     const intervalMs = Math.floor((1000 * 60 * 60) / throttleRate);
     
-    for (let i = 0; i < emailsToSend; i++) {
+    // Start from 1 since we already sent the first email
+    for (let i = 1; i < emailsToSend; i++) {
       // Add random delay within the interval
-      const randomDelay = Math.floor(Math.random() * intervalMs);
-      const delay = (i * intervalMs) + randomDelay;
+      // Use a more random distribution throughout the day
+      const randomDelay = Math.floor(Math.random() * timeRemainingMs);
+      const delay = randomDelay;
       
       // Select random target account
       const targetAccount = otherAccounts[Math.floor(Math.random() * otherAccounts.length)];

@@ -201,8 +201,9 @@ export const coldEmailAPI = {
   // Warmup & Analytics
   getWarmupStatus: () => api.get('/cold-email-system/warmup/status'),
   startWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/start`),
-  resumeWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/resume`),
-  stopWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/stop`),
+  pauseWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/pause`),
+  resumeWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/start`),
+  stopWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/pause`),
   pauseWarmup: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/pause`),
   updateWarmupSettings: (accountId: string, settings: any) => api.put(`/cold-email-system/warmup/${accountId}/settings`, settings),
   sendWarmupNow: (accountId: string) => api.post(`/cold-email-system/warmup/${accountId}/send-now`),
@@ -238,8 +239,8 @@ export const googleAlertsAPI = {
 
 // ---------------- ANALYTICS ----------------
 export const analyticsAPI = {
-  getDashboard: (params?: any) => api.get('/analytics/dashboard', { params }),
-  getColdEmailDashboard: (params?: any) => api.get('/cold-email-system/analytics/dashboard', { params }),
+  getDashboard: (params?: any) => api.get('/api/analytics/dashboard', { params }),
+  getColdEmailDashboard: (params?: any) => api.get('/api/cold-email-system/analytics/dashboard', { params }),
   getGoalsAnalytics: () => api.get('/analytics/goals'),
   getTasksAnalytics: () => api.get('/analytics/tasks'),
   getColdEmailAnalytics: (params?: any) => api.get('/cold-email-system/analytics', { params })

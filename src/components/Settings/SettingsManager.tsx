@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { Settings, User, Bell, Mail, Shield, Database, Palette, Globe } from 'lucide-react';
+import { Settings, User, Bell, Mail, Shield, Database, Palette, Globe, Users, CreditCard } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
+import { TeamManagement } from './TeamManagement';
+import { SubscriptionSettings } from './SubscriptionSettings';
 
 export const SettingsManager: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'email' | 'security' | 'data' | 'appearance'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'email' | 'security' | 'data' | 'appearance' | 'team' | 'subscription'>('profile');
+  const { darkMode, toggleDarkMode } = useTheme();
 
   const ProfileSettings = () => (
     <div className="space-y-6">
@@ -317,25 +321,24 @@ export const SettingsManager: React.FC = () => {
   const AppearanceSettings = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Appearance & Display</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Appearance & Display</h3>
         <div className="space-y-6">
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Theme</h4>
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { id: 'light', label: 'Light', preview: 'bg-white border-2 border-blue-500' },
-                { id: 'dark', label: 'Dark', preview: 'bg-gray-900 border-2 border-gray-300' },
-                { id: 'auto', label: 'Auto', preview: 'bg-gradient-to-r from-white to-gray-900 border-2 border-gray-300' }
-              ].map((theme) => (
-                <label key={theme.id} className="cursor-pointer">
-                  <input type="radio" name="theme" value={theme.id} defaultChecked={theme.id === 'light'} className="sr-only" />
-                  <div className={`p-4 rounded-lg ${theme.preview} hover:opacity-80 transition-opacity`}>
-                    <div className="h-16 rounded flex items-center justify-center">
-                      <span className="font-medium">{theme.label}</span>
-                    </div>
-                  </div>
-                </label>
-              ))}
+            <h4 className="font-medium text-gray-900 dark:text-white mb-3">Theme</h4>
+            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">Dark Mode</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Switch between light and dark themes</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={darkMode} 
+                  onChange={toggleDarkMode}
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
             </div>
           </div>
 
@@ -394,19 +397,21 @@ export const SettingsManager: React.FC = () => {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'team', label: 'Team Management', icon: Users },
     { id: 'email', label: 'Email', icon: Mail },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'data', label: 'Data', icon: Database },
-    { id: 'appearance', label: 'Appearance', icon: Palette }
+    { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'subscription', label: 'Subscription', icon: CreditCard }
   ];
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar */}
           <div className="lg:w-64">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
               <nav className="space-y-1">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
@@ -416,8 +421,8 @@ export const SettingsManager: React.FC = () => {
                       onClick={() => setActiveTab(tab.id as any)}
                       className={`w-full flex items-center px-3 py-2 text-left rounded-lg transition-colors ${
                         activeTab === tab.id
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-700 hover:bg-gray-50'
+                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }`}
                     >
                       <Icon className="w-4 h-4 mr-3" />
@@ -431,17 +436,19 @@ export const SettingsManager: React.FC = () => {
 
           {/* Content */}
           <div className="flex-1">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               {activeTab === 'profile' && <ProfileSettings />}
               {activeTab === 'notifications' && <NotificationSettings />}
               {activeTab === 'email' && <EmailSettings />}
               {activeTab === 'security' && <SecuritySettings />}
               {activeTab === 'data' && <DataSettings />}
               {activeTab === 'appearance' && <AppearanceSettings />}
+              {activeTab === 'team' && <TeamManagement />}
+              {activeTab === 'subscription' && <SubscriptionSettings />}
               
-              <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex justify-end space-x-3">
-                  <button className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                  <button className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     Cancel
                   </button>
                   <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">

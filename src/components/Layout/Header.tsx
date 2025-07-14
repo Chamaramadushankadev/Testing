@@ -1,6 +1,7 @@
 import React from 'react';
-import { Search, Bell, User, Settings, LogOut } from 'lucide-react';
+import { Search, Bell, User, Settings, LogOut, Moon, Sun } from 'lucide-react';
 import { useFirebaseAuth } from '../../hooks/useFirebaseAuth';
+import { useTheme } from '../../context/ThemeContext';
 
 interface HeaderProps {
   activeTab: string;
@@ -8,6 +9,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
   const { user, logout } = useFirebaseAuth();
+  const { darkMode, toggleDarkMode } = useTheme();
 
   const getTabTitle = (tab: string) => {
     const titles: Record<string, string> = {
@@ -22,7 +24,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
       email: 'Email Management',
       'cold-email': 'Cold Email Marketing',
       analytics: 'Analytics & Reports',
-      settings: 'Settings & Configuration'
+      settings: 'Settings & Configuration',
+      help: 'Help & Support',
+      pomodoro: 'Pomodoro Timer'
     };
     return titles[tab] || 'Dashboard';
   };
@@ -34,11 +38,11 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+    <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-6 py-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">{getTabTitle(activeTab)}</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{getTabTitle(activeTab)}</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             {new Date().toLocaleDateString('en-US', { 
               weekday: 'long', 
               year: 'numeric', 
@@ -50,29 +54,36 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
         
         <div className="flex items-center space-x-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
             <input
               type="text"
               placeholder="Search..."
-              className="hidden sm:block pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 w-64"
+              className="hidden sm:block pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-700 dark:text-gray-200 w-64"
             />
           </div>
           
-          <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+          <button 
+            onClick={toggleDarkMode}
+            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          
+          <button className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
             <Bell className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
               3
             </span>
           </button>
           
-          <button className="hidden sm:block p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+          <button className="hidden sm:block p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
             <Settings className="w-5 h-5" />
           </button>
           
-          <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
+          <div className="flex items-center space-x-3 pl-4 border-l border-gray-200 dark:border-gray-700">
             <div className="hidden sm:block text-right">
-              <p className="text-sm font-medium text-gray-900">{user?.displayName || 'User'}</p>
-              <p className="text-xs text-gray-600">{user?.email}</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.displayName || 'User'}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{user?.email}</p>
             </div>
             <div className="relative group">
               {user?.photoURL ? (
@@ -88,15 +99,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
               )}
               
               {/* Dropdown Menu */}
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="p-3 border-b border-gray-100">
-                  <p className="font-medium text-gray-900">{user?.displayName}</p>
-                  <p className="text-sm text-gray-600">{user?.email}</p>
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="p-3 border-b border-gray-100 dark:border-gray-700">
+                  <p className="font-medium text-gray-900 dark:text-white">{user?.displayName}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{user?.email}</p>
                 </div>
                 <div className="p-1">
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center space-x-2 px-3 py-2 text-left text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    className="w-full flex items-center space-x-2 px-3 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Sign Out</span>

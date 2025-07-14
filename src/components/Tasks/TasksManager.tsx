@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, CheckSquare, Calendar, Clock, Filter, Search, MoreVertical, Flag, User, Paperclip } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Task, Goal } from '../../types';
 import { tasksAPI, goalsAPI } from '../../services/api';
 import { format, isToday, isTomorrow, isPast, isThisWeek } from 'date-fns';
@@ -47,6 +48,36 @@ export const TasksManager: React.FC = () => {
                          task.description.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesPriority && matchesGoal && matchesSearch;
   });
+
+  const handleDragEnd = async (result: any) => {
+    const { destination, source, draggableId } = result;
+    
+    // If dropped outside a droppable area
+    if (!destination) return;
+    
+    // If dropped in the same place
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) return;
+    
+    // Get the task that was dragged
+    const task = tasks.find(t => t.id === draggableId);
+    if (!task) return;
+    
+    // Update task status based on destination
+    const newStatus = destination.droppableId;
+    
+    try {
+      const updatedTask = { ...task, status: newStatus };
+      const response = await tasksAPI.update(task.id, updatedTask);
+      
+      // Update local state
+      setTasks(tasks.map(t => t.id === task.id ? response.data : t));
+    } catch (error) {
+      console.error('Error updating task status:', error);
+    }
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -326,65 +357,98 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
       </div>
 
       {/* Tasks Display */}
-      {viewMode === 'list' ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">All Tasks ({filteredTasks.length})</h3>
-          <div className="space-y-0">
-            {filteredTasks.length > 0 ? (
-              filteredTasks.map((task) => (
-                <TaskCard key={task.id} task={task} />
-              ))
-            ) : (
-              <div className="text-center py-16">
-                <CheckSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Tasks Found</h3>
-                <p className="text-gray-600 mb-6">
-                  {searchTerm || filterStatus !== 'all' || filterPriority !== 'all' || filterGoal !== 'all'
-                    ? 'No tasks match your current filters. Try adjusting your search or filters.'
-                    : 'Get started by creating your first task to track your work and progress.'
-                  }
-                </p>
-                <button
-                  onClick={() => {
-                    setEditingTask(null);
-                    setShowAddTask(true);
-                  }}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 mx-auto"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Create Your First Task</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {Object.entries(tasksByStatus).map(([status, statusTasks]) => (
-            <div key={status} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 capitalize">
-                  {status.replace('-', ' ')}
-                </h3>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
-                  {statusTasks.length}
-                </span>
-              </div>
-              <div className="space-y-0">
-                {statusTasks.map((task) => (
-                  <TaskCard key={task.id} task={task} isKanban />
-                ))}
-                {statusTasks.length === 0 && (
-                  <div className="text-center py-8">
-                    <CheckSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">No {status} tasks</p>
-                  </div>
-                )}
-              </div>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        {viewMode === 'list' ? (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">All Tasks ({filteredTasks.length})</h3>
+            <div className="space-y-0">
+              {filteredTasks.length > 0 ? (
+                filteredTasks.map((task) => (
+                  <TaskCard key={task.id} task={task} />
+                ))
+              ) : (
+                <div className="text-center py-16">
+                  <CheckSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Tasks Found</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    {searchTerm || filterStatus !== 'all' || filterPriority !== 'all' || filterGoal !== 'all'
+                      ? 'No tasks match your current filters. Try adjusting your search or filters.'
+                      : 'Get started by creating your first task to track your work and progress.'
+                    }
+                  </p>
+                  <button
+                    onClick={() => {
+                      setEditingTask(null);
+                      setShowAddTask(true);
+                    }}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 mx-auto"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>Create Your First Task</span>
+                  </button>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {Object.entries(tasksByStatus).map(([status, statusTasks]) => (
+              <div key={status} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
+                    {status.replace('-', ' ')}
+                  </h3>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+                    {statusTasks.length}
+                  </span>
+                </div>
+                <Droppable droppableId={status}>
+                  {(provided) => (
+                    <div 
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className="space-y-3 min-h-[200px]"
+                    >
+                      {statusTasks.map((task, index) => (
+                        <Draggable key={task.id} draggableId={task.id} index={index}>
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                            >
+                              <TaskCard task={task} isKanban />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {statusTasks.length === 0 && (
+                        <div className="text-center py-8">
+                          <CheckSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">No {status.replace('-', ' ')} tasks</p>
+                        </div>
+                      )}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => {
+                      setEditingTask(null);
+                      setShowAddTask(true);
+                    }}
+                    className="w-full py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Task
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </DragDropContext>
 
       {/* Add/Edit Task Modal */}
       {showAddTask && (

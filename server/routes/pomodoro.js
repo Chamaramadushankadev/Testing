@@ -114,6 +114,18 @@ router.post('/sessions', authenticate, async (req, res) => {
   }
 });
 
+router.post('/clients', authenticate, async (req, res) => {
+  const client = new ClientModel({ ...req.body, userId: req.user._id });
+  await client.save();
+  res.status(201).json(client);
+});
+
+// GET /clients
+router.get('/clients', authenticate, async (req, res) => {
+  const clients = await ClientModel.find({ userId: req.user._id });
+  res.json(clients);
+});
+
 // Get pomodoro analytics
 router.get('/analytics', authenticate, async (req, res) => {
   try {

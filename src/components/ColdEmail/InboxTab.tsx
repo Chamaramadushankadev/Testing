@@ -494,18 +494,46 @@ export const InboxTab: React.FC<InboxTabProps> = ({
                   </div>
                 </div>
                 
-                <div className="prose max-w-none px-2">
-                  {selectedMessage.content.html ? (
-                    <iframe 
-                      srcDoc={selectedMessage.content.html}
-                      title="Email content"
-                      className="w-full min-h-[300px] border-0"
-                      sandbox="allow-same-origin"
-                    />
-                  ) : (
-                    <div className="whitespace-pre-line bg-white p-4 rounded-lg border border-gray-100">{selectedMessage.content.text}</div>
-                  )}
-                </div>
+               <div className="prose max-w-none px-2">
+  {selectedMessage.content.html ? (
+    <iframe 
+      srcDoc={`
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <style>
+        :root {
+          color-scheme: dark;
+        }
+        body {
+          background-color: #111827 !important;
+          color: #f3f4f6 !important;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          line-height: 1.6;
+          padding: 24px;
+        }
+        a {
+          color: #60a5fa !important;
+        }
+        table {
+          background-color: transparent !important;
+        }
+      </style>
+    </head>
+    <body>${selectedMessage.content.html}</body>
+  </html>
+`}
+      title="Email content"
+      className="w-full min-h-[300px] border-0 dark:bg-gray-900"
+      sandbox="allow-same-origin"
+    />
+  ) : (
+    <div className="whitespace-pre-line bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+      {selectedMessage.content.text}
+    </div>
+  )}
+</div>
                 
                 {/* Thread messages */}
                 {selectedMessage.thread && selectedMessage.thread.length > 0 && (

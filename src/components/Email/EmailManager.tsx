@@ -43,7 +43,7 @@ export const EmailManager: React.FC = () => {
             <div
               key={email.id}
               className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                !email.isRead ? 'bg-blue-50' : ''
+                !email.isRead ? 'bg-blue-50 dark:bg-gray-800' : ''
               }`}
               onClick={() => setSelectedEmail(email)}
             >
@@ -59,7 +59,8 @@ export const EmailManager: React.FC = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className={`text-sm ${email.isRead ? 'text-gray-600' : 'font-medium text-gray-900'}`}>
+                      <p className={`text-sm ${email.isRead ? 'text-gray-600 dark:text-gray-400' : 'font-medium text-gray-900 dark:text-white'}`}>
+
                         {email.from}
                       </p>
                       <span className="text-xs text-gray-500">
@@ -288,7 +289,8 @@ export const EmailManager: React.FC = () => {
       {/* Compose Email Modal */}
       {showCompose && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+
             <h3 className="text-xl font-semibold text-gray-900 mb-6">Compose Email</h3>
             <form className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

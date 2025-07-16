@@ -40,52 +40,56 @@ export const LoginScreen: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
       <div className="flex min-h-screen">
         {/* Left Side - Branding & Features */}
-        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 to-purple-700 dark:from-blue-800 dark:to-purple-900 p-12 text-white flex-col justify-between">
-          <div>
-            <div className="flex items-center space-x-3 mb-8">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <Zap className="w-7 h-7 text-white" />
-              </div>
+       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 to-purple-700 p-12 text-white flex-col justify-between">
+  <div>
+    <div className="flex items-center space-x-3 mb-8">
+      <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+        <Zap className="w-7 h-7 text-white" />
+      </div>
+      <div>
+        <h1 className="text-2xl font-bold">ProductivePro</h1>
+        <p className="text-blue-100">Your AI-Powered Workspace</p>
+      </div>
+    </div>
+
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-3xl font-bold mb-4">
+          Supercharge Your Productivity with AI
+        </h2>
+        <p className="text-xl text-blue-100 leading-relaxed">
+          The all-in-one platform that combines goal tracking, task management,
+          content creation, and marketing automation in one beautiful interface.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        {features.map((feature, index) => {
+          const Icon = feature.icon;
+          return (
+            <div
+              key={index}
+              className="flex items-start space-x-3 p-4 bg-white/10 rounded-lg backdrop-blur-sm"
+            >
+              <Icon className="w-6 h-6 text-blue-200 mt-1 flex-shrink-0" />
               <div>
-                <h1 className="text-2xl font-bold">ProductivePro</h1>
-                <p className="text-blue-100">Your AI-Powered Workspace</p>
+                <h3 className="font-semibold text-white">{feature.title}</h3>
+                <p className="text-sm text-blue-100 mt-1">{feature.description}</p>
               </div>
             </div>
+          );
+        })}
+      </div>
+    </div>
+  </div>
 
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-3xl font-bold mb-4">
-                  Supercharge Your Productivity with AI
-                </h2>
-                <p className="text-xl text-blue-100 leading-relaxed">
-                  The all-in-one platform that combines goal tracking, task management, 
-                  content creation, and marketing automation in one beautiful interface.
-                </p>
-              </div>
+  <div className="text-center">
+    <p className="text-blue-200 text-sm">
+      Join thousands of productive professionals
+    </p>
+  </div>
+</div>
 
-              <div className="grid grid-cols-1 gap-4">
-                {features.map((feature, index) => {
-                  const Icon = feature.icon;
-                  return (
-                    <div key={index} className="flex items-start space-x-3 p-4 bg-white/10 rounded-lg backdrop-blur-sm">
-                      <Icon className="w-6 h-6 text-blue-200 mt-1 flex-shrink-0" />
-                      <div>
-                        <h3 className="font-semibold text-white">{feature.title}</h3>
-                        <p className="text-sm text-blue-100 mt-1">{feature.description}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <p className="text-blue-200 text-sm">
-              Join thousands of productive professionals
-            </p>
-          </div>
-        </div>
 
         {/* Right Side - Login Form */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8 dark:bg-gray-900">

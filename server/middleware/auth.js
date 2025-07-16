@@ -1,16 +1,18 @@
 import jwt from 'jsonwebtoken';
 import admin from 'firebase-admin';
+import fs from 'fs';
 import User from '../models/User.js';
 
-// Initialize Firebase Admin SDK
+// ✅ Load Firebase service account credentials from file
+const serviceAccount = JSON.parse(
+  fs.readFileSync(new URL('../../config/firebaseServiceAccount.json', import.meta.url), 'utf8')
+);
+
+// ✅ Initialize Firebase Admin SDK once
 if (!admin.apps.length) {
   try {
     admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: "proproductivity-3870d",
-        clientEmail: "firebase-adminsdk-kcqxe@proproductivity-3870d.iam.gserviceaccount.com",
-        privateKey: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC8xYxYxYxYxYxY\n-----END PRIVATE KEY-----\n".replace(/\\n/g, '\n')
-      })
+      credential: admin.credential.cert(serviceAccount)
     });
     console.log('🔥 Firebase Admin SDK initialized');
   } catch (error) {
@@ -21,7 +23,6 @@ if (!admin.apps.length) {
 export const authenticate = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
     if (!token) {
       return res.status(401).json({ message: 'No token provided' });
     }
@@ -32,39 +33,36 @@ export const authenticate = async (req, res, next) => {
     let name = null;
 
     try {
-      // Try Firebase Admin SDK verification first
+      // 🔐 Try Firebase Admin SDK verification
       if (admin.apps.length > 0) {
         try {
           const decodedToken = await admin.auth().verifyIdToken(token);
           firebaseUid = decodedToken.uid;
           email = decodedToken.email;
-          name = decodedToken.name || decodedToken.email?.split('@')[0] || 'User';
+          name = decodedToken.name || email?.split('@')[0] || 'User';
           console.log('🔥 Firebase token verified via Admin SDK:', email);
-        } catch (adminError) {
+        } catch {
           console.log('Firebase Admin verification failed, trying basic decode...');
         }
       }
 
-      // Fallback to basic token decode
+      // 🔐 Basic decode fallback
       if (!firebaseUid && token.includes('.')) {
         try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
+          const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString('utf8'));
           firebaseUid = payload.user_id || payload.sub;
           email = payload.email;
           name = payload.name || email?.split('@')[0] || 'User';
           console.log('🔑 Firebase token decoded (basic):', email);
-        } catch (decodeError) {
+        } catch {
           console.log('Basic token decode failed, trying JWT...');
         }
       }
 
-      // Handle Firebase user
+      // ✅ Find or create MongoDB user
       if (firebaseUid && email) {
-        // Find or create user in MongoDB based on Firebase UID
         user = await User.findOne({ firebaseUid });
-        
         if (!user) {
-          // Create new user in MongoDB
           user = new User({
             firebaseUid,
             name,
@@ -96,34 +94,28 @@ export const authenticate = async (req, res, next) => {
           console.log('✅ Found existing user in MongoDB:', email);
         }
       }
-      
-      // Fallback to JWT verification for backward compatibility
+
+      // 🔐 JWT fallback (legacy support)
       if (!user) {
         try {
           const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
           user = await User.findById(decoded.userId).select('-password');
           console.log('🔑 JWT token verified for user:', user?.email);
-        } catch (jwtError) {
+        } catch {
           console.log('JWT verification failed');
         }
       }
-      
-      if (!user) {
-        console.log('❌ No valid user found for token');
-        return res.status(401).json({ message: 'Invalid token - user not found' });
-      }
 
-      // Ensure user has MongoDB _id for database queries
-      if (!user._id) {
-        console.log('❌ User missing MongoDB _id');
-        return res.status(401).json({ message: 'Invalid user data' });
+      if (!user || !user._id) {
+        console.log('❌ No valid user found for token');
+        return res.status(401).json({ message: 'Invalid token or user not found' });
       }
 
       req.user = user;
       console.log(`✅ User authenticated: ${user.email} (ID: ${user._id})`);
       next();
-    } catch (tokenError) {
-      console.error('Token verification failed:', tokenError.message);
+    } catch (err) {
+      console.error('Token verification failed:', err.message);
       return res.status(401).json({ message: 'Invalid token' });
     }
   } catch (error) {
@@ -134,7 +126,7 @@ export const authenticate = async (req, res, next) => {
 
 export const authorize = (...roles) => {
   return (req, res, next) => {
-    // Skip authorization for now in development
+    // 🔓 Skip authorization for now
     next();
   };
 };

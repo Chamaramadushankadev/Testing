@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Target, CheckSquare, StickyNote, FileText, Bell, Video, 
-  Mail, BarChart3, Settings, Home, Send, Clock, HelpCircle
+  Mail, BarChart3, Settings, Home, Send, Clock, HelpCircle, DollarSign
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -21,6 +21,7 @@ const menuItems = [
   { id: 'scripts', label: 'YouTube Scripts', icon: Video },
   { id: 'email', label: 'Email', icon: Mail },
   { id: 'cold-email', label: 'Cold Email', icon: Send },
+  { id: 'finance', label: 'Finance', icon: DollarSign },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'settings', label: 'Settings', icon: Settings },
   { id: 'help', label: 'Help & Support', icon: HelpCircle },

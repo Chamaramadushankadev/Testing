@@ -16,8 +16,9 @@ import { AnalyticsManager } from './components/Analytics/AnalyticsManager';
 import { SettingsManager } from './components/Settings/SettingsManager';
 import { DatabaseStatus } from './components/DatabaseStatus/DatabaseStatus';
 import { HelpCenter } from './components/Help/HelpCenter';
+import { FinanceManager } from './components/Finance/FinanceManager';
 import PomodoroTimer from './components/PomodoroTimer/PomodoroTimer';
-import { Menu, X, Home, Target, CheckSquare, StickyNote, FileText, Bell, Video, Mail, Send, BarChart3, Settings, Clock, HelpCircle } from 'lucide-react';
+import { Menu, X, Home, Target, CheckSquare, StickyNote, FileText, Bell, Video, Mail, Send, BarChart3, Settings, Clock, HelpCircle, DollarSign } from 'lucide-react';
 import { ThemeProvider } from './context/ThemeContext';
 import { TeamProvider } from './context/TeamContext';
 
@@ -47,6 +48,8 @@ function App() {
         return <EmailManager />;
       case 'cold-email':
         return <ColdEmailManager />;
+      case 'finance':
+        return <FinanceManager />;
       case 'analytics':
         return <AnalyticsManager />;
       case 'settings':
@@ -94,6 +97,7 @@ function App() {
                       { id: 'scripts', label: 'YouTube Scripts', icon: Video },
                       { id: 'email', label: 'Email', icon: Mail },
                       { id: 'cold-email', label: 'Cold Email', icon: Send },
+                      { id: 'finance', label: 'Finance', icon: DollarSign },
                       { id: 'analytics', label: 'Analytics', icon: BarChart3 },
                       { id: 'settings', label: 'Settings', icon: Settings },
                       { id: 'help', label: 'Help & Support', icon: HelpCircle },

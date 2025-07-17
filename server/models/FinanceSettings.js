@@ -97,4 +97,6 @@ const financeSettingsSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Indexes
+financeSettingsSchema.index({ userId: 1 });
 export default mongoose.models.FinanceSettings || mongoose.model('FinanceSettings', financeSettingsSchema);

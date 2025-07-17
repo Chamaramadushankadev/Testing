@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, Calendar, DollarSign, FileText, AlertCircle } from 'lucide-react';
-import { financeAPI } from '../../services/financeAPI';
+import { financeAPI } from '../../services/api';
 import { TaxEstimate } from '../../types/finance';
 
 export const TaxEstimator: React.FC = () => {

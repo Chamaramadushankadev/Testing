@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, FileText, AlertCircle, Calendar, Users, Target } from 'lucide-react';
-import { financeAPI } from '../../services/financeAPI';
+import { financeAPI } from '../../services/api';
 import { FinanceDashboard as DashboardType } from '../../types/finance';
 
 export const FinanceDashboard: React.FC = () => {

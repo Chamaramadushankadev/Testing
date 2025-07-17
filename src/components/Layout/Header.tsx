@@ -23,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
       scripts: 'YouTube Script Generator',
       email: 'Email Management',
       'cold-email': 'Cold Email Marketing',
+      finance: 'Finance Management',
       analytics: 'Analytics & Reports',
       settings: 'Settings & Configuration',
       help: 'Help & Support',

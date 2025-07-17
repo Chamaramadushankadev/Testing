@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Calendar, TrendingUp, FileText, BarChart3 } from 'lucide-react';
-import { financeAPI } from '../../services/financeAPI';
+import { financeAPI } from '../../services/api';
 
 export const FinanceReports: React.FC = () => {
   const [loading, setLoading] = useState(false);

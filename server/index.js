@@ -22,6 +22,7 @@ import coldEmailSystemRoutes from './routes/coldEmailSystem.js';
 import analyticsRoutes from './routes/analytics.js';
 import youtubeChannelsRoutes from './routes/youtubeChannels.js';
 import youtubeScriptsRoutes from './routes/youtubeScripts.js';
+import financeRoutes from './routes/finance.js';
 import { startBackgroundJobs } from './services/emailScheduler.js';
 
 dotenv.config();
@@ -74,6 +75,7 @@ app.use('/api/cold-email-system', coldEmailSystemRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/youtube-channels', youtubeChannelsRoutes);
 app.use('/api/youtube-scripts', youtubeScriptsRoutes);
+app.use('/api/finance', financeRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

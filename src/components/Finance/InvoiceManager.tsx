@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, FileText, Send, Eye, DollarSign, Calendar, AlertCircle, CheckCircle, Edit3, Trash2 } from 'lucide-react';
-import { financeAPI } from '../../services/financeAPI';
+import { financeAPI } from '../../services/api';
 import { Invoice, FinanceClient, FinanceProject } from '../../types/finance';
 
 export const InvoiceManager: React.FC = () => {

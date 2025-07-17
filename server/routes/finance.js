@@ -388,6 +388,14 @@ router.get('/invoices', authenticate, async (req, res) => {
   }
 });
 
+// Helper: Generate a unique invoice number
+function generateInvoiceNumber() {
+  const now = new Date();
+  const timestamp = now.getTime(); // e.g. 1721269123123
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000); // e.g. 4832
+  return `INV-${timestamp}-${randomSuffix}`; // e.g. INV-1721269123123-4832
+}
+
 router.post('/invoices', authenticate, async (req, res) => {
   try {
     if (!isDatabaseAvailable()) {
@@ -397,9 +405,13 @@ router.post('/invoices', authenticate, async (req, res) => {
       });
     }
 
+    // Safely generate invoiceNumber
+    const invoiceNumber = generateInvoiceNumber();
+
     const invoiceData = {
       ...req.body,
-      userId: req.user._id
+      userId: req.user._id,
+      invoiceNumber, // ✅ add auto-generated unique invoice number
     };
 
     const invoice = new Invoice(invoiceData);
@@ -413,6 +425,7 @@ router.post('/invoices', authenticate, async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
 
 router.put('/invoices/:id', authenticate, async (req, res) => {
   try {

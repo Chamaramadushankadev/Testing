@@ -89,10 +89,12 @@ export const Dashboard: React.FC = () => {
   ];
 
   const recentGoals = goals.slice(0, 3);
-  const upcomingTasks = tasks
-    .filter(task => task.status !== 'completed')
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-    .slice(0, 5);
+const upcomingTasks = Array.isArray(tasks)
+  ? tasks
+      .filter(task => task.status !== 'completed')
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      .slice(0, 5)
+  : [];
 
   return (
     <div className="p-6 space-y-6">

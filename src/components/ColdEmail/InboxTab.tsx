@@ -286,12 +286,12 @@ export const InboxTab: React.FC<InboxTabProps> = ({
             <div className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
               {filteredMessages.length > 0 ? (
                 filteredMessages.map((message) => (
-                  <div
+<div
   key={message.id}
-  className={`rounded-xl px-4 py-3 border-[1px] transition duration-150 cursor-pointer shadow-sm 
+  className={`rounded-xl px-4 py-3 border transition duration-150 cursor-pointer shadow-sm 
     ${selectedMessage?.id === message.id 
-      ? 'bg-[#2a2f45] border-[#4c70ff] text-white' 
-      : 'bg-[#1a1e29] border-[#2c3144] text-gray-300'} 
+      ? 'bg-blue-100 dark:bg-[#2a2f45] border-blue-400 dark:border-[#4c70ff] text-black dark:text-white' 
+      : 'bg-white dark:bg-[#1a1e29] border-gray-300 dark:border-[#2c3144] text-black dark:text-gray-300'} 
     ${!message.isRead ? 'ring-2 ring-blue-500/20' : ''} 
     hover:border-blue-500 hover:shadow-md`}
   onClick={(e) => {
@@ -303,7 +303,6 @@ export const InboxTab: React.FC<InboxTabProps> = ({
     }
   }}
 >
-  {/* Header row: checkbox, star, unread dot, date */}
   <div className="flex items-center justify-between mb-2">
     <div className="flex items-center space-x-3">
       <input
@@ -311,43 +310,39 @@ export const InboxTab: React.FC<InboxTabProps> = ({
         checked={selectedMessages.includes(message.id)}
         onChange={() => handleToggleSelectMessage(message.id)}
         onClick={(e) => e.stopPropagation()}
-        className="rounded border-gray-500 text-blue-500 focus:ring-blue-500"
+        className="rounded border-gray-400 dark:border-gray-500 text-blue-500 focus:ring-blue-500"
       />
       <button
         onClick={(e) => {
           e.stopPropagation();
           handleToggleStar(message.id);
         }}
-        className={`hover:text-yellow-400 transition-colors ${
-          message.isStarred ? 'text-yellow-400' : 'text-gray-400'
+        className={`hover:text-yellow-500 transition-colors ${
+          message.isStarred ? 'text-yellow-500' : 'text-gray-400'
         }`}
       >
         <Star className="w-4 h-4" />
       </button>
-      {!message.isRead && (
-        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-      )}
+      {!message.isRead && <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />}
     </div>
-    <span className="text-xs text-gray-400">
+    <span className="text-xs text-gray-500 dark:text-gray-400">
       {new Date(message.receivedAt).toLocaleDateString()}
     </span>
   </div>
 
-  {/* Sender */}
-  <p className="text-sm font-medium text-white truncate">
+  <p className="text-sm font-medium text-black dark:text-white truncate">
     {message.from.name || message.from.email}
   </p>
 
-  {/* Subject */}
-  <p className={`text-sm truncate ${message.isRead ? 'text-gray-400' : 'text-white font-semibold'}`}>
+  <p className={`text-sm truncate ${message.isRead ? 'text-gray-500 dark:text-gray-400' : 'text-black dark:text-white font-semibold'}`}>
     {message.subject || '(No Subject)'}
   </p>
 
-  {/* Snippet */}
-  <p className="text-xs text-gray-500 mt-1 truncate">
+  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
     {message.content.text?.substring(0, 100) || message.content.html?.substring(0, 100) || ''}
   </p>
 </div>
+
 
                 ))
               ) : (

@@ -132,7 +132,7 @@ export const GoalsManager: React.FC = () => {
         </div>
         <button
           onClick={() => { setShowAddGoal(true); setEditingGoal(null); }}
-          className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
+          className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
         >
           <Plus className="w-4 h-4" />
           <span>Add Goal</span>
@@ -234,7 +234,9 @@ export const GoalsManager: React.FC = () => {
       {showAddGoal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold mb-4">{editingGoal ? 'Edit Goal' : 'Add New Goal'}</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+              {editingGoal ? 'Edit Goal' : 'Add New Goal'}
+            </h3>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -309,7 +311,7 @@ export const GoalsManager: React.FC = () => {
                 </button>
                 <button 
                   type="submit" 
-                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white dark:text-white border border-blue-700 dark:border-blue-500 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {editingGoal ? 'Update' : 'Add Goal'}
                 </button>

@@ -326,7 +326,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
               setEditingTask(null);
               setShowAddTask(true);
             }}
-            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+            className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
           >
             <Plus className="w-4 h-4" />
             <span>Add Task</span>
@@ -438,7 +438,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                       setEditingTask(null);
                       setShowAddTask(true);
                     }}
-                    className="w-full py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center"
+                    className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
                   >
                     <Plus className="w-4 h-4 mr-1" />
                     Add Task
@@ -553,7 +553,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
                 </button>
                 <button
                   type="submit"
-                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white border border-blue-700 dark:border-blue-500 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {editingTask ? 'Update Task' : 'Create Task'}
                 </button>

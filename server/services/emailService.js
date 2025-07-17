@@ -128,7 +128,7 @@ export const sendEmail = async (account, emailData) => {
       ${account.email}
     </div>
     <div class="footer">
-      Sent with ProductivePro
+      Sent with NexaPro 
     </div>
   </div>
 </body>
@@ -146,7 +146,7 @@ export const sendEmail = async (account, emailData) => {
       html: htmlContent,
       text: cleanTextContent.replace(/<[^>]*>/g, ''), // Strip HTML for text version
       headers: {
-        'X-Mailer': 'ProductivePro Cold Email System',
+        'X-Mailer': 'NexaPro Cold Email System',
         'List-Unsubscribe': `<mailto:unsubscribe@${account.email.split('@')[1]}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
       }
@@ -173,7 +173,7 @@ export const sendEmail = async (account, emailData) => {
     // Add tracking pixel if enabled
     if (emailData.trackingEnabled) {
       const trackingPixelId = generateTrackingPixelId();
-      const trackingPixel = `<img src="https://track.productivepro.com/pixel/${trackingPixelId}" width="1" height="1" style="display:none;" />`;
+      const trackingPixel = `<img src="https://track.studionexa.online/pixel/${trackingPixelId}" width="1" height="1" style="display:none;" />`;
       mailOptions.html += trackingPixel;
       emailData.trackingPixelId = trackingPixelId;
     }

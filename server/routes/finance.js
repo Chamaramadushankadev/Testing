@@ -52,10 +52,9 @@ const transformProject = (project) => {
     ...projectObj,
     id: projectObj._id.toString(),
     userId: projectObj.userId.toString(),
-    clientId: projectObj.clientId.toString()
+    clientId: projectObj.clientId?.toString() || null  // ✅ Safe null handling
   };
 };
-
 // Dashboard endpoint
 router.get('/dashboard', authenticate, async (req, res) => {
   try {

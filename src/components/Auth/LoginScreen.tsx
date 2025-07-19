@@ -47,7 +47,7 @@ export const LoginScreen: React.FC = () => {
         <Zap className="w-7 h-7 text-white" />
       </div>
       <div>
-        <h1 className="text-2xl font-bold">ProductivePro</h1>
+        <h1 className="text-2xl font-bold">Nexa Pro</h1>
         <p className="text-blue-100">Your AI-Powered Workspace</p>
       </div>
     </div>
@@ -101,7 +101,7 @@ export const LoginScreen: React.FC = () => {
                   <Zap className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">ProductivePro</h1>
+                  <h1 className="text-2xl font-bold text-gray-900">Nexa Pro</h1>
                   <p className="text-gray-600">Your AI-Powered Workspace</p>
                 </div>
               </div>
@@ -113,7 +113,7 @@ export const LoginScreen: React.FC = () => {
                   {isSignUp ? 'Create Account' : 'Welcome Back'}
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {isSignUp ? 'Sign up to start using ProductivePro' : 'Sign in to access your productivity dashboard'}
+                  {isSignUp ? 'Sign up to start using Nexa Pro' : 'Sign in to access your productivity dashboard'}
                 </p>
               </div>
 

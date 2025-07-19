@@ -33,7 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   return (
     <div className={`hidden lg:block w-64 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 h-full overflow-y-auto`}>
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ProductivePro</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Nexa Pro</h1>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Your AI-Powered Workspace</p>
       </div>
       

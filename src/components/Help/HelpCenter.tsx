@@ -46,12 +46,12 @@ export const HelpCenter: React.FC = () => {
 
   const faqs = [
     {
-      question: 'How do I get started with ProductivePro?',
+      question: 'How do I get started with Nexa Pro?',
       answer: 'To get started, first set up your goals in the Goals section. Then create tasks related to those goals. You can also set up reminders to keep you on track.'
     },
     {
-      question: 'Can I use ProductivePro on mobile devices?',
-      answer: 'Yes, ProductivePro is fully responsive and works on all devices including smartphones and tablets.'
+      question: 'Can I use Nexa Pro on mobile devices?',
+      answer: 'Yes, Nexa Pro is fully responsive and works on all devices including smartphones and tablets.'
     },
     {
       question: 'How does the email warmup system work?',
@@ -205,7 +205,7 @@ export const HelpCenter: React.FC = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[
-          { title: 'Getting Started Guide', icon: Book, description: 'Learn the basics of ProductivePro' },
+          { title: 'Getting Started Guide', icon: Book, description: 'Learn the basics of Nexa Pro' },
           { title: 'Email Warmup Guide', icon: Send, description: 'How to properly warm up your email accounts' },
           { title: 'Task Management', icon: FileText, description: 'Best practices for managing tasks and goals' },
           { title: 'Team Collaboration', icon: MessageSquare, description: 'Working with team members effectively' }
@@ -237,7 +237,7 @@ export const HelpCenter: React.FC = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
-            'Getting Started with ProductivePro',
+            'Getting Started with Nexa Pro',
             'Setting Up Email Warmup',
             'Managing Tasks and Goals',
             'Team Collaboration Features'
@@ -263,7 +263,7 @@ export const HelpCenter: React.FC = () => {
             <HelpCircle className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" />
             Help & Support
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Get help with ProductivePro or contact our support team</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Get help with Nexa Pro or contact our support team</p>
         </div>
       </div>
 

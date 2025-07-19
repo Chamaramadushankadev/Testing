@@ -196,7 +196,7 @@ export const SubscriptionSettings: React.FC = () => {
                   <tbody>
                     <tr className="border-t border-gray-200 dark:border-gray-700">
                       <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">Jan 15, 2025</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">ProductivePro Subscription</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">Nexa Pro Subscription</td>
                       <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
                         ${plans.find(p => p.id === currentPlan)?.price.toFixed(2) || customPlan.price.toFixed(2)}
                       </td>
@@ -219,7 +219,7 @@ export const SubscriptionSettings: React.FC = () => {
             <div className="text-center py-8">
               <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Active Subscription</h4>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">Choose a plan below to get started with ProductivePro</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">Choose a plan below to get started with Nexa Pro</p>
             </div>
           </div>
         )}

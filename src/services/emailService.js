@@ -132,7 +132,7 @@
        html: htmlContent,
        text: cleanTextContent.replace(/<[^>]*>/g, ''), // Strip HTML for text version
        headers: {
-         'X-Mailer': 'ProductivePro Cold Email System',
+         'X-Mailer': 'Nexa Pro Cold Email System',
          'List-Unsubscribe': `<mailto:unsubscribe@${account.email.split('@')[1]}>`,
 -        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
 +        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

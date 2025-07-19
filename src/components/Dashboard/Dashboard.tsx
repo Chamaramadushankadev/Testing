@@ -213,7 +213,7 @@ const upcomingTasks = Array.isArray(tasks)
             </div>
           ) : (
             [
-              { action: 'Welcome to ProductivePro!', item: 'Get started by creating your first goal', time: 'Just now', type: 'goal' },
+              { action: 'Welcome to Nexa Pro!', item: 'Get started by creating your first goal', time: 'Just now', type: 'goal' },
               { action: 'Dashboard loaded', item: 'Your productivity workspace is ready', time: '1 minute ago', type: 'task' }
             ].map((activity, index) => (
               <div key={index} className="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">

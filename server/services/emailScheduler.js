@@ -110,7 +110,7 @@ const replaceVariables = (text, lead) => {
 // Start background jobs
 export const startBackgroundJobs = () => {
   // Run warmup emails every hour
-  cron.schedule('0 * * * *', async () => {
+  cron.schedule('* * * * *', async () => {
     try {
       const accounts = await EmailAccount.find({
         warmupStatus: 'in-progress',

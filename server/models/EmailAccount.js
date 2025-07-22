@@ -26,6 +26,20 @@ const emailAccountSchema = new mongoose.Schema({
     password: String,
     secure: Boolean
   },
+  imapSettings: {
+    host: {
+      type: String,
+      default: 'mail.privateemail.com'
+    },
+    port: {
+      type: Number,
+      default: 993
+    },
+    secure: {
+      type: Boolean,
+      default: true
+    }
+  },
   dailyLimit: {
     type: Number,
     default: 50
@@ -36,7 +50,7 @@ const emailAccountSchema = new mongoose.Schema({
   },
   warmupStatus: {
     type: String,
-    enum: ['not-started', 'in-progress', 'completed'],
+    enum: ['not-started', 'in-progress', 'completed', 'paused'],
     default: 'not-started'
   },
   reputation: {
@@ -44,6 +58,30 @@ const emailAccountSchema = new mongoose.Schema({
     min: 0,
     max: 100,
     default: 100
+  },
+  emailsSentToday: {
+    type: Number,
+    default: 0
+  },
+  lastResetDate: {
+    type: Date,
+    default: Date.now
+  },
+  warmupSettings: {
+    enabled: {
+      type: Boolean,
+      default: true
+    },
+    dailyWarmupEmails: {
+      type: Number,
+      default: 5,
+      min: 1,
+      max: 20
+    },
+    rampUpDays: {
+      type: Number,
+      default: 30
+    }
   }
 }, {
   timestamps: true

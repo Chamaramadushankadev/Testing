@@ -68,20 +68,23 @@ const emailAccountSchema = new mongoose.Schema({
     default: Date.now
   },
   warmupSettings: {
-    enabled: {
-      type: Boolean,
-      default: true
+    enabled: { type: Boolean, default: true },
+    dailyWarmupEmails: { type: Number, default: 5, min: 1, max: 20 },
+    rampUpDays: { type: Number, default: 30 },
+    maxDailyEmails: { type: Number, default: 40 },
+    throttleRate: { type: Number, default: 5 },
+    startDate: { type: Date },
+    endDate: { type: Date },
+    workingDays: {
+      type: [String],
+      default: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     },
-    dailyWarmupEmails: {
-      type: Number,
-      default: 5,
-      min: 1,
-      max: 20
-    },
-    rampUpDays: {
-      type: Number,
-      default: 30
-    }
+    startTime: { type: String, default: '09:00' },
+    endTime: { type: String, default: '17:00' },
+    autoReply: { type: Boolean, default: true },
+    autoArchive: { type: Boolean, default: true },
+    replyDelay: { type: Number, default: 30 },
+    maxThreadLength: { type: Number, default: 3 }
   }
 }, {
   timestamps: true

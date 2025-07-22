@@ -1,4 +1,4 @@
-import EmailAccount from './EmailSystemAccount.js';
+import EmailAccount from './EmailAccount.js';
 import Lead from './EmailSystemLead.js';
 import Campaign from './EmailSystemCampaign.js';
 import EmailLog from './EmailLog.js';
@@ -14,6 +14,7 @@ if (!mongoose.models.InboxMessage) {
   console.log('Creating InboxMessage model');
   mongoose.model('InboxMessage', InboxMessage.schema);
 }
+
 export {
   EmailAccount,
   Lead,

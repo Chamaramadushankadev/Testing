@@ -18,6 +18,7 @@ import { DatabaseStatus } from './components/DatabaseStatus/DatabaseStatus';
 import { HelpCenter } from './components/Help/HelpCenter';
 import { FinanceManager } from './components/Finance/FinanceManager';
 import PomodoroTimer from './components/PomodoroTimer/PomodoroTimer';
+import { ChatManager } from './components/Chat/ChatManager';
 import { Menu, X, Home, Target, CheckSquare, StickyNote, FileText, Bell, Video, Mail, Send, BarChart3, Settings, Clock, HelpCircle, DollarSign } from 'lucide-react';
 import { ThemeProvider } from './context/ThemeContext';
 import { TeamProvider } from './context/TeamContext';
@@ -58,6 +59,8 @@ function App() {
         return <PomodoroTimer />;
       case 'help':
         return <HelpCenter />;
+      case 'chat':
+        return <ChatManager />;
       default:
         return <Dashboard />;
     }
@@ -99,6 +102,7 @@ function App() {
                       { id: 'cold-email', label: 'Cold Email', icon: Send },
                       { id: 'finance', label: 'Finance', icon: DollarSign },
                       { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+                      { id: 'chat', label: 'Chat', icon: Hash },
                       { id: 'settings', label: 'Settings', icon: Settings },
                       { id: 'help', label: 'Help & Support', icon: HelpCircle },
                     ].map((item) => {

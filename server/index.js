@@ -2,6 +2,8 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { initializeSocket } from './socket/chatSocket.js';
 
 // 🟢 Add this import at the top
 import webhookRoute from './webhook.js';
@@ -23,11 +25,14 @@ import analyticsRoutes from './routes/analytics.js';
 import youtubeChannelsRoutes from './routes/youtubeChannels.js';
 import youtubeScriptsRoutes from './routes/youtubeScripts.js';
 import financeRoutes from './routes/finance.js';
+import channelsRoutes from './routes/channels.js';
+import messagesRoutes from './routes/messages.js';
 import { startBackgroundJobs } from './services/emailScheduler.js';
 
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
 const PORT = process.env.PORT || 5002;
 
 // 🟢 Webhook route MUST come before JSON parser
@@ -76,6 +81,8 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/youtube-channels', youtubeChannelsRoutes);
 app.use('/api/youtube-scripts', youtubeScriptsRoutes);
 app.use('/api/finance', financeRoutes);
+app.use('/api/channels', channelsRoutes);
+app.use('/api/messages', messagesRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -103,14 +110,19 @@ app.use('*', (req, res) => {
 // Start server
 const startServer = async () => {
   await connectToMongoDB();
+  
+  // Initialize Socket.IO
+  const io = initializeSocket(server);
+  console.log('🔌 Socket.IO initialized');
 
   if (isMongoConnected) {
     startBackgroundJobs();
   }
 
-  const server = app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+    console.log(`💬 Chat system enabled with Socket.IO`);
 
     if (!isMongoConnected) {
       console.log('⚠️  MongoDB not connected. Demo mode only.');

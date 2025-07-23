@@ -54,11 +54,13 @@ export const ChatManager: React.FC = () => {
   const { socket, connected } = useSocket();
   const { user } = useFirebaseAuth();
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
+  const [showUserList, setShowUserList] = useState(false);
   const [editingMessage, setEditingMessage] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
@@ -70,6 +72,7 @@ export const ChatManager: React.FC = () => {
 
   useEffect(() => {
     loadChannels();
+    loadUsers();
   }, []);
 
   useEffect(() => {
@@ -150,6 +153,15 @@ export const ChatManager: React.FC = () => {
       console.error('Error loading channels:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const response = await channelsAPI.getUsers();
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Error loading users:', error);
     }
   };
 
@@ -246,6 +258,17 @@ export const ChatManager: React.FC = () => {
     }
   };
 
+  const handleStartDirectMessage = async (userId: string) => {
+    try {
+      const response = await channelsAPI.createDirect(userId);
+      await loadChannels();
+      setActiveChannel(response.data);
+      setShowUserList(false);
+    } catch (error) {
+      console.error('Error creating direct message:', error);
+    }
+  };
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -256,6 +279,21 @@ export const ChatManager: React.FC = () => {
     } else {
       return date.toLocaleDateString();
     }
+  };
+
+  const getChannelDisplayName = (channel: any) => {
+    if (channel.type === 'direct' && channel.participants) {
+      const otherParticipant = channel.participants.find((p: any) => p._id !== user?.uid);
+      return otherParticipant ? otherParticipant.name : 'Direct Message';
+    }
+    return channel.name;
+  };
+
+  const getChannelIcon = (channel: any) => {
+    if (channel.type === 'direct') {
+      return '@';
+    }
+    return '#';
   };
 
   if (loading) {
@@ -276,12 +314,21 @@ export const ChatManager: React.FC = () => {
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Channels</h2>
-            <button
-              onClick={() => setShowCreateChannel(true)}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowUserList(true)}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title="Start Direct Message"
+              >
+                @
+              </button>
+              <button
+                onClick={() => setShowCreateChannel(true)}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <div className={`mt-2 flex items-center space-x-2 text-sm ${connected ? 'text-green-600' : 'text-red-600'}`}>
             <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -299,8 +346,8 @@ export const ChatManager: React.FC = () => {
               }`}
             >
               <div className="flex items-center space-x-2">
-                <Hash className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <span className="font-medium text-gray-900 dark:text-white">{channel.name}</span>
+                <span className="text-gray-500 dark:text-gray-400 font-mono">{getChannelIcon(channel)}</span>
+                <span className="font-medium text-gray-900 dark:text-white">{getChannelDisplayName(channel)}</span>
                 {channel.unreadCount > 0 && (
                   <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
                     {channel.unreadCount}
@@ -325,12 +372,14 @@ export const ChatManager: React.FC = () => {
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Hash className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{activeChannel.name}</h3>
+                  <span className="text-gray-500 dark:text-gray-400 font-mono text-lg">{getChannelIcon(activeChannel)}</span>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{getChannelDisplayName(activeChannel)}</h3>
                   <span className={`px-2 py-1 text-xs rounded-full ${
-                    activeChannel.type === 'public' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    activeChannel.type === 'public' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 
+                    activeChannel.type === 'private' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                    'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                   }`}>
-                    {activeChannel.type}
+                    {activeChannel.type === 'direct' ? 'DM' : activeChannel.type}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -490,7 +539,7 @@ export const ChatManager: React.FC = () => {
                         handleSendMessage();
                       }
                     }}
-                    placeholder={`Message #${activeChannel.name}`}
+                    placeholder={`Message ${getChannelDisplayName(activeChannel)}`}
                     className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     disabled={!connected}
                   />
@@ -580,6 +629,40 @@ export const ChatManager: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* User List Modal for Direct Messages */}
+      {showUserList && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Start Direct Message</h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {users.map((user) => (
+                <button
+                  key={user._id}
+                  onClick={() => handleStartDirectMessage(user._id)}
+                  className="w-full p-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center space-x-3"
+                >
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">{user.name}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+              <button
+                onClick={() => setShowUserList(false)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

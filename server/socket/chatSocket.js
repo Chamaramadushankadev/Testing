@@ -88,7 +88,12 @@ export const initializeSocket = (server) => {
 
         // Check if user has access to the channel
         const member = channel.members.find(m => m.user.toString() === socket.userId);
+        const isParticipant = channel.participants && channel.participants.includes(socket.userId);
         if (channel.type === 'private' && !member) {
+          socket.emit('error', { message: 'Access denied' });
+          return;
+        }
+        if (channel.type === 'direct' && !isParticipant) {
           socket.emit('error', { message: 'Access denied' });
           return;
         }

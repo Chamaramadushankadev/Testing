@@ -1,11 +1,11 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { 
-  EmailAccount, 
   WarmupEmail, 
   InboxSync, 
   InboxMessage 
 } from '../models/ColdEmailSystemIndex.js';
+import EmailAccount from '../models/EmailAccount.js'; 
 import { authenticate } from '../middleware/auth.js';
 import { 
   startWarmupForAccount, 
@@ -287,21 +287,26 @@ router.put('/:accountId/settings', authenticate, async (req, res) => {
   try {
     const { accountId } = req.params;
     const settings = req.body;
-    
+
     if (!mongoose.Types.ObjectId.isValid(accountId)) {
       return res.status(400).json({ message: 'Invalid account ID format' });
     }
-    
-    const account = await EmailAccount.findOne({ 
-      _id: accountId, 
-      userId: req.user._id 
+
+    const account = await EmailAccount.findOne({
+      _id: accountId,
+      userId: req.user._id
     });
-    
+
     if (!account) {
       return res.status(404).json({ message: 'Email account not found' });
     }
-    
-    // Update warmup settings
+
+    const cleanWorkingDays = Array.from(
+      new Set((settings.workingDays || []).filter(d => d !== null && d !== undefined))
+    )
+    .map(d => parseInt(d))
+    .filter(d => !isNaN(d) && d >= 0 && d <= 6);
+
     account.warmupSettings = {
       enabled: settings.enabled !== undefined ? settings.enabled : true,
       dailyWarmupEmails: settings.dailyWarmupEmails || 5,
@@ -310,7 +315,7 @@ router.put('/:accountId/settings', authenticate, async (req, res) => {
       throttleRate: settings.throttleRate || 5,
       startDate: settings.startDate,
       endDate: settings.endDate,
-      workingDays: settings.workingDays || [1, 2, 3, 4, 5],
+      workingDays: cleanWorkingDays,
       startTime: settings.startTime || '09:00',
       endTime: settings.endTime || '17:00',
       autoReply: settings.autoReply !== undefined ? settings.autoReply : true,
@@ -318,10 +323,10 @@ router.put('/:accountId/settings', authenticate, async (req, res) => {
       replyDelay: settings.replyDelay || 30,
       maxThreadLength: settings.maxThreadLength || 3
     };
-    
+
     await account.save();
-    
-    res.json({ 
+
+    res.json({
       message: 'Warmup settings updated successfully',
       account: {
         id: account._id,

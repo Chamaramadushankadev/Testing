@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const channelSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    required: function() { return this.type !== 'direct'; },
     trim: true
   },
   description: {
@@ -13,7 +13,7 @@ const channelSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['public', 'private'],
+    enum: ['public', 'private', 'direct'],
     default: 'public'
   },
   createdBy: {
@@ -21,6 +21,10 @@ const channelSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  participants: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   members: [{
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -51,6 +55,7 @@ const channelSchema = new mongoose.Schema({
 // Index for better query performance
 channelSchema.index({ createdBy: 1 });
 channelSchema.index({ 'members.user': 1 });
+channelSchema.index({ participants: 1 });
 channelSchema.index({ type: 1, lastActivity: -1 });
 
 export default mongoose.models.Channel || mongoose.model('Channel', channelSchema);

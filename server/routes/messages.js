@@ -26,7 +26,11 @@ router.get('/channel/:channelId', authenticate, async (req, res) => {
 
     // Check access permissions
     const member = channel.members.find(m => m.user.toString() === req.user._id.toString());
+    const isParticipant = channel.participants && channel.participants.includes(req.user._id);
     if (channel.type === 'private' && !member) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    if (channel.type === 'direct' && !isParticipant) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -73,12 +77,16 @@ router.post('/', authenticate, async (req, res) => {
 
     // Check access permissions
     const member = channel.members.find(m => m.user.toString() === req.user._id.toString());
+    const isParticipant = channel.participants && channel.participants.includes(req.user._id);
     if (channel.type === 'private' && !member) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    if (channel.type === 'direct' && !isParticipant) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
     // Check if user has permission to send messages
-    const userRole = member ? member.role : 'member';
+    const userRole = member ? member.role : (channel.type === 'direct' ? 'member' : 'member');
     if (!hasPermission(userRole, 'member')) {
       return res.status(403).json({ message: 'Insufficient permissions to send messages' });
     }

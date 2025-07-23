@@ -46,6 +46,8 @@ chatAPI.interceptors.response.use(
 // Channels API
 export const channelsAPI = {
   getAll: () => chatAPI.get('/channels'),
+  getUsers: () => chatAPI.get('/channels/users'),
+  createDirect: (participantId: string) => chatAPI.post('/channels/direct', { participantId }),
   create: (data: any) => chatAPI.post('/channels', data),
   update: (id: string, data: any) => chatAPI.put(`/channels/${id}`, data),
   delete: (id: string) => chatAPI.delete(`/channels/${id}`),

@@ -18,18 +18,22 @@ router.get('/', authenticate, async (req, res) => {
     const channels = await Channel.find({
       $or: [
         { type: 'public' },
-        { 'members.user': req.user._id }
+        { 'members.user': req.user._id },
+        { participants: req.user._id }
       ]
     })
     .populate('lastMessage', 'content sender createdAt')
     .populate('lastMessage.sender', 'name email')
     .populate('createdBy', 'name email')
+    .populate('participants', 'name email avatar')
     .sort({ lastActivity: -1 });
 
     // Add user's role and unread count for each channel
     const channelsWithUserData = await Promise.all(channels.map(async (channel) => {
       const member = channel.members.find(m => m.user.toString() === req.user._id.toString());
-      const userRole = member ? member.role : (channel.type === 'public' ? 'member' : null);
+      const userRole = member ? member.role : 
+                      (channel.type === 'public' ? 'member' : 
+                       channel.type === 'direct' ? 'member' : null);
       
       // Get unread message count (simplified - in production you'd track last read timestamp)
       const unreadCount = await Message.countDocuments({
@@ -38,8 +42,15 @@ router.get('/', authenticate, async (req, res) => {
         createdAt: { $gt: member?.joinedAt || channel.createdAt }
       });
 
+      // For direct messages, create a display name
+      let displayName = channel.name;
+      if (channel.type === 'direct' && channel.participants) {
+        const otherParticipant = channel.participants.find(p => p._id.toString() !== req.user._id.toString());
+        displayName = otherParticipant ? otherParticipant.name : 'Direct Message';
+      }
       return {
         ...channel.toObject(),
+        displayName,
         userRole,
         unreadCount
       };
@@ -55,8 +66,34 @@ router.get('/', authenticate, async (req, res) => {
 // Create new channel
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { name, description, type = 'public' } = req.body;
+    const { name, description, type = 'public', participantId } = req.body;
 
+    // Handle direct message creation
+    if (type === 'direct') {
+      if (!participantId) {
+        return res.status(400).json({ message: 'Participant ID required for direct messages' });
+      }
+
+      // Check if direct message already exists
+      const existingDM = await Channel.findOne({
+        type: 'direct',
+        participants: { $all: [req.user._id, participantId] }
+      }).populate('participants', 'name email avatar');
+
+      if (existingDM) {
+        return res.json(existingDM);
+      }
+
+      const channel = new Channel({
+        type: 'direct',
+        createdBy: req.user._id,
+        participants: [req.user._id, participantId]
+      });
+
+      await channel.save();
+      await channel.populate('participants', 'name email avatar');
+      return res.status(201).json(channel);
+    }
     const channel = new Channel({
       name,
       description,
@@ -213,6 +250,60 @@ router.put('/:id/members/:userId/role', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error updating member role:', error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all users for direct messaging
+router.get('/users', authenticate, async (req, res) => {
+  try {
+    const User = mongoose.model('User');
+    const users = await User.find({ 
+      _id: { $ne: req.user._id },
+      isActive: true 
+    })
+    .select('name email avatar')
+    .sort({ name: 1 });
+
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create or get direct message channel
+router.post('/direct', authenticate, async (req, res) => {
+  try {
+    const { participantId } = req.body;
+
+    if (!participantId) {
+      return res.status(400).json({ message: 'Participant ID is required' });
+    }
+
+    // Check if direct message already exists
+    const existingDM = await Channel.findOne({
+      type: 'direct',
+      participants: { $all: [req.user._id, participantId] }
+    }).populate('participants', 'name email avatar');
+
+    if (existingDM) {
+      return res.json(existingDM);
+    }
+
+    // Create new direct message channel
+    const channel = new Channel({
+      type: 'direct',
+      createdBy: req.user._id,
+      participants: [req.user._id, participantId]
+    });
+
+    await channel.save();
+    await channel.populate('participants', 'name email avatar');
+
+    res.status(201).json(channel);
+  } catch (error) {
+    console.error('Error creating direct message:', error);
+    res.status(400).json({ message: error.message });
   }
 });
 

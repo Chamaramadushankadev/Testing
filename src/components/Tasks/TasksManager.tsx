@@ -379,26 +379,30 @@ return (
       </div>
 
       {/* Task Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Tasks', value: filteredTasks.length, color: 'bg-blue-500' },
-          { label: 'Pending', value: tasksByStatus.pending.length, color: 'bg-gray-500' },
-          { label: 'In Progress', value: ['in-progress'].length, color: 'bg-yellow-500' },
-          { label: 'Completed', value: tasksByStatus.completed.length, color: 'bg-green-500' }
-        ].map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-              </div>
-              <div className={`${stat.color} rounded-lg p-2`}>
-                <CheckSquare className="w-5 h-5 text-white" />
-              </div>
-            </div>
-          </div>
-        ))}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  {[
+    { label: 'Total Tasks', value: filteredTasks.length, color: 'bg-blue-500' },
+    { label: 'Pending', value: tasksByStatus.pending.length, color: 'bg-gray-500' },
+    { label: 'In Progress', value: tasksByStatus['in-progress'].length, color: 'bg-yellow-500' },
+    { label: 'Completed', value: tasksByStatus.completed.length, color: 'bg-green-500' }
+  ].map((stat, index) => (
+    <div
+      key={index}
+      className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.label}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
+        </div>
+        <div className={`${stat.color} rounded-lg p-2`}>
+          <CheckSquare className="w-5 h-5 text-white" />
+        </div>
       </div>
+    </div>
+  ))}
+</div>
+
 
 {/* Tasks Display */}
 {dndReady && (
@@ -483,18 +487,7 @@ return (
   )}
 </Droppable>
 
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <button
-                onClick={() => {
-                  setEditingTask(null);
-                  setShowAddTask(true);
-                }}
-                className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add Task
-              </button>
-            </div>
+            
           </div>
         ))}
       </div>

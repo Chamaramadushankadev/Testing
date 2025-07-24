@@ -16,11 +16,24 @@ export const TasksManager: React.FC = () => {
   const [filterGoal, setFilterGoal] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
+const [dndReady, setDndReady] = useState(false);
 
   // Load data on component mount
   useEffect(() => {
     loadData();
   }, []);
+
+
+
+  useEffect(() => {
+  // Wait until next tick to ensure DOM is fully ready
+  const timeout = setTimeout(() => {
+    setDndReady(true);
+  }, 0);
+  return () => clearTimeout(timeout);
+}, []);
+
+
 
   const loadData = async () => {
     try {
@@ -387,99 +400,109 @@ return (
         ))}
       </div>
 
-      {/* Tasks Display */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        {viewMode === 'list' ? (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">All Tasks ({filteredTasks.length})</h3>
-            <div className="space-y-0">
-              {filteredTasks.length > 0 ? (
-                filteredTasks.map((task) => (
-                  <TaskCard key={task.id} task={task} />
-                ))
-              ) : (
-                <div className="text-center py-16">
-                  <CheckSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Tasks Found</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">
-                    {searchTerm || filterStatus !== 'all' || filterPriority !== 'all' || filterGoal !== 'all'
-                      ? 'No tasks match your current filters. Try adjusting your search or filters.'
-                      : 'Get started by creating your first task to track your work and progress.'
-                    }
-                  </p>
-                  <button
-                    onClick={() => {
-                      setEditingTask(null);
-                      setShowAddTask(true);
-                    }}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 mx-auto"
-                  >
-                    <Plus className="w-5 h-5" />
-                    <span>Create Your First Task</span>
-                  </button>
-                </div>
-              )}
+{/* Tasks Display */}
+{dndReady && (
+  <DragDropContext onDragEnd={handleDragEnd}>
+    {viewMode === 'list' ? (
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          All Tasks ({filteredTasks.length})
+        </h3>
+        <div className="space-y-0">
+          {filteredTasks.length > 0 ? (
+            filteredTasks.map((task) => (
+              <TaskCard key={task.id} task={task} />
+            ))
+          ) : (
+            <div className="text-center py-16">
+              <CheckSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Tasks Found</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                {searchTerm || filterStatus !== 'all' || filterPriority !== 'all' || filterGoal !== 'all'
+                  ? 'No tasks match your current filters. Try adjusting your search or filters.'
+                  : 'Get started by creating your first task to track your work and progress.'}
+              </p>
+              <button
+                onClick={() => {
+                  setEditingTask(null);
+                  setShowAddTask(true);
+                }}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 mx-auto"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Create Your First Task</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {Object.entries(tasksByStatus).map(([status, statusTasks]) => (
+          <div
+            key={status}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
+                {status.replace('-', ' ')}
+              </h3>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+                {statusTasks.length}
+              </span>
+            </div>
+            <Droppable droppableId={status}>
+  {(provided) => (
+    <div
+      ref={provided.innerRef}
+      {...provided.droppableProps}
+      className="flex flex-col gap-3 min-h-[300px] transition-all"
+    >
+      {statusTasks.map((task, index) => (
+        <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
+          {(provided) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.draggableProps}
+              {...provided.dragHandleProps}
+              className="rounded-lg"
+            >
+              <TaskCard task={task} isKanban />
+            </div>
+          )}
+        </Draggable>
+      ))}
+      {provided.placeholder}
+      {statusTasks.length === 0 && (
+        <div className="text-center py-10 text-sm text-gray-400">
+          <CheckSquare className="w-6 h-6 mx-auto mb-2" />
+          No {status.replace('-', ' ')} tasks
+        </div>
+      )}
+    </div>
+  )}
+</Droppable>
+
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => {
+                  setEditingTask(null);
+                  setShowAddTask(true);
+                }}
+                className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Task
+              </button>
             </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {Object.entries(tasksByStatus).map(([status, statusTasks]) => (
-              <div key={status} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
-                    {status.replace('-', ' ')}
-                  </h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
-                    {statusTasks.length}
-                  </span>
-                </div>
-                <Droppable droppableId={status}>
-                  {(provided) => (
-                    <div 
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className="space-y-3 min-h-[200px]"
-                    >
-                      {statusTasks.map((task, index) => (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
-                          {(provided) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                            >
-                              <TaskCard task={task} isKanban />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {statusTasks.length === 0 && (
-                        <div className="text-center py-8">
-                          <CheckSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-500 dark:text-gray-400">No {status.replace('-', ' ')} tasks</p>
-                        </div>
-                      )}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={() => {
-                      setEditingTask(null);
-                      setShowAddTask(true);
-                    }}
-                    className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add Task
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </DragDropContext>
+        ))}
+      </div>
+    )}
+  </DragDropContext>
+)}
+
+
 
       {/* Add/Edit Task Modal */}
       {showAddTask && (

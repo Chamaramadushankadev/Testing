@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CheckSquare, Calendar, Clock, Filter, Search, MoreVertical, Flag, User, Paperclip } from 'lucide-react';
+import { Plus, CheckSquare, Calendar, Clock, Filter, Search, MoreVertical, Flag, User, Paperclip, Edit3, Trash2 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Task, Goal } from '../../types';
 import { tasksAPI, goalsAPI } from '../../services/api';
@@ -222,20 +222,22 @@ return (
         </div>
       </div>
 
-      <div className="flex gap-2 text-xs font-semibold">
-        <button
-          onClick={handleEdit}
-          className="text-blue-500 hover:text-blue-700 transition"
-        >
-          Edit
-        </button>
-        <button
-          onClick={handleDelete}
-          className="text-red-500 hover:text-red-700 transition"
-        >
-          Delete
-        </button>
-      </div>
+      <div className="flex gap-2 text-sm">
+  <button
+    onClick={handleEdit}
+    title="Edit Task"
+    className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-500"
+  >
+    <Edit3 className="w-4 h-4" />
+  </button>
+  <button
+    onClick={handleDelete}
+    title="Delete Task"
+    className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-500"
+  >
+    <Trash2 className="w-4 h-4" />
+  </button>
+</div>
     </div>
 
     {/* Middle: Tags */}

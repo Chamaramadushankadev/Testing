@@ -15,7 +15,7 @@ export const TasksManager: React.FC = () => {
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterGoal, setFilterGoal] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
 
   // Load data on component mount
   useEffect(() => {
@@ -173,67 +173,98 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
     setShowAddTask(true);
   };
 
-  return (
-    <div className={`bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all duration-200 ${
-      isKanban ? 'mb-3' : 'mb-4'
-    }`}>
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-start space-x-3 flex-1">
-          <button
-            onClick={() => toggleTaskStatus(task.id)}
-            className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+return (
+  <div
+    className={`bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-lg transition-all duration-300 ${
+      isKanban ? 'mb-4' : 'mb-6'
+    }`}
+  >
+    {/* Top: Title + Actions */}
+    <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start gap-3 flex-1">
+        <button
+          onClick={() => toggleTaskStatus(task.id)}
+          className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+            task.status === 'completed'
+              ? 'bg-green-500 border-green-500 text-white'
+              : 'border-gray-300 hover:border-green-500'
+          }`}
+        >
+          {task.status === 'completed' && <CheckSquare className="w-3 h-3" />}
+        </button>
+
+        <div className="flex-1 min-w-0">
+          <h4
+            className={`text-md font-semibold leading-snug ${
               task.status === 'completed'
-                ? 'bg-green-500 border-green-500 text-white'
-                : 'border-gray-300 hover:border-green-500'
+                ? 'line-through text-gray-500'
+                : 'text-gray-900 dark:text-white'
             }`}
           >
-            {task.status === 'completed' && <CheckSquare className="w-3 h-3" />}
-          </button>
-          <div className="flex-1 min-w-0">
-            <h4 className={`font-medium text-gray-900 ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
-              {task.title}
-            </h4>
-            <p className="text-sm text-gray-600 mt-1 line-clamp-2 whitespace-pre-line">{task.description}</p>
-          </div>
-        </div>
-        <div className="flex space-x-2">
-          <button onClick={handleEdit} className="text-blue-500 hover:text-blue-700 text-xs font-semibold">Edit</button>
-          <button onClick={handleDelete} className="text-red-500 hover:text-red-700 text-xs font-semibold">Delete</button>
+            {task.title}
+          </h4>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 whitespace-pre-line">
+            {task.description}
+          </p>
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-1">
-            <Calendar className="w-3 h-3 text-gray-400" />
-            <span className={`text-xs font-medium ${dateStatus.color}`}>{dateStatus.label}</span>
-          </div>
-          <div className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(task.priority)}`}>
-            <Flag className="w-3 h-3 inline mr-1" />
-            {task.priority}
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          {task.attachments && task.attachments.length > 0 && (
-            <div className="flex items-center text-xs text-gray-500">
-              <Paperclip className="w-3 h-3 mr-1" />
-              {task.attachments.length}
-            </div>
-          )}
-          <div className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-            {task.status.replace('-', ' ')}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-3 pt-3 border-t border-gray-100">
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Goal: {getGoalTitle(task.goalId)}</span>
-          <span>Created {format(new Date(task.createdAt), 'MMM dd')}</span>
-        </div>
+      <div className="flex gap-2 text-xs font-semibold">
+        <button
+          onClick={handleEdit}
+          className="text-blue-500 hover:text-blue-700 transition"
+        >
+          Edit
+        </button>
+        <button
+          onClick={handleDelete}
+          className="text-red-500 hover:text-red-700 transition"
+        >
+          Delete
+        </button>
       </div>
     </div>
-  );
+
+    {/* Middle: Tags */}
+    <div className="flex items-center justify-between text-xs">
+      <div className="flex items-center gap-3">
+        <span className={`flex items-center gap-1 ${dateStatus.color}`}>
+          <Calendar className="w-3 h-3" />
+          {dateStatus.label}
+        </span>
+        <span
+          className={`border rounded-full px-2 py-0.5 flex items-center gap-1 ${getPriorityColor(
+            task.priority
+          )}`}
+        >
+          <Flag className="w-3 h-3" />
+          {task.priority}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {task.attachments?.length > 0 && (
+          <span className="flex items-center text-gray-500">
+            <Paperclip className="w-3 h-3 mr-1" />
+            {task.attachments.length}
+          </span>
+        )}
+        <span
+          className={`rounded-full px-2 py-0.5 ${getStatusColor(task.status)}`}
+        >
+          {task.status.replace('-', ' ')}
+        </span>
+      </div>
+    </div>
+
+    {/* Footer: Goal + Created */}
+    <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400 flex justify-between">
+      <span>Goal: {getGoalTitle(task.goalId)}</span>
+      <span>Created {format(new Date(task.createdAt), 'MMM dd')}</span>
+    </div>
+  </div>
+);
+
 };
 
 
@@ -339,7 +370,7 @@ const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban
         {[
           { label: 'Total Tasks', value: filteredTasks.length, color: 'bg-blue-500' },
           { label: 'Pending', value: tasksByStatus.pending.length, color: 'bg-gray-500' },
-          { label: 'In Progress', value: tasksByStatus['in-progress'].length, color: 'bg-yellow-500' },
+          { label: 'In Progress', value: ['in-progress'].length, color: 'bg-yellow-500' },
           { label: 'Completed', value: tasksByStatus.completed.length, color: 'bg-green-500' }
         ].map((stat, index) => (
           <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">

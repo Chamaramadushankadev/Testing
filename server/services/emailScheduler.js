@@ -8,6 +8,17 @@ import {
   updateInboxHealthScore 
 } from './warmupService.js';
 
+// Replace variables in email content
+const replaceVariables = (text, lead) => {
+  return text
+    .replace(/\{\{first_name\}\}/g, lead.firstName)
+    .replace(/\{\{last_name\}\}/g, lead.lastName)
+    .replace(/\{\{company\}\}/g, lead.company || '')
+    .replace(/\{\{job_title\}\}/g, lead.jobTitle || '')
+    .replace(/\{\{website\}\}/g, lead.website || '')
+    .replace(/\{\{industry\}\}/g, lead.industry || '');
+};
+
 // Schedule campaign emails
 export const scheduleCampaignEmails = async (campaign) => {
   try {
@@ -33,29 +44,24 @@ export const scheduleCampaignEmails = async (campaign) => {
 
     for (const lead of leads) {
       const account = emailAccounts[accountIndex % emailAccounts.length];
-      
-      // Check daily limit
+
       if (account.emailsSentToday >= account.dailyLimit) {
         accountIndex++;
         continue;
       }
 
-      // Get the first step of the sequence
       const firstStep = campaign.sequence.find(step => step.stepNumber === 1 && step.isActive);
       if (!firstStep) continue;
 
-      // Replace variables in subject and content
       const subject = replaceVariables(firstStep.subject, lead);
       const content = replaceVariables(firstStep.content, lead);
 
-      // Calculate delay based on throttling settings
       const baseDelay = campaign.settings.throttling.delayBetweenEmails * 1000;
-      const randomDelay = campaign.settings.throttling.randomizeDelay 
-        ? Math.floor(Math.random() * baseDelay * 0.5) 
+      const randomDelay = campaign.settings.throttling.randomizeDelay
+        ? Math.floor(Math.random() * baseDelay * 0.5)
         : 0;
       const totalDelay = baseDelay + randomDelay + (emailsSentToday * baseDelay);
 
-      // Schedule the email
       setTimeout(async () => {
         try {
           const emailData = {
@@ -70,14 +76,12 @@ export const scheduleCampaignEmails = async (campaign) => {
           };
 
           const result = await sendEmail(account, emailData);
-          
+
           if (result.success) {
-            // Update lead status
             lead.status = 'contacted';
             lead.lastContactedAt = new Date();
             await lead.save();
 
-            // Update campaign stats
             campaign.stats.emailsSent += 1;
             await campaign.save();
 
@@ -96,21 +100,12 @@ export const scheduleCampaignEmails = async (campaign) => {
   }
 };
 
-// Replace variables in email content
-const replaceVariables = (text, lead) => {
-  return text
-    .replace(/\{\{first_name\}\}/g, lead.firstName)
-    .replace(/\{\{last_name\}\}/g, lead.lastName)
-    .replace(/\{\{company\}\}/g, lead.company || '')
-    .replace(/\{\{job_title\}\}/g, lead.jobTitle || '')
-    .replace(/\{\{website\}\}/g, lead.website || '')
-    .replace(/\{\{industry\}\}/g, lead.industry || '');
-};
-
 // Start background jobs
 export const startBackgroundJobs = () => {
-  // Run warmup emails every hour
-  cron.schedule('* * * * *', async () => {
+  console.log('🚀 Starting background jobs...');
+
+  // 🔀 Warmup emails: Random interval loop instead of cron
+  const startRandomWarmupLoop = async () => {
     try {
       const accounts = await EmailAccount.find({
         warmupStatus: 'in-progress',
@@ -122,11 +117,19 @@ export const startBackgroundJobs = () => {
         await scheduleWarmupEmails(account);
       }
     } catch (error) {
-      console.error('Error in warmup cron job:', error);
+      console.error('Error in random warmup scheduler:', error);
     }
-  });
 
-  // Run inbox sync every 5 minutes
+    const minDelay = 10 * 60 * 1000; // 10 mins
+    const maxDelay = 40 * 60 * 1000; // 40 mins
+    const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay) + minDelay);
+
+    console.log(`⏱️ Next warmup run in ${(randomDelay / 60000).toFixed(1)} minutes`);
+    setTimeout(startRandomWarmupLoop, randomDelay);
+  };
+  startRandomWarmupLoop();
+
+  // 📨 Inbox sync every 5 minutes
   cron.schedule('*/5 * * * *', async () => {
     try {
       const { syncInbox } = await import('./emailService.js');
@@ -144,126 +147,111 @@ export const startBackgroundJobs = () => {
     }
   });
 
-  // Reset daily email counts at midnight
+  // 🔁 Reset email counters daily
   cron.schedule('0 0 * * *', async () => {
     try {
       await EmailAccount.updateMany(
         {},
-        { 
+        {
           emailsSentToday: 0,
           lastResetDate: new Date()
         }
       );
-      console.log('Daily email counts reset');
+      console.log('✅ Daily email counts reset');
     } catch (error) {
       console.error('Error resetting daily email counts:', error);
     }
   });
 
-  console.log('Background jobs started');
+  console.log('✅ Background jobs started');
 };
-// Schedule daily warmup emails for all accounts
+
+// Run warmup for all accounts (manual trigger)
 export const scheduleDailyWarmupEmails = async () => {
   try {
     console.log('🔄 Scheduling daily warmup emails');
-    
-    // Get all accounts in warmup
+
     const accounts = await EmailAccount.find({
       warmupStatus: 'in-progress',
       isActive: true,
       'warmupSettings.enabled': true
     });
-    
-    console.log(`📊 Found ${accounts.length} accounts in active warmup`);
-    
+
     for (const account of accounts) {
       try {
         await scheduleWarmupEmails(account);
       } catch (accountError) {
-        console.error(`Error scheduling warmup for account ${account.email}:`, accountError);
+        console.error(`Error scheduling warmup for ${account.email}:`, accountError);
       }
     }
-    
+
     console.log('✅ Completed scheduling daily warmup emails');
   } catch (error) {
     console.error('Error in daily warmup scheduler:', error);
   }
 };
 
-// Process spam folders for all accounts
+// 🧹 Process spam folders for all accounts
 export const processAllSpamFolders = async () => {
   try {
-    console.log('🔄 Processing spam folders for all accounts');
-    
-    // Get all active accounts
-    const accounts = await EmailAccount.find({
-      isActive: true
-    });
-    
-    console.log(`📊 Found ${accounts.length} active accounts`);
-    
+    console.log('🔄 Processing spam folders');
+
+    const accounts = await EmailAccount.find({ isActive: true });
+
     for (const account of accounts) {
       try {
         await processSpamFolder(account);
       } catch (accountError) {
-        console.error(`Error processing spam folder for account ${account.email}:`, accountError);
+        console.error(`Error processing spam for ${account.email}:`, accountError);
       }
     }
-    
-    console.log('✅ Completed processing spam folders');
+
+    console.log('✅ Spam folder processing complete');
   } catch (error) {
     console.error('Error in spam folder processor:', error);
   }
 };
 
-// Check for spam alerts and auto-pause if needed
+// 🚨 Auto-pause accounts with high spam alerts
 export const checkAllSpamAlerts = async () => {
   try {
-    console.log('🔄 Checking spam alerts for all accounts');
-    
-    // Get all accounts in warmup
+    console.log('🔍 Checking spam alerts');
+
     const accounts = await EmailAccount.find({
       warmupStatus: 'in-progress',
       isActive: true
     });
-    
-    console.log(`📊 Found ${accounts.length} accounts in active warmup`);
-    
+
     for (const account of accounts) {
       try {
         await autoPauseOnSpamAlert(account);
       } catch (accountError) {
-        console.error(`Error checking spam alerts for account ${account.email}:`, accountError);
+        console.error(`Error checking spam for ${account.email}:`, accountError);
       }
     }
-    
-    console.log('✅ Completed checking spam alerts');
+
+    console.log('✅ Spam alert check complete');
   } catch (error) {
     console.error('Error in spam alert checker:', error);
   }
 };
 
-// Update health scores for all accounts
+// 📊 Update inbox health scores
 export const updateAllHealthScores = async () => {
   try {
-    console.log('🔄 Updating health scores for all accounts');
-    
-    // Get all active accounts
-    const accounts = await EmailAccount.find({
-      isActive: true
-    });
-    
-    console.log(`📊 Found ${accounts.length} active accounts`);
-    
+    console.log('📈 Updating inbox health scores');
+
+    const accounts = await EmailAccount.find({ isActive: true });
+
     for (const account of accounts) {
       try {
         await updateInboxHealthScore(account);
       } catch (accountError) {
-        console.error(`Error updating health score for account ${account.email}:`, accountError);
+        console.error(`Error updating score for ${account.email}:`, accountError);
       }
     }
-    
-    console.log('✅ Completed updating health scores');
+
+    console.log('✅ Health score updates complete');
   } catch (error) {
     console.error('Error in health score updater:', error);
   }

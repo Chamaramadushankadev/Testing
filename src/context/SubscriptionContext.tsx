@@ -151,7 +151,7 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
       setLoading(true);
       console.log('🔄 Loading user plan from backend...');
       // Try to get user profile from backend
-      const response = await api.get('/api/auth/me');
+      const response = await api.get('/auth/me');
       const userData = response.data;
       
       if (userData && userData.plan) {

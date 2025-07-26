@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, Bell, User, Settings, LogOut, Moon, Sun } from 'lucide-react';
 import { useFirebaseAuth } from '../../hooks/useFirebaseAuth';
 import { useTheme } from '../../context/ThemeContext';
+import { useSubscription } from '../../context/SubscriptionContext';
 import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
 interface HeaderProps {
@@ -11,6 +12,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
   const { user, logout } = useFirebaseAuth();
   const { darkMode, toggleDarkMode } = useTheme();
+  const { refreshUserPlan, userPlan } = useSubscription();
   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
 
   const getTabTitle = (tab: string) => {
@@ -40,6 +42,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
     }
   };
 
+  // Refresh plan data when header loads
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      refreshUserPlan();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshUserPlan]);
+
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -65,6 +76,19 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
             />
           </div>
           
+          {/* Plan Status Indicator */}
+          <div className="hidden sm:flex items-center space-x-2 px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <div className={`w-2 h-2 rounded-full ${
+              userPlan === 'business' ? 'bg-red-500' :
+              userPlan === 'creator' || userPlan === 'pro' ? 'bg-blue-500' :
+              userPlan === 'starter' ? 'bg-yellow-500' :
+              'bg-green-500'
+            }`} />
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300 capitalize">
+              {userPlan} Plan
+            </span>
+          </div>
+
           {/* Upgrade Button */}
 <button
   onClick={() => setShowUpgradeModal(true)}
@@ -136,6 +160,17 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
                 <div className="p-3 border-b border-gray-100 dark:border-gray-700">
                   <p className="font-medium text-gray-900 dark:text-white">{user?.displayName}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{user?.email}</p>
+                </div>
+                <div className="p-1">
+                  <button
+                    onClick={() => {
+                      refreshUserPlan();
+                      setShowUpgradeModal(true);
+                    }}
+                    className="w-full flex items-center space-x-2 px-3 py-2 text-left text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-md transition-colors"
+                  >
+                    <span>Manage Subscription</span>
+                  </button>
                 </div>
                 <div className="p-1">
                   <button

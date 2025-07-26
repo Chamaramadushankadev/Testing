@@ -111,8 +111,9 @@ export const authenticate = async (req, res, next) => {
         return res.status(401).json({ message: 'Invalid token or user not found' });
       }
 
+      // Always return the most up-to-date user data
       req.user = user;
-      console.log(`✅ User authenticated: ${user.email} (ID: ${user._id})`);
+      console.log(`✅ User authenticated: ${user.email} (ID: ${user._id}) - Plan: ${user.plan}`);
       next();
     } catch (err) {
       console.error('Token verification failed:', err.message);

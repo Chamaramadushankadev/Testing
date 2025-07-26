@@ -3,6 +3,7 @@ import { Target, CheckSquare, Video, Mail, Calendar, Clock } from 'lucide-react'
 import { Goal, Task } from '../../types';
 import { goalsAPI, tasksAPI } from '../../services/api';
 import { scriptsAPI, emailAPI } from '../../services/api';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 export const Dashboard: React.FC = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -10,9 +11,12 @@ export const Dashboard: React.FC = () => {
   const [scripts, setScripts] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { userPlan, refreshUserPlan } = useSubscription();
 
   useEffect(() => {
     loadDashboardData();
+    // Refresh user plan when dashboard loads
+    refreshUserPlan();
   }, []);
 
   const loadDashboardData = async () => {

@@ -27,6 +27,7 @@ interface SubscriptionContextType {
   canCreate: (type: string, currentCount: number) => boolean;
   getUpgradeMessage: (feature: string) => string;
   isFeatureRestricted: (feature: string) => boolean;
+  refreshUserPlan: () => Promise<void>;
   loading: boolean;
 }
 
@@ -84,6 +85,23 @@ const PLAN_LIMITS: Record<string, SubscriptionLimits> = {
     hasSocialTemplates: true,
     hasChat: true
   },
+  pro: {
+    goals: -1,
+    tasks: -1,
+    notes: -1,
+    proposals: -1,
+    reminders: -1,
+    scripts: -1,
+    teamMembers: 5,
+    emailAccounts: 2,
+    hasFinanceTools: true,
+    hasAdvancedAI: true,
+    hasAnalytics: false,
+    hasEmailCampaigns: false,
+    hasEmailWarmup: false,
+    hasSocialTemplates: true,
+    hasChat: true
+  },
   business: {
     goals: -1,
     tasks: -1,
@@ -116,18 +134,33 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   }, [user]);
 
+  // Add window focus listener to refresh plan when user comes back to the app
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        loadUserPlan();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user]);
+
   const loadUserPlan = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Loading user plan from backend...');
       // Try to get user profile from backend
       const response = await api.get('/api/auth/me');
       const userData = response.data;
       
       if (userData && userData.plan) {
+        console.log('✅ User plan loaded from backend:', userData.plan);
         setUserPlan(userData.plan);
         // Also save to localStorage as backup
         localStorage.setItem('userPlan', userData.plan);
       } else {
+        console.log('⚠️ No plan data from backend, using fallback');
         // Fallback to localStorage or default
         const savedPlan = localStorage.getItem('userPlan') || 'free';
         setUserPlan(savedPlan);
@@ -136,10 +169,16 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
       console.error('Error loading user plan:', error);
       // Fallback to localStorage or default
       const savedPlan = localStorage.getItem('userPlan') || 'free';
+      console.log('❌ Backend failed, using saved plan:', savedPlan);
       setUserPlan(savedPlan);
     } finally {
       setLoading(false);
     }
+  };
+
+  const refreshUserPlan = async () => {
+    console.log('🔄 Manually refreshing user plan...');
+    await loadUserPlan();
   };
 
   const limits = PLAN_LIMITS[userPlan] || PLAN_LIMITS.free;
@@ -204,6 +243,7 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
       canCreate,
       getUpgradeMessage,
       isFeatureRestricted,
+      refreshUserPlan,
       loading
     }}>
       {children}

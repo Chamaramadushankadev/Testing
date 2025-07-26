@@ -76,6 +76,7 @@ export const UpgradePage: React.FC = () => {
       features: [
         'Everything in Starter',
         '5 Team Members',
+        '2 Email Accounts (Campaigns + Warmup)',
         'Script Generator (Advanced AI)',
         'Inspiration Board (save images & videos)',
         'Social Template Creation (basic Canva-like editor)',
@@ -90,6 +91,7 @@ export const UpgradePage: React.FC = () => {
         reminders: -1,
         scripts: -1,
         teamMembers: 5,
+        emailAccounts: 2,
         aiScriptGeneration: true,
         financeTools: true,
         socialTemplates: true

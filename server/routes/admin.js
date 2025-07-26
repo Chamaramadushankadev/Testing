@@ -16,7 +16,7 @@ const authenticateAdmin = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     const user = await User.findById(decoded.userId).select('-password');
-    
+
     if (!user || user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
@@ -162,7 +162,7 @@ router.post('/users', authenticateAdmin, async (req, res) => {
 router.put('/users/:id', authenticateAdmin, async (req, res) => {
   try {
     const { name, email, role, plan, planExpiry, isActive } = req.body;
-    
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       {
@@ -210,9 +210,9 @@ router.get('/packages', authenticateAdmin, async (req, res) => {
 
 router.post('/packages', authenticateAdmin, async (req, res) => {
   try {
-    const package = new Package(req.body);
-    await package.save();
-    res.status(201).json({ message: 'Package created successfully', package });
+    const pkg = new Package(req.body);
+    await pkg.save();
+    res.status(201).json({ message: 'Package created successfully', package: pkg });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -220,17 +220,17 @@ router.post('/packages', authenticateAdmin, async (req, res) => {
 
 router.put('/packages/:id', authenticateAdmin, async (req, res) => {
   try {
-    const package = await Package.findByIdAndUpdate(
+    const pkg = await Package.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
 
-    if (!package) {
+    if (!pkg) {
       return res.status(404).json({ message: 'Package not found' });
     }
 
-    res.json({ message: 'Package updated successfully', package });
+    res.json({ message: 'Package updated successfully', package: pkg });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -238,11 +238,11 @@ router.put('/packages/:id', authenticateAdmin, async (req, res) => {
 
 router.delete('/packages/:id', authenticateAdmin, async (req, res) => {
   try {
-    const package = await Package.findByIdAndDelete(req.params.id);
-    if (!package) {
+    const pkg = await Package.findByIdAndDelete(req.params.id);
+    if (!pkg) {
       return res.status(404).json({ message: 'Package not found' });
     }
-    res.json({ message: 'Package deleted successfully' });
+    res.json({ message: 'Package deleted successfully', package: pkg });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, Settings, Clock, Target, TrendingUp, Calendar } from 'lucide-react';
-import { pomodoroAPI } from '../services/api';
+import { pomodoroAPI } from '../../services/api';
 
 interface PomodoroSession {
   id: string;

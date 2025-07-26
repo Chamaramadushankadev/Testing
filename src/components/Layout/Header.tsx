@@ -64,28 +64,35 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
           </div>
           
           {/* Upgrade Button */}
-          <a
-            href="/upgrade"
-            className="relative inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 overflow-hidden group"
-          >
-            {/* Animated gradient border */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 rounded-lg opacity-75 animate-pulse"></div>
-            <div className="absolute inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg"></div>
-            
-            {/* Content */}
-            <span className="relative z-10 flex items-center space-x-2">
-              <span className="text-sm font-semibold">Upgrade</span>
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-            </span>
-            
-            {/* Circulating light effect */}
-            <div className="absolute inset-0 rounded-lg overflow-hidden">
-              <div className="absolute w-8 h-8 bg-white opacity-20 rounded-full animate-spin" style={{
-                animation: 'circulate 3s linear infinite',
-                transformOrigin: '50% 200%'
-              }}></div>
-            </div>
-          </a>
+<a
+  href="/upgrade"
+  className="relative inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-500 dark:to-pink-500 text-white font-medium rounded-full hover:from-purple-700 hover:to-pink-700 dark:hover:from-purple-600 dark:hover:to-pink-600 transition-all duration-300 overflow-hidden group shadow-md"
+>
+  {/* Animated border background */}
+  <div className="absolute inset-0 bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 dark:from-purple-500 dark:via-pink-500 dark:to-purple-500 rounded-full opacity-30 animate-pulse z-0"></div>
+
+  {/* Inner background */}
+  <div className="absolute inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-500 dark:to-pink-500 rounded-full z-10"></div>
+
+  {/* Content and white dot */}
+<span className="relative z-50 flex items-center space-x-2">
+  <span className="text-sm font-semibold">Upgrade</span>
+
+</span>
+
+  {/* Optional spinning glow */}
+  <div className="absolute inset-0 rounded-full overflow-hidden z-0">
+    <div
+      className="absolute w-8 h-8 bg-white opacity-10 rounded-full animate-spin"
+      style={{
+        animation: 'circulate 3s linear infinite',
+        transformOrigin: '50% 200%',
+      }}
+    ></div>
+  </div>
+</a>
+
+
           
           <button 
             onClick={toggleDarkMode}

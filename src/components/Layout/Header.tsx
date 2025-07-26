@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, Bell, User, Settings, LogOut, Moon, Sun } from 'lucide-react';
 import { useFirebaseAuth } from '../../hooks/useFirebaseAuth';
 import { useTheme } from '../../context/ThemeContext';
+import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
 interface HeaderProps {
   activeTab: string;
@@ -10,6 +11,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
   const { user, logout } = useFirebaseAuth();
   const { darkMode, toggleDarkMode } = useTheme();
+  const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
 
   const getTabTitle = (tab: string) => {
     const titles: Record<string, string> = {
@@ -64,8 +66,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
           </div>
           
           {/* Upgrade Button */}
-<a
-  href="/upgrade"
+<button
+  onClick={() => setShowUpgradeModal(true)}
   className="relative inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-500 dark:to-pink-500 text-white font-medium rounded-full hover:from-purple-700 hover:to-pink-700 dark:hover:from-purple-600 dark:hover:to-pink-600 transition-all duration-300 overflow-hidden group shadow-md"
 >
   {/* Animated border background */}
@@ -75,10 +77,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
   <div className="absolute inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-500 dark:to-pink-500 rounded-full z-10"></div>
 
   {/* Content and white dot */}
-<span className="relative z-50 flex items-center space-x-2">
-  <span className="text-sm font-semibold">Upgrade</span>
-
-</span>
+  <span className="relative z-50 flex items-center space-x-2">
+    <span className="text-sm font-semibold">Upgrade</span>
+  </span>
 
   {/* Optional spinning glow */}
   <div className="absolute inset-0 rounded-full overflow-hidden z-0">
@@ -90,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
       }}
     ></div>
   </div>
-</a>
+</button>
 
 
           
@@ -150,6 +151,12 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
           </div>
         </div>
       </div>
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </header>
   );
 };

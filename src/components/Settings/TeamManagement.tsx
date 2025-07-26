@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, User, Mail, ShieldCheck, Check, X } from 'lucide-react';
 import { useTeam, TeamMember } from '../../context/TeamContext';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 export const TeamManagement: React.FC = () => {
   const { members, addMember, updateMember, removeMember, loading } = useTeam();
+  const { canCreate, getUpgradeMessage, limits } = useSubscription();
   const [showAddMember, setShowAddMember] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [formData, setFormData] = useState({
@@ -45,6 +47,11 @@ export const TeamManagement: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!editingMember && !canCreate('teamMembers', members.length)) {
+      alert(getUpgradeMessage('teamMembers'));
+      return;
+    }
     
     try {
       if (editingMember) {
@@ -127,11 +134,22 @@ export const TeamManagement: React.FC = () => {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Team Management</h3>
         <button
-          onClick={() => setShowAddMember(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          onClick={() => {
+            if (canCreate('teamMembers', members.length)) {
+              setShowAddMember(true);
+            } else {
+              alert(getUpgradeMessage('teamMembers'));
+            }
+          }}
+          className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+            canCreate('teamMembers', members.length)
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+          disabled={!canCreate('teamMembers', members.length)}
         >
           <Plus className="w-4 h-4" />
-          <span>Add Team Member</span>
+          <span>{canCreate('teamMembers', members.length) ? 'Add Team Member' : `Limit: ${limits.teamMembers}`}</span>
         </button>
       </div>
 

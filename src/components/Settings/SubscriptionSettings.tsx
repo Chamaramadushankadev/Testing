@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, Check, Package, Shield, Zap, Users, Calendar, DollarSign } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
+import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
 // Initialize Stripe (in a real app, you'd use your actual publishable key)
 const stripePromise = loadStripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
@@ -19,6 +20,7 @@ export const SubscriptionSettings: React.FC = () => {
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'month' | 'year'>('month');
   const [loading, setLoading] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [customPlan, setCustomPlan] = useState({
     modules: {
       goals: true,
@@ -404,12 +406,25 @@ export const SubscriptionSettings: React.FC = () => {
                   >
                     {loading ? 'Processing...' : 'Get Custom Plan'}
                   </button>
+                  
+                  <button
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="w-full mt-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    View All Plans
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </div>
   );
 };

@@ -19,7 +19,6 @@ const menuItems = [
   { id: 'reminders', label: 'Reminders', icon: Bell },
   { id: 'pomodoro', label: 'Pomodoro', icon: Clock },
   { id: 'scripts', label: 'YouTube Scripts', icon: Video },
-  { id: 'email', label: 'Email', icon: Mail },
   { id: 'cold-email', label: 'Cold Email', icon: Send },
   { id: 'finance', label: 'Finance', icon: DollarSign },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },

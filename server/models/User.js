@@ -40,6 +40,19 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  role: {
+    type: String,
+    enum: ['user', 'admin', 'moderator'],
+    default: 'user'
+  },
+  plan: {
+    type: String,
+    enum: ['free', 'basic', 'pro', 'business'],
+    default: 'free'
+  },
+  planExpiry: {
+    type: Date
+  },
   settings: {
     notifications: {
       email: { type: Boolean, default: true },

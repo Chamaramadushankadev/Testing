@@ -24,6 +24,7 @@ import { Menu, X, Home, Target, CheckSquare, StickyNote, FileText, Bell, Video, 
 import { ThemeProvider } from './context/ThemeContext';
 import { TeamProvider } from './context/TeamContext';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { UpgradePage } from './components/Upgrade/UpgradePage';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -74,6 +75,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/upgrade" element={<UpgradePage />} />
             <Route path="/*" element={
               <ProtectedRoute>
                 <div className="flex h-screen bg-gray-50 dark:bg-gray-900">

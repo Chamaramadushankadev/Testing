@@ -41,7 +41,7 @@ export const TeamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Try to fetch from API
       try {
-        const response = await api.get('/api/team');
+        const response = await api.get('/team');
         if (response.data) {
           setMembers(response.data);
           return;
@@ -93,7 +93,7 @@ export const TeamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       // Try API first
       try {
-        const response = await api.post('/api/team', member);
+        const response = await api.post('/team', member);
         if (response.data) {
           setMembers(prev => [...prev, response.data]);
           return;
@@ -122,7 +122,7 @@ export const TeamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       // Try API first
       try {
-        const response = await api.put(`/api/team/${id}`, updates);
+        const response = await api.put(`/team/${id}`, updates);
         if (response.data) {
           setMembers(prev => prev.map(m => m.id === id ? { ...m, ...response.data } : m));
           return;
@@ -148,7 +148,7 @@ export const TeamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       // Try API first
       try {
-        await api.delete(`/api/team/${id}`);
+        await api.delete(`/team/${id}`);
         setMembers(prev => prev.filter(m => m.id !== id));
         return;
       } catch (err) {

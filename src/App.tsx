@@ -23,6 +23,7 @@ import { AdminPanel } from './components/Admin/AdminPanel';
 import { Menu, X, Home, Target, CheckSquare, StickyNote, FileText, Bell, Video, Mail, Send, BarChart3, Settings, Clock, HelpCircle, DollarSign } from 'lucide-react';
 import { ThemeProvider } from './context/ThemeContext';
 import { TeamProvider } from './context/TeamContext';
+import { SubscriptionProvider } from './context/SubscriptionContext';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { UpgradePage } from './components/Upgrade/UpgradePage';
 
@@ -72,13 +73,14 @@ function App() {
   return (
     <ThemeProvider>
       <TeamProvider>
-        <Router>
-          <Routes>
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="/upgrade" element={<UpgradePage />} />
-            <Route path="/*" element={
-              <ProtectedRoute>
-                <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+        <SubscriptionProvider>
+          <Router>
+            <Routes>
+              <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/upgrade" element={<UpgradePage />} />
+              <Route path="/*" element={
+                <ProtectedRoute>
+                  <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
                   {/* Mobile sidebar overlay */}
                   {sidebarOpen && (
                     <div className="fixed inset-0 z-50 lg:hidden">
@@ -156,11 +158,12 @@ function App() {
                 <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">{renderContent()}</main>
                 <DatabaseStatus />
               </div>
-            </div>
-          </ProtectedRoute>
-        } />
-      </Routes>
-    </Router>
+                  </div>
+                </ProtectedRoute>
+              } />
+            </Routes>
+          </Router>
+        </SubscriptionProvider>
    </TeamProvider>
   </ThemeProvider>
   );

@@ -3,6 +3,7 @@ import { Plus, Bell, Calendar, Clock, Target, CheckSquare, AlertCircle, Repeat, 
 import { Reminder, Goal, Task } from '../../types';
 import { remindersAPI, goalsAPI, tasksAPI } from '../../services/api';
 import { format, isToday, isTomorrow, isPast, addDays, addWeeks, addMonths } from 'date-fns';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 export const RemindersManager: React.FC = () => {
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -13,6 +14,7 @@ export const RemindersManager: React.FC = () => {
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const { canCreate, getUpgradeMessage, limits } = useSubscription();
 
   useEffect(() => {
     loadData();
@@ -86,6 +88,11 @@ export const RemindersManager: React.FC = () => {
 
   const handleAddOrUpdateReminder = async (formData: FormData) => {
     try {
+      if (!editingReminder && !canCreate('reminders', reminders.length)) {
+        alert(getUpgradeMessage('reminders'));
+        return;
+      }
+
       const reminderData = {
         title: formData.get('title') as string,
         message: formData.get('message') as string,
@@ -175,13 +182,22 @@ export const RemindersManager: React.FC = () => {
         
         <button
           onClick={() => {
-            setEditingReminder(null);
-            setShowAddReminder(true);
+           if (canCreate('reminders', reminders.length)) {
+             setEditingReminder(null);
+             setShowAddReminder(true);
+           } else {
+             alert(getUpgradeMessage('reminders'));
+           }
           }}
-          className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
+         className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+           canCreate('reminders', reminders.length)
+             ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
+             : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
+         }`}
+         disabled={!canCreate('reminders', reminders.length)}
         >
           <Plus className="w-4 h-4" />
-          <span>Add Reminder</span>
+         <span>{canCreate('reminders', reminders.length) ? 'Add Reminder' : `Limit: ${limits.reminders}`}</span>
         </button>
       </div>
 

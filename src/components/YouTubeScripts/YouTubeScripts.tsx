@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Video, Wand2, Copy, Download, Sparkles, Clock, Tag, Plus, Edit3, Trash2, Search, Filter, MoreVertical, FileText, Timer } from 'lucide-react';
 import { YouTubeScript, YouTubeChannel } from '../../types';
 import { youtubeScriptsAPI, youtubeChannelsAPI } from '../../services/api';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 export const YouTubeScripts: React.FC = () => {
   const [scripts, setScripts] = useState<YouTubeScript[]>([]);
@@ -20,6 +21,7 @@ export const YouTubeScripts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTone, setFilterTone] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const { canCreate, getUpgradeMessage, limits, hasAccess } = useSubscription();
 
   useEffect(() => {
     loadData();
@@ -78,6 +80,16 @@ export const YouTubeScripts: React.FC = () => {
       return;
     }
 
+    if (!hasAccess('advanced-ai')) {
+      alert(getUpgradeMessage('advanced-ai'));
+      return;
+    }
+
+    if (!canCreate('scripts', scripts.length)) {
+      alert(getUpgradeMessage('scripts'));
+      return;
+    }
+
     setGenerating(true);
     
     try {
@@ -101,6 +113,11 @@ export const YouTubeScripts: React.FC = () => {
 
   const handleAddOrUpdateScript = async (formData: FormData) => {
     try {
+      if (!editingScript && !canCreate('scripts', scripts.length)) {
+        alert(getUpgradeMessage('scripts'));
+        return;
+      }
+
       const scriptData = {
         channelId: formData.get('channelId') as string,
         title: formData.get('title') as string,
@@ -242,21 +259,46 @@ export const YouTubeScripts: React.FC = () => {
         <div className="flex items-center space-x-3">
           <button
             onClick={() => {
-              setEditingScript(null);
-              setShowAddScript(true);
+              if (canCreate('scripts', scripts.length)) {
+                setEditingScript(null);
+                setShowAddScript(true);
+              } else {
+                alert(getUpgradeMessage('scripts'));
+              }
             }}
-            className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
+            className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+              canCreate('scripts', scripts.length)
+                ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
+                : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
+            }`}
+            disabled={!canCreate('scripts', scripts.length)}
           >
             <Plus className="w-4 h-4" />
-            <span>Add Script</span>
+            <span>{canCreate('scripts', scripts.length) ? 'Add Script' : `Limit: ${limits.scripts}`}</span>
           </button>
           
           <button
-            onClick={() => setShowGenerator(true)}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all flex items-center space-x-2 shadow-lg"
+            onClick={() => {
+              if (hasAccess('advanced-ai') && canCreate('scripts', scripts.length)) {
+                setShowGenerator(true);
+              } else {
+                alert(getUpgradeMessage(hasAccess('advanced-ai') ? 'scripts' : 'advanced-ai'));
+              }
+            }}
+            className={`px-6 py-2 rounded-lg transition-all flex items-center space-x-2 shadow-lg ${
+              hasAccess('advanced-ai') && canCreate('scripts', scripts.length)
+                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+            disabled={!hasAccess('advanced-ai') || !canCreate('scripts', scripts.length)}
           >
             <Wand2 className="w-4 h-4" />
-            <span>Generate Script</span>
+            <span>
+              {hasAccess('advanced-ai') 
+                ? (canCreate('scripts', scripts.length) ? 'Generate Script' : `Limit: ${limits.scripts}`)
+                : 'Upgrade for AI'
+              }
+            </span>
           </button>
         </div>
       </div>

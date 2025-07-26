@@ -7,6 +7,7 @@ import { InboxTab } from './InboxTab';
 import { AnalyticsTab } from './AnalyticsTab';
 import { WarmupTab } from './WarmupTab';
 import { coldEmailAPI } from '../../services/api';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 export const ColdEmailManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'accounts' | 'leads' | 'campaigns' | 'inbox' | 'analytics' | 'warmup'>('accounts');
@@ -18,8 +19,12 @@ export const ColdEmailManager: React.FC = () => {
   const [leads, setLeads] = useState<any[]>([]);
   const [leadCategories, setLeadCategories] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
+  const { hasAccess, getUpgradeMessage } = useSubscription();
 
   useEffect(() => {
+    if (!hasAccess('cold-email')) {
+      return;
+    }
     loadInitialData();
   }, []);
 
@@ -44,6 +49,26 @@ export const ColdEmailManager: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (!hasAccess('cold-email')) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Cold Email Marketing</h3>
+          <p className="text-gray-600 mb-6">{getUpgradeMessage('cold-email')}</p>
+          <a
+            href="/upgrade"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2"
+          >
+            <span>Upgrade Now</span>
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });

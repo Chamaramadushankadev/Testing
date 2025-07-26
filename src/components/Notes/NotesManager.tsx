@@ -4,6 +4,7 @@ import { Note, Goal } from '../../types';
 import { notesAPI, goalsAPI } from '../../services/api';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 export const NotesManager: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -17,6 +18,7 @@ export const NotesManager: React.FC = () => {
   const [filterTag, setFilterTag] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const { canCreate, getUpgradeMessage, limits } = useSubscription();
 
   useEffect(() => {
     loadData();
@@ -58,6 +60,11 @@ export const NotesManager: React.FC = () => {
 
   const handleAddNote = async (formData: FormData) => {
     try {
+      if (!canCreate('notes', notes.length)) {
+        alert(getUpgradeMessage('notes'));
+        return;
+      }
+
       const title = formData.get('title') as string;
       const content = formData.get('content') as string;
       const goalId = formData.get('goalId') as string;
@@ -243,10 +250,22 @@ export const NotesManager: React.FC = () => {
           
           <button
             onClick={() => setShowAddNote(true)}
-            className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
+            className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+              canCreate('notes', notes.length)
+                ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
+                : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
+            }`}
+            disabled={!canCreate('notes', notes.length)}
+            onClick={() => {
+              if (canCreate('notes', notes.length)) {
+                setShowAddNote(true);
+              } else {
+                alert(getUpgradeMessage('notes'));
+              }
+            }}
           >
             <Plus className="w-4 h-4" />
-            <span>Add Note</span>
+            <span>{canCreate('notes', notes.length) ? 'Add Note' : `Limit: ${limits.notes}`}</span>
           </button>
         </div>
       </div>

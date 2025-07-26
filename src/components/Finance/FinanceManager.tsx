@@ -8,9 +8,31 @@ import { ProjectManager } from './ProjectManager';
 import { TaxEstimator } from './TaxEstimator';
 import { FinanceReports } from './FinanceReports';
 import { FinanceSettings } from './FinanceSettings';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 export const FinanceManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'transactions' | 'invoices' | 'clients' | 'projects' | 'tax' | 'reports' | 'settings'>('dashboard');
+  const { hasAccess, getUpgradeMessage } = useSubscription();
+
+  if (!hasAccess('finance')) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <DollarSign className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Finance Management</h3>
+          <p className="text-gray-600 mb-6">{getUpgradeMessage('finance')}</p>
+          <a
+            href="/upgrade"
+            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors inline-flex items-center space-x-2"
+          >
+            <span>Upgrade Now</span>
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },

@@ -4,6 +4,7 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Task, Goal } from '../../types';
 import { tasksAPI, goalsAPI } from '../../services/api';
 import { format, isToday, isTomorrow, isPast, isThisWeek } from 'date-fns';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 export const TasksManager: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -17,6 +18,7 @@ export const TasksManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
 const [dndReady, setDndReady] = useState(false);
+  const { canCreate, getUpgradeMessage, limits } = useSubscription();
 
   // Load data on component mount
   useEffect(() => {
@@ -132,6 +134,11 @@ const [dndReady, setDndReady] = useState(false);
 
   const handleAddOrUpdateTask = async (formData: FormData) => {
     try {
+      if (!editingTask && !canCreate('tasks', tasks.length)) {
+        alert(getUpgradeMessage('tasks'));
+        return;
+      }
+
       const taskData = {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
@@ -369,13 +376,22 @@ return (
           
           <button
             onClick={() => {
-              setEditingTask(null);
-              setShowAddTask(true);
+              if (canCreate('tasks', tasks.length)) {
+                setEditingTask(null);
+                setShowAddTask(true);
+              } else {
+                alert(getUpgradeMessage('tasks'));
+              }
             }}
-            className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
+            className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+              canCreate('tasks', tasks.length)
+                ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
+                : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
+            }`}
+            disabled={!canCreate('tasks', tasks.length)}
           >
             <Plus className="w-4 h-4" />
-            <span>Add Task</span>
+            <span>{canCreate('tasks', tasks.length) ? 'Add Task' : `Limit: ${limits.tasks}`}</span>
           </button>
         </div>
       </div>

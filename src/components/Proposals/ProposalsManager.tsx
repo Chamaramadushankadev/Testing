@@ -3,6 +3,7 @@ import { Plus, FileText, Search, Filter, Tag, Calendar, Edit3, Trash2, Eye, Brie
 import { Proposal, ProposalCategory } from '../../types';
 import { proposalsAPI } from '../../services/api';
 import { format } from 'date-fns';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 export const ProposalsManager: React.FC = () => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -19,6 +20,7 @@ export const ProposalsManager: React.FC = () => {
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const { canCreate, getUpgradeMessage, limits } = useSubscription();
 
   useEffect(() => {
     loadData();
@@ -91,6 +93,11 @@ export const ProposalsManager: React.FC = () => {
 
   const handleAddProposal = async (formData: FormData) => {
     try {
+      if (!canCreate('proposals', proposals.length)) {
+        alert(getUpgradeMessage('proposals'));
+        return;
+      }
+
       const proposalData = {
         title: formData.get('title') as string,
         content: formData.get('content') as string,
@@ -407,10 +414,22 @@ export const ProposalsManager: React.FC = () => {
           
           <button
             onClick={() => setShowAddProposal(true)}
-            className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
+            className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+              canCreate('proposals', proposals.length)
+                ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
+                : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
+            }`}
+            disabled={!canCreate('proposals', proposals.length)}
+            onClick={() => {
+              if (canCreate('proposals', proposals.length)) {
+                setShowAddProposal(true);
+              } else {
+                alert(getUpgradeMessage('proposals'));
+              }
+            }}
           >
             <Plus className="w-4 h-4" />
-            <span>Add Proposal</span>
+            <span>{canCreate('proposals', proposals.length) ? 'Add Proposal' : `Limit: ${limits.proposals}`}</span>
           </button>
         </div>
       </div>

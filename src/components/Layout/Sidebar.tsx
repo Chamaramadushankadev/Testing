@@ -4,6 +4,8 @@ import {
   Mail, BarChart3, Settings, Home, Send, Clock, HelpCircle, DollarSign, Hash
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useSubscription } from '../../context/SubscriptionContext';
+import { Lock } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -29,6 +31,7 @@ const menuItems = [
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const { darkMode } = useTheme();
+  const { hasAccess, isFeatureRestricted } = useSubscription();
 
   return (
     <div className={`hidden lg:block w-64 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 h-full overflow-y-auto`}>
@@ -41,19 +44,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
+          const isRestricted = isFeatureRestricted(item.id);
           
           return (
             <button
               key={item.id}
-              onClick={() => onTabChange(item.id)}
+              onClick={() => {
+                if (isRestricted) {
+                  window.location.href = '/upgrade';
+                } else {
+                  onTabChange(item.id);
+                }
+              }}
               className={`w-full flex items-center px-6 py-3 text-left transition-colors duration-200 ${
                 isActive
                   ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-r-2 border-blue-700 dark:border-blue-500'
+                  : isRestricted
+                  ? 'text-gray-400 dark:text-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
               }`}
             >
-              <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-blue-700 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} />
-              <span className="font-medium">{item.label}</span>
+              <div className="flex items-center">
+                <Icon className={`w-5 h-5 mr-3 ${
+                  isActive 
+                    ? 'text-blue-700 dark:text-blue-400' 
+                    : isRestricted
+                    ? 'text-gray-400 dark:text-gray-600'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`} />
+                <span className="font-medium">{item.label}</span>
+              </div>
+              {isRestricted && (
+                <Lock className="w-4 h-4 ml-auto text-gray-400 dark:text-gray-600" />
+              )}
             </button>
           );
         })}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Target, Calendar, BarChart3, Filter, Search, Pencil, Trash2 } from 'lucide-react';
 import { Goal } from '../../types';
 import { goalsAPI } from '../../services/api';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 export const GoalsManager: React.FC = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -11,6 +12,7 @@ export const GoalsManager: React.FC = () => {
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const { canCreate, getUpgradeMessage, limits } = useSubscription();
 
   useEffect(() => {
     loadGoals();
@@ -31,6 +33,11 @@ export const GoalsManager: React.FC = () => {
 
   const handleAddOrUpdateGoal = async (formData: FormData) => {
     try {
+      if (!editingGoal && !canCreate('goals', goals.length)) {
+        alert(getUpgradeMessage('goals'));
+        return;
+      }
+
       const goalData = {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
@@ -132,10 +139,23 @@ export const GoalsManager: React.FC = () => {
         </div>
         <button
           onClick={() => { setShowAddGoal(true); setEditingGoal(null); }}
-          className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
+          className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+            canCreate('goals', goals.length)
+              ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
+              : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
+          }`}
+          disabled={!canCreate('goals', goals.length)}
+          onClick={() => {
+            if (canCreate('goals', goals.length)) {
+              setShowAddGoal(true);
+              setEditingGoal(null);
+            } else {
+              alert(getUpgradeMessage('goals'));
+            }
+          }}
         >
           <Plus className="w-4 h-4" />
-          <span>Add Goal</span>
+          <span>{canCreate('goals', goals.length) ? 'Add Goal' : `Limit: ${limits.goals}`}</span>
         </button>
       </div>
 

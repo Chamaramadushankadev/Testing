@@ -3,6 +3,7 @@ import { Plus, Target, Calendar, BarChart3, Filter, Search, Pencil, Trash2 } fro
 import { Goal } from '../../types';
 import { goalsAPI } from '../../services/api';
 import { useSubscription } from '../../context/SubscriptionContext';
+import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
 export const GoalsManager: React.FC = () => {
   const [goals, setGoals] = useState<Goal[]>([]);

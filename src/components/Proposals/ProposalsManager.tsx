@@ -4,6 +4,7 @@ import { Proposal, ProposalCategory } from '../../types';
 import { proposalsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { useSubscription } from '../../context/SubscriptionContext';
+import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
 export const ProposalsManager: React.FC = () => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -21,6 +22,7 @@ export const ProposalsManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const { canCreate, getUpgradeMessage, limits } = useSubscription();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -424,7 +426,7 @@ export const ProposalsManager: React.FC = () => {
               if (canCreate('proposals', proposals.length)) {
                 setShowAddProposal(true);
               } else {
-                alert(getUpgradeMessage('proposals'));
+                setShowUpgradeModal(true);
               }
             }}
           >
@@ -874,6 +876,12 @@ export const ProposalsManager: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </div>
   );
 };

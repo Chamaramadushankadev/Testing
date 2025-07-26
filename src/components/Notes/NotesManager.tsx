@@ -5,6 +5,7 @@ import { notesAPI, goalsAPI } from '../../services/api';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import { useSubscription } from '../../context/SubscriptionContext';
+import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
 export const NotesManager: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -19,6 +20,7 @@ export const NotesManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const { canCreate, getUpgradeMessage, limits } = useSubscription();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -260,7 +262,7 @@ export const NotesManager: React.FC = () => {
               if (canCreate('notes', notes.length)) {
                 setShowAddNote(true);
               } else {
-                alert(getUpgradeMessage('notes'));
+                setShowUpgradeModal(true);
               }
             }}
           >
@@ -431,6 +433,12 @@ export const NotesManager: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </div>
   );
 };

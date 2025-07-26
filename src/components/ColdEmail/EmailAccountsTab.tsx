@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Edit3, Trash2, CheckCircle, XCircle, Settings } from 'lucide-react';
 import { coldEmailAPI } from '../../services/api';
 import { useSubscription } from '../../context/SubscriptionContext';
+import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
 interface EmailAccountsTabProps {
   emailAccounts: any[];
@@ -18,6 +19,7 @@ export const EmailAccountsTab: React.FC<EmailAccountsTabProps> = ({
   const [editingAccount, setEditingAccount] = useState<any>(null);
   const [testingAccount, setTestingAccount] = useState<string | null>(null);
   const { canCreate, getUpgradeMessage, limits } = useSubscription();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const handleAddOrUpdateAccount = async (formData: FormData) => {
     try {
@@ -116,7 +118,7 @@ export const EmailAccountsTab: React.FC<EmailAccountsTabProps> = ({
               setEditingAccount(null);
               setShowAddAccount(true);
             } else {
-              showNotification('error', getUpgradeMessage('emailAccounts'));
+              setShowUpgradeModal(true);
             }
           }}
           className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
@@ -364,6 +366,12 @@ export const EmailAccountsTab: React.FC<EmailAccountsTabProps> = ({
           </div>
         </div>
       )}
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </div>
   );
 };

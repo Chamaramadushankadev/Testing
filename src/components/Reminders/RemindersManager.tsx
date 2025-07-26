@@ -4,6 +4,7 @@ import { Reminder, Goal, Task } from '../../types';
 import { remindersAPI, goalsAPI, tasksAPI } from '../../services/api';
 import { format, isToday, isTomorrow, isPast, addDays, addWeeks, addMonths } from 'date-fns';
 import { useSubscription } from '../../context/SubscriptionContext';
+import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
 export const RemindersManager: React.FC = () => {
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -15,6 +16,7 @@ export const RemindersManager: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const { canCreate, getUpgradeMessage, limits } = useSubscription();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -186,7 +188,7 @@ export const RemindersManager: React.FC = () => {
              setEditingReminder(null);
              setShowAddReminder(true);
            } else {
-             alert(getUpgradeMessage('reminders'));
+             setShowUpgradeModal(true);
            }
           }}
          className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
@@ -501,6 +503,12 @@ export const RemindersManager: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </div>
   );
 };

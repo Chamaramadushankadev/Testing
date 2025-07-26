@@ -3,6 +3,7 @@ import { Video, Wand2, Copy, Download, Sparkles, Clock, Tag, Plus, Edit3, Trash2
 import { YouTubeScript, YouTubeChannel } from '../../types';
 import { youtubeScriptsAPI, youtubeChannelsAPI } from '../../services/api';
 import { useSubscription } from '../../context/SubscriptionContext';
+import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
 export const YouTubeScripts: React.FC = () => {
   const [scripts, setScripts] = useState<YouTubeScript[]>([]);
@@ -22,6 +23,7 @@ export const YouTubeScripts: React.FC = () => {
   const [filterTone, setFilterTone] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const { canCreate, getUpgradeMessage, limits, hasAccess } = useSubscription();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -262,7 +264,7 @@ export const YouTubeScripts: React.FC = () => {
               if (canCreate('scripts', scripts.length)) {
                 setEditingScript(null);
                 setShowAddScript(true);
-              } else {
+               setShowUpgradeModal(true);
                 alert(getUpgradeMessage('scripts'));
               }
             }}
@@ -282,7 +284,7 @@ export const YouTubeScripts: React.FC = () => {
               if (hasAccess('advanced-ai') && canCreate('scripts', scripts.length)) {
                 setShowGenerator(true);
               } else {
-                alert(getUpgradeMessage(hasAccess('advanced-ai') ? 'scripts' : 'advanced-ai'));
+                setShowUpgradeModal(true);
               }
             }}
             className={`px-6 py-2 rounded-lg transition-all flex items-center space-x-2 shadow-lg ${
@@ -943,6 +945,12 @@ export const YouTubeScripts: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </div>
   );
 };

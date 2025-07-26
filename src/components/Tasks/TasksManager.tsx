@@ -5,6 +5,7 @@ import { Task, Goal } from '../../types';
 import { tasksAPI, goalsAPI } from '../../services/api';
 import { format, isToday, isTomorrow, isPast, isThisWeek } from 'date-fns';
 import { useSubscription } from '../../context/SubscriptionContext';
+import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
 export const TasksManager: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -19,6 +20,7 @@ export const TasksManager: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
 const [dndReady, setDndReady] = useState(false);
   const { canCreate, getUpgradeMessage, limits } = useSubscription();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Load data on component mount
   useEffect(() => {
@@ -380,7 +382,7 @@ return (
                 setEditingTask(null);
                 setShowAddTask(true);
               } else {
-                alert(getUpgradeMessage('tasks'));
+                setShowUpgradeModal(true);
               }
             }}
             className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
@@ -627,6 +629,12 @@ return (
           </div>
         </div>
       )}
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </div>
   );
 };

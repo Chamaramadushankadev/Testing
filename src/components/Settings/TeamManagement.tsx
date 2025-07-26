@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, User, Mail, ShieldCheck, Check, X } from 'lucide-react';
 import { useTeam, TeamMember } from '../../context/TeamContext';
 import { useSubscription } from '../../context/SubscriptionContext';
+import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
 export const TeamManagement: React.FC = () => {
   const { members, addMember, updateMember, removeMember, loading } = useTeam();
   const { canCreate, getUpgradeMessage, limits } = useSubscription();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [formData, setFormData] = useState({
@@ -49,7 +51,7 @@ export const TeamManagement: React.FC = () => {
     e.preventDefault();
     
     if (!editingMember && !canCreate('teamMembers', members.length)) {
-      alert(getUpgradeMessage('teamMembers'));
+      setShowUpgradeModal(true);
       return;
     }
     
@@ -138,7 +140,7 @@ export const TeamManagement: React.FC = () => {
             if (canCreate('teamMembers', members.length)) {
               setShowAddMember(true);
             } else {
-              alert(getUpgradeMessage('teamMembers'));
+              setShowUpgradeModal(true);
             }
           }}
           className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
@@ -341,6 +343,12 @@ export const TeamManagement: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { Hash, Plus, Settings, Users, Send, Smile, Paperclip, MoreVertical, Edit
 import { useSocket } from '../../hooks/useSocket';
 import { channelsAPI, messagesAPI } from '../../services/chatAPI';
 import { useFirebaseAuth } from '../../hooks/useFirebaseAuth';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 interface Channel {
   _id: string;
@@ -53,6 +54,7 @@ interface TypingUser {
 export const ChatManager: React.FC = () => {
   const { socket, connected } = useSocket();
   const { user } = useFirebaseAuth();
+  const { hasAccess, getUpgradeMessage } = useSubscription();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
@@ -69,6 +71,26 @@ export const ChatManager: React.FC = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  if (!hasAccess('chat')) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Hash className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Team Chat</h3>
+          <p className="text-gray-600 mb-6">{getUpgradeMessage('chat')}</p>
+          <a
+            href="/upgrade"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2"
+          >
+            <span>Upgrade Now</span>
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     loadChannels();

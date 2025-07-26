@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Edit3, Trash2, CheckCircle, XCircle, Settings } from 'lucide-react';
 import { coldEmailAPI } from '../../services/api';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 interface EmailAccountsTabProps {
   emailAccounts: any[];
@@ -16,9 +17,15 @@ export const EmailAccountsTab: React.FC<EmailAccountsTabProps> = ({
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
   const [testingAccount, setTestingAccount] = useState<string | null>(null);
+  const { canCreate, getUpgradeMessage, limits } = useSubscription();
 
   const handleAddOrUpdateAccount = async (formData: FormData) => {
     try {
+      if (!editingAccount && !canCreate('emailAccounts', emailAccounts.length)) {
+        showNotification('error', getUpgradeMessage('emailAccounts'));
+        return;
+      }
+
       const accountData = {
         name: formData.get('name') as string,
         email: formData.get('email') as string,
@@ -105,13 +112,22 @@ export const EmailAccountsTab: React.FC<EmailAccountsTabProps> = ({
         <h3 className="text-lg font-semibold text-gray-900">Email Accounts</h3>
         <button
           onClick={() => {
-            setEditingAccount(null);
-            setShowAddAccount(true);
+            if (canCreate('emailAccounts', emailAccounts.length)) {
+              setEditingAccount(null);
+              setShowAddAccount(true);
+            } else {
+              showNotification('error', getUpgradeMessage('emailAccounts'));
+            }
           }}
-          className="w-full sm:w-auto bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center space-x-2"
+          className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+            canCreate('emailAccounts', emailAccounts.length)
+              ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
+              : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
+          }`}
+          disabled={!canCreate('emailAccounts', emailAccounts.length)}
         >
           <Plus className="w-4 h-4" />
-          <span>Add Account</span>
+          <span>{canCreate('emailAccounts', emailAccounts.length) ? 'Add Account' : `Limit: ${limits.emailAccounts}`}</span>
         </button>
       </div>
 

@@ -3,6 +3,7 @@ import { BarChart3, TrendingUp, Users, Target, Calendar, Download, Filter } from
 import { Goal, Task } from '../../types';
 import { goalsAPI, tasksAPI, scriptsAPI, emailAPI } from '../../services/api';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 export const AnalyticsManager: React.FC = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -11,8 +12,12 @@ export const AnalyticsManager: React.FC = () => {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter'>('month');
+  const { hasAccess, getUpgradeMessage } = useSubscription();
 
   React.useEffect(() => {
+    if (!hasAccess('analytics')) {
+      return;
+    }
     loadAnalyticsData();
   }, []);
 
@@ -73,6 +78,26 @@ export const AnalyticsManager: React.FC = () => {
   const avgOpenRate = campaigns.length > 0 
     ? campaigns.reduce((sum, c) => sum + (c.stats.opened / c.stats.sent), 0) / campaigns.length * 100 
     : 0;
+
+  if (!hasAccess('analytics')) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BarChart3 className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Advanced Analytics</h3>
+          <p className="text-gray-600 mb-6">{getUpgradeMessage('analytics')}</p>
+          <a
+            href="/upgrade"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2"
+          >
+            <span>Upgrade Now</span>
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

@@ -583,8 +583,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="free">Free</option>
-                    <option value="basic">Basic</option>
-                    <option value="pro">Pro</option>
+                    <option value="starter">Starter</option>
+                    <option value="creator">Creator</option>
                     <option value="business">Business</option>
                   </select>
                 </div>

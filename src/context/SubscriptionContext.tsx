@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useFirebaseAuth } from '../hooks/useFirebaseAuth';
+import api from '../services/api';
 
 interface SubscriptionLimits {
   goals: number;
@@ -108,12 +109,38 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you'd fetch the user's plan from the backend
-    // For now, we'll use localStorage or default to free
-    const savedPlan = localStorage.getItem('userPlan') || 'free';
-    setUserPlan(savedPlan);
-    setLoading(false);
+    if (user) {
+      loadUserPlan();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
+
+  const loadUserPlan = async () => {
+    try {
+      setLoading(true);
+      // Try to get user profile from backend
+      const response = await api.get('/api/auth/me');
+      const userData = response.data;
+      
+      if (userData && userData.plan) {
+        setUserPlan(userData.plan);
+        // Also save to localStorage as backup
+        localStorage.setItem('userPlan', userData.plan);
+      } else {
+        // Fallback to localStorage or default
+        const savedPlan = localStorage.getItem('userPlan') || 'free';
+        setUserPlan(savedPlan);
+      }
+    } catch (error) {
+      console.error('Error loading user plan:', error);
+      // Fallback to localStorage or default
+      const savedPlan = localStorage.getItem('userPlan') || 'free';
+      setUserPlan(savedPlan);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const limits = PLAN_LIMITS[userPlan] || PLAN_LIMITS.free;
 

@@ -90,6 +90,12 @@ export const tasksAPI = {
   update: (id: string, data: any) => api.put(`/tasks/${id}`, data),
   delete: (id: string) => api.delete(`/tasks/${id}`),
   toggle: (id: string) => api.patch(`/tasks/${id}/toggle`),
+  
+  // Subtask operations
+  addSubtask: (taskId: string, data: any) => api.post(`/tasks/${taskId}/subtasks`, data),
+  updateSubtask: (taskId: string, subtaskId: string, data: any) => api.put(`/tasks/${taskId}/subtasks/${subtaskId}`, data),
+  toggleSubtask: (taskId: string, subtaskId: string) => api.patch(`/tasks/${taskId}/subtasks/${subtaskId}/toggle`),
+  deleteSubtask: (taskId: string, subtaskId: string) => api.delete(`/tasks/${taskId}/subtasks/${subtaskId}`),
 };
 
 // ---------------- NOTES ----------------

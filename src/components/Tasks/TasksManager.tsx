@@ -390,10 +390,9 @@ return (
                 ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
                 : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
             }`}
-            disabled={!canCreate('tasks', tasks.length)}
           >
             <Plus className="w-4 h-4" />
-            <span>{canCreate('tasks', tasks.length) ? 'Add Task' : `Limit: ${limits.tasks}`}</span>
+            <span>{canCreate('tasks', tasks.length) ? 'Add Task' : `Limit: ${limits.tasks === -1 ? 'Unlimited' : limits.tasks}`}</span>
           </button>
         </div>
       </div>

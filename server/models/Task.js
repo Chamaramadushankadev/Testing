@@ -47,7 +47,20 @@ const taskSchema = new mongoose.Schema({
   subtasks: [{
     title: String,
     isCompleted: { type: Boolean, default: false },
-    completedAt: Date
+    completedAt: Date,
+    description: String,
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    priority: {
+      type: String,
+      enum: ['low', 'medium', 'high'],
+      default: 'medium'
+    },
+    dueDate: Date,
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
   }]
 }, {
   timestamps: true

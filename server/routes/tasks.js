@@ -188,4 +188,146 @@ router.patch('/:id/toggle', authenticate, async (req, res) => {
   }
 });
 
+// Add subtask
+router.post('/:id/subtasks', authenticate, async (req, res) => {
+  try {
+    if (!isDatabaseAvailable()) {
+      return res.status(503).json({
+        message: 'Database not available - running in demo mode',
+        error: 'Cannot add subtask without database connection'
+      });
+    }
+
+    console.log('📋 Adding subtask to task', req.params.id, 'for user:', req.user.email);
+    const task = await Task.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!task) {
+      console.log('❌ Task not found or access denied');
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    const subtaskData = {
+      title: req.body.title,
+      description: req.body.description || '',
+      assignedTo: req.body.assignedTo || undefined,
+      priority: req.body.priority || 'medium',
+      dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
+      isCompleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    task.subtasks.push(subtaskData);
+    await task.save();
+    
+    console.log('✅ Subtask added successfully');
+    res.json(normalizeTask(task));
+  } catch (error) {
+    console.error('Error adding subtask:', error);
+    res.status(400).json({ message: 'Error adding subtask', error: error.message });
+  }
+});
+
+// Update subtask
+router.put('/:id/subtasks/:subtaskId', authenticate, async (req, res) => {
+  try {
+    if (!isDatabaseAvailable()) {
+      return res.status(503).json({
+        message: 'Database not available - running in demo mode',
+        error: 'Cannot update subtask without database connection'
+      });
+    }
+
+    console.log('📋 Updating subtask', req.params.subtaskId, 'in task', req.params.id);
+    const task = await Task.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!task) {
+      console.log('❌ Task not found or access denied');
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    const subtask = task.subtasks.id(req.params.subtaskId);
+    if (!subtask) {
+      return res.status(404).json({ message: 'Subtask not found' });
+    }
+
+    subtask.title = req.body.title || subtask.title;
+    subtask.description = req.body.description || subtask.description;
+    subtask.assignedTo = req.body.assignedTo || subtask.assignedTo;
+    subtask.priority = req.body.priority || subtask.priority;
+    subtask.dueDate = req.body.dueDate ? new Date(req.body.dueDate) : subtask.dueDate;
+    subtask.updatedAt = new Date();
+
+    await task.save();
+    
+    console.log('✅ Subtask updated successfully');
+    res.json(normalizeTask(task));
+  } catch (error) {
+    console.error('Error updating subtask:', error);
+    res.status(400).json({ message: 'Error updating subtask', error: error.message });
+  }
+});
+
+// Toggle subtask completion
+router.patch('/:id/subtasks/:subtaskId/toggle', authenticate, async (req, res) => {
+  try {
+    if (!isDatabaseAvailable()) {
+      return res.status(503).json({
+        message: 'Database not available - running in demo mode',
+        error: 'Cannot toggle subtask without database connection'
+      });
+    }
+
+    console.log('📋 Toggling subtask', req.params.subtaskId, 'in task', req.params.id);
+    const task = await Task.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!task) {
+      console.log('❌ Task not found or access denied');
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    const subtask = task.subtasks.id(req.params.subtaskId);
+    if (!subtask) {
+      return res.status(404).json({ message: 'Subtask not found' });
+    }
+
+    subtask.isCompleted = !subtask.isCompleted;
+    subtask.completedAt = subtask.isCompleted ? new Date() : null;
+    subtask.updatedAt = new Date();
+
+    await task.save();
+    
+    console.log('✅ Subtask toggled successfully');
+    res.json(normalizeTask(task));
+  } catch (error) {
+    console.error('Error toggling subtask:', error);
+    res.status(400).json({ message: 'Error toggling subtask', error: error.message });
+  }
+});
+
+// Delete subtask
+router.delete('/:id/subtasks/:subtaskId', authenticate, async (req, res) => {
+  try {
+    if (!isDatabaseAvailable()) {
+      return res.status(503).json({
+        message: 'Database not available - running in demo mode',
+        error: 'Cannot delete subtask without database connection'
+      });
+    }
+
+    console.log('📋 Deleting subtask', req.params.subtaskId, 'from task', req.params.id);
+    const task = await Task.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!task) {
+      console.log('❌ Task not found or access denied');
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    task.subtasks.pull({ _id: req.params.subtaskId });
+    await task.save();
+    
+    console.log('✅ Subtask deleted successfully');
+    res.json(normalizeTask(task));
+  } catch (error) {
+    console.error('Error deleting subtask:', error);
+    res.status(500).json({ message: 'Error deleting subtask', error: error.message });
+  }
+});
+
 export default router;

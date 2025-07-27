@@ -46,6 +46,10 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
   const [textContent, setTextContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
+
+
   
   const canvasRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,27 +58,166 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
   useEffect(() => {
     setCanvas(prev => ({
       ...prev,
-      backgroundColor: darkMode ? '#1f2937' : '#ffffff'
+      backgroundColor: darkMode ? '#263142ff' : '#ffffff'
     }));
   }, [darkMode]);
 
+
+useEffect(() => {
+  const handleMouseDown = (e: MouseEvent) => {
+    if (e.button === 1) { // Middle mouse button
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+    }
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      const dx = (e.clientX - dragStart.x);
+      const dy = (e.clientY - dragStart.y);
+
+      setCanvas(prev => ({
+        ...prev,
+        pan: {
+          x: prev.pan.x + dx / prev.zoom,
+          y: prev.pan.y + dy / prev.zoom,
+        }
+      }));
+
+      setDragStart({ x: e.clientX, y: e.clientY });
+    }
+  };
+
+  const handleMouseUp = (e: MouseEvent) => {
+    if (e.button === 1 && isDragging) {
+      setIsDragging(false);
+    }
+  };
+
+  window.addEventListener('mousedown', handleMouseDown);
+  window.addEventListener('mousemove', handleMouseMove);
+  window.addEventListener('mouseup', handleMouseUp);
+
+  return () => {
+    window.removeEventListener('mousedown', handleMouseDown);
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', handleMouseUp);
+  };
+}, [isDragging, dragStart]);
+
+
+
+useEffect(() => {
+  const handlePaste = (e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.indexOf('image') !== -1) {
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const imageData = event.target?.result as string;
+          const img = new Image();
+          img.onload = () => {
+            const { zoom, pan } = canvas;
+
+            const adjustedX = (200 - pan.x) / zoom;
+            const adjustedY = (200 - pan.y) / zoom;
+
+            const newItem = {
+              id: Date.now().toString(),
+              type: 'image',
+              content: imageData,
+              position: { x: adjustedX, y: adjustedY },
+              size: { width: img.width, height: img.height },
+              styles: {},
+              zIndex: items.length + 1,
+            };
+            setItems((prev) => [...prev, newItem]);
+          };
+          img.src = imageData;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  window.addEventListener('paste', handlePaste);
+  return () => {
+    window.removeEventListener('paste', handlePaste);
+  };
+}, [canvas]);
+
+
+
   // Add zoom with Ctrl + scroll
+
   useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey) {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.ctrlKey) setIsCtrlPressed(true);
+  };
+
+  const handleKeyUp = () => {
+    setIsCtrlPressed(false);
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', handleKeyUp);
+
+  return () => {
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+  };
+}, []);
+
+useEffect(() => {
+  const down = (e: KeyboardEvent) => e.ctrlKey && setIsCtrlPressed(true);
+  const up = () => setIsCtrlPressed(false);
+
+  window.addEventListener('keydown', down);
+  window.addEventListener('keyup', up);
+  window.addEventListener('blur', up); // In case user switches window while holding Ctrl
+
+  return () => {
+    window.removeEventListener('keydown', down);
+    window.removeEventListener('keyup', up);
+    window.removeEventListener('blur', up);
+  };
+}, []);
+
+
+useEffect(() => {
+  const handleWheel = (e: WheelEvent) => {
+    if (e.ctrlKey) {
+      const isInsideCanvas = canvasRef.current?.contains(e.target as Node);
+
+      if (isInsideCanvas) {
         e.preventDefault();
+
         const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
         const newZoom = Math.max(0.1, Math.min(3, canvas.zoom * zoomFactor));
-        setCanvas(prev => ({ ...prev, zoom: newZoom }));
-      }
-    };
 
-    const canvasElement = canvasRef.current;
-    if (canvasElement) {
-      canvasElement.addEventListener('wheel', handleWheel, { passive: false });
-      return () => canvasElement.removeEventListener('wheel', handleWheel);
+        setCanvas(prev => ({
+          ...prev,
+          zoom: newZoom
+        }));
+      }
     }
-  }, [canvas.zoom]);
+  };
+
+  // 💥 Attach to the whole window to catch iframe scroll too
+  window.addEventListener('wheel', handleWheel, { passive: false });
+
+  return () => {
+    window.removeEventListener('wheel', handleWheel);
+  };
+}, [canvas.zoom]);
+
+
 
   // Handle mouse events for dragging and resizing
   useEffect(() => {
@@ -437,28 +580,29 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
         </div>
 
         {/* Canvas Area */}
-        <div className={`flex-1 ${darkMode ? 'bg-gray-800' : 'bg-gray-100'} overflow-hidden relative`}>
+        <div className={`flex-1 ${darkMode ? 'bg-gray-800' : 'bg-gray-100'} overflow-clip relative`}>
           <div className="absolute top-4 left-4 z-10 bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm">
             Zoom: {Math.round(canvas.zoom * 100)}% | Ctrl + Scroll to zoom
           </div>
           <div
-            ref={canvasRef}
-            className="w-full h-full overflow-auto"
-            style={{
-              transform: `scale(${canvas.zoom}) translate(${canvas.pan.x}px, ${canvas.pan.y}px)`,
-              transformOrigin: 'top left'
-            }}
-          >
+  ref={canvasRef}
+  tabIndex={0} 
+  className="absolute inset-0"
+  style={{
+    transform: `scale(${canvas.zoom}) translate(${canvas.pan.x}px, ${canvas.pan.y}px)`,
+    transformOrigin: '0 0',
+    willChange: 'transform'
+  }}
+>
             <div
-              className="relative"
-              style={{
-                width: canvas.width,
-                height: canvas.height,
-                backgroundColor: canvas.backgroundColor,
-                margin: '50px auto',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-              }}
-            >
+  className="relative"
+  onClick={() => setSelectedItem(null)}
+  style={{
+    minWidth: 20000,
+    minHeight: 10000,
+    backgroundColor: canvas.backgroundColor
+  }}
+>
               {items.map((item) => (
                 <div
                   key={item.id}
@@ -476,24 +620,36 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
                   onClick={() => setSelectedItem(item.id)}
                   onMouseDown={(e) => handleItemMouseDown(e, item.id)}
                 >
-                  {item.type === 'video' && (
-                    <iframe
-                      src={item.content}
-                      className="w-full h-full rounded"
-                      style={{ borderRadius: item.styles.borderRadius || 0 }}
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  )}
+{item.type === 'video' && (
+  <div className="relative w-full h-full">
+    {isCtrlPressed && (
+      <div className="absolute inset-0 z-50 bg-transparent cursor-not-allowed" />
+    )}
+    <iframe
+      src={item.content}
+      className="w-full h-full rounded"
+      style={{ borderRadius: item.styles.borderRadius || 0 }}
+      frameBorder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowFullScreen
+    />
+  </div>
+)}
                   
                   {item.type === 'image' && (
                     <img
-                      src={item.content}
-                      alt="Moodboard item"
-                      className="w-full h-full object-cover"
-                      style={{ borderRadius: item.styles.borderRadius || 0 }}
-                    />
+  src={item.content || item.metadata?.s3Url}
+  style={{
+    position: 'absolute',
+    left: item.position.x,
+    top: item.position.y,
+    width: item.size.width,
+    height: item.size.height,
+    zIndex: item.zIndex,
+    ...item.styles
+  }}
+  alt=""
+/>
                   )}
                   
                   {item.type === 'text' && (

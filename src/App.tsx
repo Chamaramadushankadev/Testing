@@ -26,6 +26,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { TeamProvider } from './context/TeamContext';
 import { SubscriptionProvider } from './context/SubscriptionContext';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Hash } from 'lucide-react';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');

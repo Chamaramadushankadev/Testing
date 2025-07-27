@@ -16,7 +16,7 @@ const s3 = new AWS.S3({
   region: process.env.AWS_REGION || 'us-east-1'
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'nexa-pro-moodboards';
+const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'nexapro';
 
 // Configure multer for file uploads
 const upload = multer({
@@ -247,7 +247,6 @@ router.post('/:id/upload', authenticate, upload.single('image'), async (req, res
       Key: s3Key,
       Body: req.file.buffer,
       ContentType: req.file.mimetype,
-      ACL: 'public-read'
     };
 
     const uploadResult = await s3.upload(uploadParams).promise();

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CheckSquare, Calendar, Clock, Filter, Search, MoreVertical, Flag, User, Paperclip, Edit3, Trash2 } from 'lucide-react';
+import { Plus, CheckSquare, Calendar, Clock, Filter, Search, MoreVertical, Flag, User, Paperclip, Edit3, Trash2, ChevronDown, ChevronRight, Users } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Task, Goal } from '../../types';
-import { tasksAPI, goalsAPI } from '../../services/api';
+import { tasksAPI, goalsAPI, authAPI } from '../../services/api';
 import { format, isToday, isTomorrow, isPast, isThisWeek } from 'date-fns';
 import { useSubscription } from '../../context/SubscriptionContext';
 import { UpgradeModal } from '../Upgrade/UpgradeModal';
@@ -10,9 +10,14 @@ import { UpgradeModal } from '../Upgrade/UpgradeModal';
 export const TasksManager: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [showSubtaskModal, setShowSubtaskModal] = useState(false);
+  const [editingSubtask, setEditingSubtask] = useState<any>(null);
+  const [selectedTaskForSubtask, setSelectedTaskForSubtask] = useState<Task | null>(null);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterGoal, setFilterGoal] = useState<string>('all');
@@ -42,16 +47,19 @@ const [dndReady, setDndReady] = useState(false);
   const loadData = async () => {
     try {
       setLoading(true);
-      const [tasksResponse, goalsResponse] = await Promise.all([
+      const [tasksResponse, goalsResponse, teamResponse] = await Promise.all([
         tasksAPI.getAll(),
-        goalsAPI.getAll()
+        goalsAPI.getAll(),
+        authAPI.getProfile().then(res => [res.data]).catch(() => []) // Get current user as team member
       ]);
       setTasks(tasksResponse.data || []);
       setGoals(goalsResponse.data || []);
+      setTeamMembers(teamResponse || []);
     } catch (error: any) {
       console.error('Error loading data:', error);
       setTasks([]);
       setGoals([]);
+      setTeamMembers([]);
     } finally {
       setLoading(false);
     }
@@ -96,6 +104,79 @@ const [dndReady, setDndReady] = useState(false);
     }
   };
 
+  const handleAddSubtask = async (formData: FormData) => {
+    if (!selectedTaskForSubtask) return;
+    
+    try {
+      const subtaskData = {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        assignedTo: formData.get('assignedTo') as string || undefined,
+        priority: formData.get('priority') as string,
+        dueDate: formData.get('dueDate') ? new Date(formData.get('dueDate') as string) : undefined
+      };
+
+      const response = await tasksAPI.addSubtask(selectedTaskForSubtask.id, subtaskData);
+      setTasks(tasks.map(task => task.id === selectedTaskForSubtask.id ? response.data : task));
+      setShowSubtaskModal(false);
+      setSelectedTaskForSubtask(null);
+    } catch (error) {
+      console.error('Error adding subtask:', error);
+    }
+  };
+
+  const handleUpdateSubtask = async (formData: FormData) => {
+    if (!selectedTaskForSubtask || !editingSubtask) return;
+    
+    try {
+      const subtaskData = {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        assignedTo: formData.get('assignedTo') as string || undefined,
+        priority: formData.get('priority') as string,
+        dueDate: formData.get('dueDate') ? new Date(formData.get('dueDate') as string) : undefined
+      };
+
+      const response = await tasksAPI.updateSubtask(selectedTaskForSubtask.id, editingSubtask._id, subtaskData);
+      setTasks(tasks.map(task => task.id === selectedTaskForSubtask.id ? response.data : task));
+      setShowSubtaskModal(false);
+      setEditingSubtask(null);
+      setSelectedTaskForSubtask(null);
+    } catch (error) {
+      console.error('Error updating subtask:', error);
+    }
+  };
+
+  const handleToggleSubtask = async (taskId: string, subtaskId: string) => {
+    try {
+      const response = await tasksAPI.toggleSubtask(taskId, subtaskId);
+      setTasks(tasks.map(task => task.id === taskId ? response.data : task));
+    } catch (error) {
+      console.error('Error toggling subtask:', error);
+    }
+  };
+
+  const handleDeleteSubtask = async (taskId: string, subtaskId: string) => {
+    if (!window.confirm('Are you sure you want to delete this subtask?')) return;
+    
+    try {
+      const response = await tasksAPI.deleteSubtask(taskId, subtaskId);
+      setTasks(tasks.map(task => task.id === taskId ? response.data : task));
+    } catch (error) {
+      console.error('Error deleting subtask:', error);
+    }
+  };
+
+  const toggleTaskExpansion = (taskId: string) => {
+    const newExpanded = new Set(expandedTasks);
+    if (newExpanded.has(taskId)) {
+      newExpanded.delete(taskId);
+    } else {
+      newExpanded.add(taskId);
+    }
+    setExpandedTasks(newExpanded);
+  };
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high': return 'bg-red-100 text-red-800 border-red-200';
@@ -121,6 +202,11 @@ const [dndReady, setDndReady] = useState(false);
     if (isTomorrow(date)) return { color: 'text-yellow-600', label: 'Due Tomorrow' };
     if (isThisWeek(date)) return { color: 'text-blue-600', label: 'This Week' };
     return { color: 'text-gray-600', label: format(date, 'MMM dd') };
+  };
+
+  const getTeamMemberName = (userId: string) => {
+    const member = teamMembers.find(m => m._id === userId || m.id === userId);
+    return member ? member.name : 'Unknown User';
   };
 
   const toggleTaskStatus = async (taskId: string) => {
@@ -179,6 +265,10 @@ const [dndReady, setDndReady] = useState(false);
 
 const TaskCard: React.FC<{ task: Task; isKanban?: boolean }> = ({ task, isKanban = false }) => {
   const dateStatus = getDateStatus(task.dueDate);
+  const isExpanded = expandedTasks.has(task.id);
+  const hasSubtasks = task.subtasks && task.subtasks.length > 0;
+  const completedSubtasks = task.subtasks?.filter(st => st.isCompleted).length || 0;
+  const totalSubtasks = task.subtasks?.length || 0;
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this task?')) return;
@@ -216,22 +306,60 @@ return (
         </button>
 
         <div className="flex-1 min-w-0">
-          <h4
-            className={`text-md font-semibold leading-snug ${
-              task.status === 'completed'
-                ? 'line-through text-gray-500'
-                : 'text-gray-900 dark:text-white'
-            }`}
-          >
-            {task.title}
-          </h4>
+  <h4
+  className={`flex items-center gap-2 text-md font-semibold leading-snug ${
+    task.status === 'completed'
+      ? 'line-through text-gray-500'
+      : 'text-gray-900 dark:text-white'
+  }`}
+>
+  {hasSubtasks && (
+    <button
+      onClick={() => toggleTaskExpansion(task.id)}
+      className="text-gray-400 hover:text-gray-600 transition-colors"
+    >
+      {isExpanded ? (
+        <ChevronDown className="w-4 h-4" />
+      ) : (
+        <ChevronRight className="w-4 h-4" />
+      )}
+    </button>
+  )}
+  {task.title}
+</h4>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 whitespace-pre-line">
             {task.description}
           </p>
+          
+          {/* Subtasks Progress */}
+          {hasSubtasks && (
+            <div className="mt-2 flex items-center space-x-2">
+              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0}%` }}
+                />
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {completedSubtasks}/{totalSubtasks}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="flex gap-2 text-sm">
+  <button
+    onClick={() => {
+      setSelectedTaskForSubtask(task);
+      setEditingSubtask(null);
+      setShowSubtaskModal(true);
+    }}
+    title="Add Subtask"
+    className="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900 text-green-500"
+  >
+    <Plus className="w-4 h-4" />
+  </button>
   <button
     onClick={handleEdit}
     title="Edit Task"
@@ -267,6 +395,12 @@ return (
       </div>
 
       <div className="flex items-center gap-2">
+        {hasSubtasks && (
+          <span className="flex items-center text-gray-500">
+            <CheckSquare className="w-3 h-3 mr-1" />
+            {totalSubtasks}
+          </span>
+        )}
         {task.attachments?.length > 0 && (
           <span className="flex items-center text-gray-500">
             <Paperclip className="w-3 h-3 mr-1" />
@@ -281,6 +415,71 @@ return (
       </div>
     </div>
 
+    {/* Subtasks List */}
+    {hasSubtasks && isExpanded && (
+      <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+        <div className="space-y-2">
+          {task.subtasks?.map((subtask) => (
+            <div key={subtask._id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="flex items-center space-x-3 flex-1">
+                <button
+                  onClick={() => handleToggleSubtask(task.id, subtask._id)}
+                  className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                    subtask.isCompleted
+                      ? 'bg-green-500 border-green-500 text-white'
+                      : 'border-gray-300 hover:border-green-500'
+                  }`}
+                >
+                  {subtask.isCompleted && <CheckSquare className="w-2 h-2" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm ${subtask.isCompleted ? 'line-through text-gray-500' : 'text-gray-900 dark:text-white'}`}>
+                    {subtask.title}
+                  </p>
+                  {subtask.description && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{subtask.description}</p>
+                  )}
+                  <div className="flex items-center space-x-2 mt-1">
+                    {subtask.assignedTo && (
+                      <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
+                        <User className="w-3 h-3 mr-1" />
+                        {getTeamMemberName(subtask.assignedTo)}
+                      </span>
+                    )}
+                    {subtask.dueDate && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        Due: {format(new Date(subtask.dueDate), 'MMM dd')}
+                      </span>
+                    )}
+                    <span className={`text-xs px-1 py-0.5 rounded ${getPriorityColor(subtask.priority)}`}>
+                      {subtask.priority}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => {
+                    setSelectedTaskForSubtask(task);
+                    setEditingSubtask(subtask);
+                    setShowSubtaskModal(true);
+                  }}
+                  className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                >
+                  <Edit3 className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => handleDeleteSubtask(task.id, subtask._id)}
+                  className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
     {/* Footer: Goal + Created */}
     <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400 flex justify-between">
       <span>Goal: {getGoalTitle(task.goalId)}</span>
@@ -390,9 +589,10 @@ return (
                 ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
                 : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
             }`}
+            disabled={!canCreate('tasks', tasks.length)}
           >
             <Plus className="w-4 h-4" />
-            <span>{canCreate('tasks', tasks.length) ? 'Add Task' : `Limit: ${limits.tasks === -1 ? 'Unlimited' : limits.tasks}`}</span>
+            <span>{canCreate('tasks', tasks.length) ? 'Add Task' : `Limit: ${limits.tasks}`}</span>
           </button>
         </div>
       </div>
@@ -622,6 +822,117 @@ return (
                   className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white border border-blue-700 dark:border-blue-500 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {editingTask ? 'Update Task' : 'Create Task'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      
+      {/* Add/Edit Subtask Modal */}
+      {showSubtaskModal && selectedTaskForSubtask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+              {editingSubtask ? 'Edit Subtask' : 'Add New Subtask'}
+            </h3>
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                if (editingSubtask) {
+                  handleUpdateSubtask(formData);
+                } else {
+                  handleAddSubtask(formData);
+                }
+              }}
+              className="space-y-6"
+            >
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Parent Task: <span className="font-semibold">{selectedTaskForSubtask.title}</span>
+                </label>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Subtask Title</label>
+                <input
+                  type="text"
+                  name="title"
+                  defaultValue={editingSubtask?.title || ''}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter subtask title..."
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description (Optional)</label>
+                <textarea
+                  name="description"
+                  rows={3}
+                  defaultValue={editingSubtask?.description || ''}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Describe the subtask..."
+                />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Assign To</label>
+                  <select 
+                    name="assignedTo"
+                    defaultValue={editingSubtask?.assignedTo || ''}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Unassigned</option>
+                    {teamMembers.map(member => (
+                      <option key={member._id || member.id} value={member._id || member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priority</label>
+                  <select 
+                    name="priority"
+                    defaultValue={editingSubtask?.priority || 'medium'}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="low">Low Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="high">High Priority</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Due Date (Optional)</label>
+                  <input
+                    type="date"
+                    name="dueDate"
+                    defaultValue={editingSubtask?.dueDate ? new Date(editingSubtask.dueDate).toISOString().slice(0, 10) : ''}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              </div>
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSubtaskModal(false);
+                    setEditingSubtask(null);
+                    setSelectedTaskForSubtask(null);
+                  }}
+                  className="w-full sm:flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white border border-blue-700 dark:border-blue-500 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  {editingSubtask ? 'Update Subtask' : 'Create Subtask'}
                 </button>
               </div>
             </form>

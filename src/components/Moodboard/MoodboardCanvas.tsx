@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Save, ZoomIn, ZoomOut, Move, Type, Video, Image, Upload, Download, ArrowLeft, Trash2, Copy, RotateCcw, Play, Pause } from 'lucide-react';
 import { moodboardAPI } from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 
 interface MoodboardCanvasProps {
   moodboard: any;
@@ -24,17 +25,21 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
   onClose,
   onSave
 }) => {
+  const { darkMode } = useTheme();
   const [items, setItems] = useState<CanvasItem[]>(moodboard.items || []);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [canvas, setCanvas] = useState(moodboard.canvas || {
     width: 1920,
     height: 1080,
-    backgroundColor: '#ffffff',
+    backgroundColor: darkMode ? '#1f2937' : '#ffffff',
     zoom: 0.5,
     pan: { x: 0, y: 0 }
   });
   const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingItem, setIsDraggingItem] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeHandle, setResizeHandle] = useState<string | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [showTextModal, setShowTextModal] = useState(false);
@@ -44,6 +49,90 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
   
   const canvasRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Update canvas background when theme changes
+  useEffect(() => {
+    setCanvas(prev => ({
+      ...prev,
+      backgroundColor: darkMode ? '#1f2937' : '#ffffff'
+    }));
+  }, [darkMode]);
+
+  // Add zoom with Ctrl + scroll
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+        const newZoom = Math.max(0.1, Math.min(3, canvas.zoom * zoomFactor));
+        setCanvas(prev => ({ ...prev, zoom: newZoom }));
+      }
+    };
+
+    const canvasElement = canvasRef.current;
+    if (canvasElement) {
+      canvasElement.addEventListener('wheel', handleWheel, { passive: false });
+      return () => canvasElement.removeEventListener('wheel', handleWheel);
+    }
+  }, [canvas.zoom]);
+
+  // Handle mouse events for dragging and resizing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDraggingItem && selectedItem) {
+        const item = items.find(i => i.id === selectedItem);
+        if (item) {
+          const newX = (e.clientX - dragStart.x) / canvas.zoom;
+          const newY = (e.clientY - dragStart.y) / canvas.zoom;
+          handleItemUpdate(selectedItem, {
+            position: { x: Math.max(0, newX), y: Math.max(0, newY) }
+          });
+        }
+      } else if (isResizing && selectedItem && resizeHandle) {
+        const item = items.find(i => i.id === selectedItem);
+        if (item) {
+          const deltaX = (e.clientX - dragStart.x) / canvas.zoom;
+          const deltaY = (e.clientY - dragStart.y) / canvas.zoom;
+          
+          let newWidth = item.size.width;
+          let newHeight = item.size.height;
+          let newX = item.position.x;
+          let newY = item.position.y;
+
+          if (resizeHandle.includes('right')) newWidth = Math.max(50, item.size.width + deltaX);
+          if (resizeHandle.includes('bottom')) newHeight = Math.max(50, item.size.height + deltaY);
+          if (resizeHandle.includes('left')) {
+            newWidth = Math.max(50, item.size.width - deltaX);
+            newX = item.position.x + deltaX;
+          }
+          if (resizeHandle.includes('top')) {
+            newHeight = Math.max(50, item.size.height - deltaY);
+            newY = item.position.y + deltaY;
+          }
+
+          handleItemUpdate(selectedItem, {
+            position: { x: Math.max(0, newX), y: Math.max(0, newY) },
+            size: { width: newWidth, height: newHeight }
+          });
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingItem(false);
+      setIsResizing(false);
+      setResizeHandle(null);
+    };
+
+    if (isDraggingItem || isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDraggingItem, isResizing, selectedItem, dragStart, canvas.zoom, resizeHandle, items]);
 
   const handleSave = async () => {
     try {
@@ -107,7 +196,7 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
       size: { width: 200, height: 50 },
       styles: {
         fontSize: 24,
-        color: '#000000',
+        color: darkMode ? '#ffffff' : '#000000',
         fontFamily: 'Arial',
         fontWeight: 'normal',
         textAlign: 'left',
@@ -200,22 +289,70 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
     });
   };
 
+  const handleItemMouseDown = (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    setSelectedItem(itemId);
+    setIsDraggingItem(true);
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect) {
+      setDragStart({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      });
+    }
+  };
+
+  const handleResizeMouseDown = (e: React.MouseEvent, handle: string) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeHandle(handle);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const renderResizeHandles = (item: CanvasItem) => {
+    if (selectedItem !== item.id) return null;
+
+    const handles = [
+      { position: 'top-left', cursor: 'nw-resize', style: { top: -4, left: -4 } },
+      { position: 'top-right', cursor: 'ne-resize', style: { top: -4, right: -4 } },
+      { position: 'bottom-left', cursor: 'sw-resize', style: { bottom: -4, left: -4 } },
+      { position: 'bottom-right', cursor: 'se-resize', style: { bottom: -4, right: -4 } },
+      { position: 'top', cursor: 'n-resize', style: { top: -4, left: '50%', transform: 'translateX(-50%)' } },
+      { position: 'bottom', cursor: 's-resize', style: { bottom: -4, left: '50%', transform: 'translateX(-50%)' } },
+      { position: 'left', cursor: 'w-resize', style: { left: -4, top: '50%', transform: 'translateY(-50%)' } },
+      { position: 'right', cursor: 'e-resize', style: { right: -4, top: '50%', transform: 'translateY(-50%)' } }
+    ];
+
+    return (
+      <>
+        {handles.map((handle) => (
+          <div
+            key={handle.position}
+            className="absolute w-2 h-2 bg-blue-500 border border-white rounded-sm"
+            style={{ ...handle.style, cursor: handle.cursor }}
+            onMouseDown={(e) => handleResizeMouseDown(e, handle.position)}
+          />
+        ))}
+      </>
+    );
+  };
+
   const selectedItemData = selectedItem ? items.find(i => i.id === selectedItem) : null;
 
   return (
-    <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+    <div className={`fixed inset-0 ${darkMode ? 'bg-gray-900' : 'bg-gray-100'} z-50 flex flex-col`}>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-4 flex items-center justify-between`}>
         <div className="flex items-center space-x-4">
           <button
             onClick={onClose}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            className={`p-2 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'} rounded-lg transition-colors`}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">{moodboard.title}</h1>
-            <p className="text-sm text-gray-600">Moodboard Canvas</p>
+            <h1 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{moodboard.title}</h1>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Moodboard Canvas</p>
           </div>
         </div>
         
@@ -300,7 +437,10 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
         </div>
 
         {/* Canvas Area */}
-        <div className="flex-1 bg-gray-100 overflow-hidden relative">
+        <div className={`flex-1 ${darkMode ? 'bg-gray-800' : 'bg-gray-100'} overflow-hidden relative`}>
+          <div className="absolute top-4 left-4 z-10 bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm">
+            Zoom: {Math.round(canvas.zoom * 100)}% | Ctrl + Scroll to zoom
+          </div>
           <div
             ref={canvasRef}
             className="w-full h-full overflow-auto"
@@ -334,10 +474,7 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
                     opacity: item.styles.opacity || 1
                   }}
                   onClick={() => setSelectedItem(item.id)}
-                  onMouseDown={(e) => {
-                    setIsDragging(true);
-                    setDragStart({ x: e.clientX - item.position.x, y: e.clientY - item.position.y });
-                  }}
+                  onMouseDown={(e) => handleItemMouseDown(e, item.id)}
                 >
                   {item.type === 'video' && (
                     <iframe
@@ -376,14 +513,17 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
                     </div>
                   )}
                   
+                  {/* Resize Handles */}
+                  {renderResizeHandles(item)}
+                  
                   {selectedItem === item.id && (
-                    <div className="absolute -top-8 left-0 flex items-center space-x-1 bg-white rounded shadow-lg px-2 py-1">
+                    <div className={`absolute -top-8 left-0 flex items-center space-x-1 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded shadow-lg px-2 py-1`}>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDuplicateItem(item.id);
                         }}
-                        className="p-1 text-gray-600 hover:text-blue-600 transition-colors"
+                        className={`p-1 ${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}
                         title="Duplicate"
                       >
                         <Copy className="w-3 h-3" />
@@ -393,7 +533,7 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
                           e.stopPropagation();
                           handleDeleteItem(item.id);
                         }}
-                        className="p-1 text-gray-600 hover:text-red-600 transition-colors"
+                        className={`p-1 ${darkMode ? 'text-gray-400 hover:text-red-400' : 'text-gray-600 hover:text-red-600'} transition-colors`}
                         title="Delete"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -408,12 +548,12 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
 
         {/* Properties Panel */}
         {selectedItemData && (
-          <div className="w-80 bg-white border-l border-gray-200 p-6 overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Properties</h3>
+          <div className={`w-80 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-l p-6 overflow-y-auto`}>
+            <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Properties</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Position</label>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Position</label>
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="number"
@@ -421,7 +561,7 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
                     onChange={(e) => handleItemUpdate(selectedItem!, {
                       position: { ...selectedItemData.position, x: parseInt(e.target.value) || 0 }
                     })}
-                    className="border border-gray-300 rounded px-3 py-2 text-sm"
+                    className={`border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded px-3 py-2 text-sm`}
                     placeholder="X"
                   />
                   <input
@@ -430,14 +570,14 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
                     onChange={(e) => handleItemUpdate(selectedItem!, {
                       position: { ...selectedItemData.position, y: parseInt(e.target.value) || 0 }
                     })}
-                    className="border border-gray-300 rounded px-3 py-2 text-sm"
+                    className={`border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded px-3 py-2 text-sm`}
                     placeholder="Y"
                   />
                 </div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Size</label>
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="number"
@@ -445,7 +585,7 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
                     onChange={(e) => handleItemUpdate(selectedItem!, {
                       size: { ...selectedItemData.size, width: parseInt(e.target.value) || 0 }
                     })}
-                    className="border border-gray-300 rounded px-3 py-2 text-sm"
+                    className={`border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded px-3 py-2 text-sm`}
                     placeholder="Width"
                   />
                   <input
@@ -454,7 +594,7 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
                     onChange={(e) => handleItemUpdate(selectedItem!, {
                       size: { ...selectedItemData.size, height: parseInt(e.target.value) || 0 }
                     })}
-                    className="border border-gray-300 rounded px-3 py-2 text-sm"
+                    className={`border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded px-3 py-2 text-sm`}
                     placeholder="Height"
                   />
                 </div>
@@ -463,47 +603,47 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
               {selectedItemData.type === 'text' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                    <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Content</label>
                     <textarea
                       value={selectedItemData.content}
                       onChange={(e) => handleItemUpdate(selectedItem!, { content: e.target.value })}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      className={`w-full border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded px-3 py-2 text-sm`}
                       rows={3}
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Font Size</label>
+                    <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Font Size</label>
                     <input
                       type="number"
                       value={selectedItemData.styles.fontSize || 16}
                       onChange={(e) => handleItemUpdate(selectedItem!, {
                         styles: { ...selectedItemData.styles, fontSize: parseInt(e.target.value) || 16 }
                       })}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      className={`w-full border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded px-3 py-2 text-sm`}
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                    <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Color</label>
                     <input
                       type="color"
                       value={selectedItemData.styles.color || '#000000'}
                       onChange={(e) => handleItemUpdate(selectedItem!, {
                         styles: { ...selectedItemData.styles, color: e.target.value }
                       })}
-                      className="w-full border border-gray-300 rounded px-3 py-2 h-10"
+                      className={`w-full border ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-white'} rounded px-3 py-2 h-10`}
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Font Family</label>
+                    <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Font Family</label>
                     <select
                       value={selectedItemData.styles.fontFamily || 'Arial'}
                       onChange={(e) => handleItemUpdate(selectedItem!, {
                         styles: { ...selectedItemData.styles, fontFamily: e.target.value }
                       })}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      className={`w-full border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded px-3 py-2 text-sm`}
                     >
                       <option value="Arial">Arial</option>
                       <option value="Helvetica">Helvetica</option>
@@ -516,19 +656,19 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
               )}
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Border Radius</label>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Border Radius</label>
                 <input
                   type="number"
                   value={selectedItemData.styles.borderRadius || 0}
                   onChange={(e) => handleItemUpdate(selectedItem!, {
                     styles: { ...selectedItemData.styles, borderRadius: parseInt(e.target.value) || 0 }
                   })}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                  className={`w-full border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded px-3 py-2 text-sm`}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Opacity</label>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Opacity</label>
                 <input
                   type="range"
                   min="0"
@@ -558,20 +698,20 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
       {/* Add Video Modal */}
       {showVideoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Add Video</h3>
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 w-full max-w-md`}>
+            <h3 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Add Video</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Video URL</label>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Video URL</label>
                 <input
                   type="url"
                   value={videoUrl}
                   onChange={(e) => setVideoUrl(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className={`w-full border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
                   placeholder="Paste YouTube, Instagram, TikTok, or Twitter URL..."
                 />
               </div>
-              <p className="text-sm text-gray-600">
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Supported platforms: YouTube, Instagram, TikTok, Twitter
               </p>
             </div>
@@ -579,7 +719,7 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={() => setShowVideoModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                className={`flex-1 px-4 py-2 border ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} rounded-lg transition-colors`}
               >
                 Cancel
               </button>
@@ -598,15 +738,15 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
       {/* Add Text Modal */}
       {showTextModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Add Text</h3>
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 w-full max-w-md`}>
+            <h3 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Add Text</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Text Content</label>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Text Content</label>
                 <textarea
                   value={textContent}
                   onChange={(e) => setTextContent(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className={`w-full border ${darkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'} rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
                   placeholder="Enter your text..."
                   rows={4}
                 />
@@ -616,7 +756,7 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={() => setShowTextModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                className={`flex-1 px-4 py-2 border ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} rounded-lg transition-colors`}
               >
                 Cancel
               </button>

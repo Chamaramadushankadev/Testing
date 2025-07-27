@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Target, CheckSquare, StickyNote, FileText, Bell, Video, 
-  Mail, BarChart3, Settings, Home, Send, Clock, HelpCircle, DollarSign, Hash
+  Mail, BarChart3, Settings, Home, Send, Clock, HelpCircle, DollarSign, Hash, Palette
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useSubscription } from '../../context/SubscriptionContext';
@@ -25,6 +25,7 @@ const menuItems = [
   { id: 'finance', label: 'Finance', icon: DollarSign },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'chat', label: 'Chat', icon: Hash },
+  { id: 'moodboard', label: 'Moodboard', icon: Palette },
   { id: 'settings', label: 'Settings', icon: Settings },
   { id: 'help', label: 'Help & Support', icon: HelpCircle },
 ];

@@ -318,3 +318,18 @@ export const financeAPI = {
 };
 
 export default api;
+
+// ---------------- MOODBOARDS ----------------
+export const moodboardAPI = {
+  getAll: (params?: any) => api.get('/moodboards', { params }),
+  getById: (id: string) => api.get(`/moodboards/${id}`),
+  create: (data: any) => api.post('/moodboards', data),
+  update: (id: string, data: any) => api.put(`/moodboards/${id}`, data),
+  delete: (id: string) => api.delete(`/moodboards/${id}`),
+  uploadImage: (id: string, formData: FormData) => api.post(`/moodboards/${id}/upload`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  deleteFile: (id: string, s3Key: string) => api.delete(`/moodboards/${id}/files/${s3Key}`),
+  getStorageInfo: () => api.get('/moodboards/storage/info'),
+  extractVideo: (data: { url: string }) => api.post('/moodboards/extract-video', data)
+};

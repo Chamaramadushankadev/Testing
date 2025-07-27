@@ -27,6 +27,7 @@ import youtubeScriptsRoutes from './routes/youtubeScripts.js';
 import financeRoutes from './routes/finance.js';
 import channelsRoutes from './routes/channels.js';
 import messagesRoutes from './routes/messages.js';
+import moodboardRoutes from './routes/moodboards.js';
 import adminRoutes from './routes/admin.js';
 import { startBackgroundJobs } from './services/emailScheduler.js';
 
@@ -84,6 +85,7 @@ app.use('/api/youtube-scripts', youtubeScriptsRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/channels', channelsRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/moodboards', moodboardRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Health check

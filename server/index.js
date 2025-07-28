@@ -7,7 +7,8 @@ import { initializeSocket } from './socket/chatSocket.js';
 
 // 🟢 Add this import at the top
 import webhookRoute from './webhook.js';
- 
+import clientRoutes from './routes/clients.js';
+
 // Import routes
 import authRoutes from './routes/auth.js';
 import goalsRoutes from './routes/goals.js';
@@ -90,6 +91,7 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/moodboards', moodboardRoutes);
 app.use('/api/time-tracker', timeTrackerRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/clients', clientRoutes);
 app.use('/api/quotes', quotesRoutes);
 
 // Health check

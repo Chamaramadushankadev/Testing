@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, CheckSquare, Calendar, Clock, Filter, Search, MoreVertical, Flag, User, Paperclip, Edit3, Trash2, ChevronDown, ChevronRight, Users } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Task, Goal } from '../../types';
-import { tasksAPI, goalsAPI, authAPI } from '../../services/api';
+import { tasksAPI, goalsAPI, authAPI, clientsAPI } from '../../services/api';
 import { format, isToday, isTomorrow, isPast, isThisWeek } from 'date-fns';
 import { useSubscription } from '../../context/SubscriptionContext';
 import { UpgradeModal } from '../Upgrade/UpgradeModal';
@@ -11,6 +11,7 @@ export const TasksManager: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -50,16 +51,19 @@ const [dndReady, setDndReady] = useState(false);
       const [tasksResponse, goalsResponse, teamResponse] = await Promise.all([
         tasksAPI.getAll(),
         goalsAPI.getAll(),
-        authAPI.getProfile().then(res => [res.data]).catch(() => []) // Get current user as team member
+        authAPI.getProfile().then(res => [res.data]).catch(() => []), // Get current user as team member
+        clientsAPI.getAll()
       ]);
       setTasks(tasksResponse.data || []);
       setGoals(goalsResponse.data || []);
       setTeamMembers(teamResponse || []);
+      setClients(clientsResponse.data || []);
     } catch (error: any) {
       console.error('Error loading data:', error);
       setTasks([]);
       setGoals([]);
       setTeamMembers([]);
+      setClients([]);
     } finally {
       setLoading(false);
     }
@@ -231,6 +235,7 @@ const [dndReady, setDndReady] = useState(false);
         title: formData.get('title') as string,
         description: formData.get('description') as string,
         goalId: formData.get('goalId') as string || undefined,
+        clientId: formData.get('clientId') as string || undefined,
         priority: formData.get('priority') as string,
         status: formData.get('status') as string,
         dueDate: new Date(formData.get('dueDate') as string),
@@ -766,6 +771,19 @@ return (
                     <option value="">Select a goal (optional)</option>
                     {goals.map(goal => (
                       <option key={goal.id} value={goal.id}>{goal.title}</option>
+                    ))}
+                  </select>
+                  </div>
+                  <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Client (Optional)</label>
+                  <select 
+                    name="clientId"
+                    defaultValue={editingTask?.clientId || ''}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select a client (optional)</option>
+                    {clients.map(client => (
+                      <option key={client.id} value={client.id}>{client.displayName || client.name}</option>
                     ))}
                   </select>
                   </div>

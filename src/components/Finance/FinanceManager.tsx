@@ -3,7 +3,6 @@ import { DollarSign, TrendingUp, Receipt, FileText, Users, Settings, Calculator,
 import { FinanceDashboard } from './FinanceDashboard';
 import { TransactionManager } from './TransactionManager';
 import { InvoiceManager } from './InvoiceManager';
-import { ClientManager } from './ClientManager';
 import { ProjectManager } from './ProjectManager';
 import { TaxEstimator } from './TaxEstimator';
 import { FinanceReports } from './FinanceReports';
@@ -38,7 +37,6 @@ export const FinanceManager: React.FC = () => {
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'transactions', label: 'Transactions', icon: DollarSign },
     { id: 'invoices', label: 'Invoices', icon: FileText },
-    { id: 'clients', label: 'Clients', icon: Users },
     { id: 'projects', label: 'Projects', icon: Receipt },
     { id: 'tax', label: 'Tax Estimator', icon: Calculator },
     { id: 'reports', label: 'Reports', icon: TrendingUp },
@@ -85,7 +83,6 @@ export const FinanceManager: React.FC = () => {
       {activeTab === 'dashboard' && <FinanceDashboard />}
       {activeTab === 'transactions' && <TransactionManager />}
       {activeTab === 'invoices' && <InvoiceManager />}
-      {activeTab === 'clients' && <ClientManager />}
       {activeTab === 'projects' && <ProjectManager />}
       {activeTab === 'tax' && <TaxEstimator />}
       {activeTab === 'reports' && <FinanceReports />}

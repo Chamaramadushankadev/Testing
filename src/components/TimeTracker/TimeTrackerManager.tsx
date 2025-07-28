@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, Square, Clock, Calendar, BarChart3, Share2, Plus, Edit3, Trash2, Timer, Target, CheckSquare } from 'lucide-react';
-import { timeTrackerAPI, goalsAPI, tasksAPI } from '../../services/api';
+import { timeTrackerAPI, goalsAPI, tasksAPI, clientsAPI } from '../../services/api';
 import { format, formatDuration, intervalToDuration } from 'date-fns';
 
 interface TimeEntry {
@@ -33,6 +33,7 @@ export const TimeTrackerManager: React.FC = () => {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showStartModal, setShowStartModal] = useState(false);
@@ -73,13 +74,15 @@ export const TimeTrackerManager: React.FC = () => {
         timeTrackerAPI.getCurrentTimer(),
         goalsAPI.getAll(),
         tasksAPI.getAll(),
-        timeTrackerAPI.getSharedSheets()
+        timeTrackerAPI.getSharedSheets(),
+        clientsAPI.getAll()
       ]);
       
       setCurrentTimer(currentResponse.data);
       setGoals(goalsResponse.data || []);
       setTasks(tasksResponse.data || []);
       setSharedSheets(sharedResponse.data || []);
+      setClients(clientsResponse.data || []);
       
       if (currentResponse.data) {
         const start = new Date(currentResponse.data.startTime);
@@ -143,6 +146,7 @@ const handleStartTimer = async (formData: FormData) => {
     const timerData = {
       projectId: isValidObjectId(rawProjectId) ? rawProjectId : undefined,
       taskId: isValidObjectId(rawTaskId) ? rawTaskId : undefined,
+      clientId: isValidObjectId(formData.get('clientId')) ? formData.get('clientId') : undefined,
       projectName: (formData.get('projectName') as string) || 'Untitled Project',
       taskName: (formData.get('taskName') as string) || '',
       description: (formData.get('description') as string) || '',
@@ -626,6 +630,19 @@ const handleStartTimer = async (formData: FormData) => {
                   ))}
                 </select>
                 <input type="hidden" name="projectName" defaultValue="Untitled Project" />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Client</label>
+                <select
+                  name="clientId"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select client (optional)</option>
+                  {clients.map(client => (
+                    <option key={client.id} value={client.id}>{client.displayName || client.name}</option>
+                  ))}
+                </select>
               </div>
               
               <div>

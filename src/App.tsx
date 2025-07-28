@@ -22,8 +22,9 @@ import { ChatManager } from './components/Chat/ChatManager';
 import { MoodboardManager } from './components/Moodboard/MoodboardManager';
 import { TimeTrackerManager } from './components/TimeTracker/TimeTrackerManager';
 import { SharedTimeSheet } from './components/TimeTracker/SharedTimeSheet';
+import { ClientsManager } from './components/Clients/ClientsManager';
 import { AdminPanel } from './components/Admin/AdminPanel';
-import { Menu, X, Home, Target, CheckSquare, StickyNote, FileText, Bell, Video, Mail, Send, BarChart3, Settings, Clock, HelpCircle, DollarSign, Palette } from 'lucide-react';
+import { Menu, X, Home, Target, CheckSquare, StickyNote, FileText, Bell, Video, Mail, Send, BarChart3, Settings, Clock, HelpCircle, DollarSign, Palette, Users } from 'lucide-react';
 import { ThemeProvider } from './context/ThemeContext';
 import { TeamProvider } from './context/TeamContext';
 import { SubscriptionProvider } from './context/SubscriptionContext';
@@ -38,6 +39,8 @@ function App() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
+      case 'clients':
+        return <ClientsManager />;
       case 'goals':
         return <GoalsManager />;
       case 'tasks':

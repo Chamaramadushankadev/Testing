@@ -319,6 +319,17 @@ export const financeAPI = {
 
 export default api;
 
+// ---------------- CLIENTS ----------------
+export const clientsAPI = {
+  getAll: (params?: any) => api.get('/clients', { params }),
+  getById: (id: string) => api.get(`/clients/${id}`),
+  create: (data: any) => api.post('/clients', data),
+  update: (id: string, data: any) => api.put(`/clients/${id}`, data),
+  delete: (id: string) => api.delete(`/clients/${id}`),
+  updateStats: (id: string, stats: any) => api.patch(`/clients/${id}/stats`, stats),
+  getStats: (id: string) => api.get(`/clients/${id}/stats`)
+};
+
 // ---------------- QUOTES ----------------
 export const quotesAPI = {
   getAll: (params?: any) => api.get('/quotes', { params }),

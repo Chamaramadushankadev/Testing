@@ -3,9 +3,10 @@ import { Settings, User, Bell, Mail, Shield, Database, Palette, Globe, Users, Cr
 import { useTheme } from '../../context/ThemeContext';
 import { TeamManagement } from './TeamManagement';
 import { SubscriptionSettings } from './SubscriptionSettings';
+import { ClientManagement } from './ClientManagement';
 
 export const SettingsManager: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'email' | 'security' | 'data' | 'appearance' | 'team' | 'subscription'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'email' | 'security' | 'data' | 'appearance' | 'team' | 'clients' | 'subscription'>('profile');
   const { darkMode, toggleDarkMode } = useTheme();
 
   const ProfileSettings = () => (
@@ -398,6 +399,7 @@ export const SettingsManager: React.FC = () => {
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'team', label: 'Team Management', icon: Users },
+    { id: 'clients', label: 'Client Management', icon: Users },
     { id: 'email', label: 'Email', icon: Mail },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'data', label: 'Data', icon: Database },
@@ -444,6 +446,7 @@ export const SettingsManager: React.FC = () => {
               {activeTab === 'data' && <DataSettings />}
               {activeTab === 'appearance' && <AppearanceSettings />}
               {activeTab === 'team' && <TeamManagement />}
+              {activeTab === 'clients' && <ClientManagement />}
               {activeTab === 'subscription' && <SubscriptionSettings />}
               
               <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">

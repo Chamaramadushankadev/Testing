@@ -7,7 +7,7 @@ import { initializeSocket } from './socket/chatSocket.js';
 
 // 🟢 Add this import at the top
 import webhookRoute from './webhook.js';
-
+ 
 // Import routes
 import authRoutes from './routes/auth.js';
 import goalsRoutes from './routes/goals.js';
@@ -30,6 +30,7 @@ import messagesRoutes from './routes/messages.js';
 import moodboardRoutes from './routes/moodboards.js';
 import timeTrackerRoutes from './routes/timeTracker.js';
 import adminRoutes from './routes/admin.js';
+import quotesRoutes from './routes/quotes.js';
 import { startBackgroundJobs } from './services/emailScheduler.js';
 
 dotenv.config();
@@ -89,6 +90,7 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/moodboards', moodboardRoutes);
 app.use('/api/time-tracker', timeTrackerRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/quotes', quotesRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

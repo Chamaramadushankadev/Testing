@@ -4,6 +4,7 @@ import { Goal, Task } from '../../types';
 import { goalsAPI, tasksAPI } from '../../services/api';
 import { scriptsAPI, emailAPI } from '../../services/api';
 import { useSubscription } from '../../context/SubscriptionContext';
+import { MotivationalQuotes } from './MotivationalQuotes';
 
 export const Dashboard: React.FC = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -12,7 +13,7 @@ export const Dashboard: React.FC = () => {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { userPlan, refreshUserPlan } = useSubscription();
-
+ 
   useEffect(() => {
     loadDashboardData();
     // Refresh user plan when dashboard loads
@@ -105,6 +106,9 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Motivational Quotes */}
+      <MotivationalQuotes />
+
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => {

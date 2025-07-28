@@ -10,7 +10,7 @@ const api = axios.create({
   },
   timeout: 10000,
 });
-
+ 
 // Add token to headers
 api.interceptors.request.use(async (config) => {
   // Try to get Firebase auth token first
@@ -318,6 +318,16 @@ export const financeAPI = {
 };
 
 export default api;
+
+// ---------------- QUOTES ----------------
+export const quotesAPI = {
+  getAll: (params?: any) => api.get('/quotes', { params }),
+  getById: (id: string) => api.get(`/quotes/${id}`),
+  create: (data: any) => api.post('/quotes', data),
+  update: (id: string, data: any) => api.put(`/quotes/${id}`, data),
+  delete: (id: string) => api.delete(`/quotes/${id}`),
+  getRandom: () => api.get('/quotes/random/daily')
+};
 
 // ---------------- TIME TRACKER ----------------
 export const timeTrackerAPI = {

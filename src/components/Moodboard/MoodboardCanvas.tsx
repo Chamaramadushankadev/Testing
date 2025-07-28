@@ -48,6 +48,10 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
   const [uploading, setUploading] = useState(false);
   const [isCtrlPressed, setIsCtrlPressed] = useState(false);
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
+  const [mouseDownPos, setMouseDownPos] = useState<{ x: number; y: number } | null>(null);
+const [pendingDragItem, setPendingDragItem] = useState<string | null>(null);
+const [mouseDownScreenPos, setMouseDownScreenPos] = useState<{ x: number; y: number } | null>(null);
+
 
 
   
@@ -63,6 +67,53 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
   }, [darkMode]);
 
 
+  useEffect(() => {
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!canvasRef.current) return;
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+
+    const mouseX = (e.clientX - canvasRect.left) / canvas.zoom - canvas.pan.x;
+    const mouseY = (e.clientY - canvasRect.top) / canvas.zoom - canvas.pan.y;
+
+    if (pendingDragItem && mouseDownScreenPos) {
+      const dist = Math.hypot(e.clientX - mouseDownScreenPos.x, e.clientY - mouseDownScreenPos.y);
+      if (dist > 5) {
+        setIsDraggingItem(true);
+        setSelectedItem(pendingDragItem);
+        setPendingDragItem(null);
+      } else {
+        return; // ⛔ Don't drag yet
+      }
+    }
+
+    if (isDraggingItem && selectedItem) {
+      const item = items.find(i => i.id === selectedItem);
+      if (!item) return;
+
+      const newX = mouseX - dragStart.x;
+      const newY = mouseY - dragStart.y;
+
+      handleItemUpdate(selectedItem, {
+        position: { x: Math.max(0, newX), y: Math.max(0, newY) }
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDraggingItem(false);
+    setPendingDragItem(null);
+    setMouseDownScreenPos(null);
+  };
+
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', handleMouseUp);
+  return () => {
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
+}, [isDraggingItem, pendingDragItem, mouseDownScreenPos, dragStart, selectedItem, items, canvas.zoom, canvas.pan]);
+
+
 useEffect(() => {
   const handleMouseDown = (e: MouseEvent) => {
     if (e.button === 1) { // Middle mouse button
@@ -72,22 +123,42 @@ useEffect(() => {
     }
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (isDragging) {
-      const dx = (e.clientX - dragStart.x);
-      const dy = (e.clientY - dragStart.y);
+const handleMouseMove = (e: MouseEvent) => {
+  const canvasRect = canvasRef.current?.getBoundingClientRect();
+  if (!canvasRect) return;
 
-      setCanvas(prev => ({
-        ...prev,
-        pan: {
-          x: prev.pan.x + dx / prev.zoom,
-          y: prev.pan.y + dy / prev.zoom,
-        }
-      }));
+  const mouseX = (e.clientX - canvasRect.left) / canvas.zoom - canvas.pan.x;
+  const mouseY = (e.clientY - canvasRect.top) / canvas.zoom - canvas.pan.y;
 
-      setDragStart({ x: e.clientX, y: e.clientY });
+  if (pendingDragItem && mouseDownPos) {
+    const distance = Math.hypot(e.clientX - mouseDownPos.x, e.clientY - mouseDownPos.y);
+    if (distance > 5) {
+      setIsDraggingItem(true);
+      setSelectedItem(pendingDragItem); // activate drag only now
+      setPendingDragItem(null);
+    } else {
+      return; // still waiting for enough movement
     }
-  };
+  }
+
+  if (isDraggingItem && selectedItem) {
+    const item = items.find(i => i.id === selectedItem);
+    if (!item) return;
+
+    const newX = mouseX - dragStart.x;
+    const newY = mouseY - dragStart.y;
+
+    handleItemUpdate(selectedItem, {
+      position: { x: Math.max(0, newX), y: Math.max(0, newY) }
+    });
+  }
+
+  // Resize logic here if needed
+};
+
+
+
+
 
   const handleMouseUp = (e: MouseEvent) => {
     if (e.button === 1 && isDragging) {
@@ -221,51 +292,48 @@ useEffect(() => {
 
   // Handle mouse events for dragging and resizing
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDraggingItem && selectedItem) {
-        const item = items.find(i => i.id === selectedItem);
-        if (item) {
-          const newX = (e.clientX - dragStart.x) / canvas.zoom;
-          const newY = (e.clientY - dragStart.y) / canvas.zoom;
-          handleItemUpdate(selectedItem, {
-            position: { x: Math.max(0, newX), y: Math.max(0, newY) }
-          });
-        }
-      } else if (isResizing && selectedItem && resizeHandle) {
-        const item = items.find(i => i.id === selectedItem);
-        if (item) {
-          const deltaX = (e.clientX - dragStart.x) / canvas.zoom;
-          const deltaY = (e.clientY - dragStart.y) / canvas.zoom;
-          
-          let newWidth = item.size.width;
-          let newHeight = item.size.height;
-          let newX = item.position.x;
-          let newY = item.position.y;
+const handleMouseMove = (e: MouseEvent) => {
+  if (!selectedItem) return;
 
-          if (resizeHandle.includes('right')) newWidth = Math.max(50, item.size.width + deltaX);
-          if (resizeHandle.includes('bottom')) newHeight = Math.max(50, item.size.height + deltaY);
-          if (resizeHandle.includes('left')) {
-            newWidth = Math.max(50, item.size.width - deltaX);
-            newX = item.position.x + deltaX;
-          }
-          if (resizeHandle.includes('top')) {
-            newHeight = Math.max(50, item.size.height - deltaY);
-            newY = item.position.y + deltaY;
-          }
+  const item = items.find(i => i.id === selectedItem);
+  if (!item) return;
 
-          handleItemUpdate(selectedItem, {
-            position: { x: Math.max(0, newX), y: Math.max(0, newY) },
-            size: { width: newWidth, height: newHeight }
-          });
-        }
+  const canvasRect = canvasRef.current?.getBoundingClientRect();
+  if (!canvasRect) return;
+
+  const mouseX = (e.clientX - canvasRect.left) / canvas.zoom - canvas.pan.x;
+  const mouseY = (e.clientY - canvasRect.top) / canvas.zoom - canvas.pan.y;
+
+  const newX = mouseX - dragStart.x;
+  const newY = mouseY - dragStart.y;
+
+  // ✅ Only enable dragging after small movement (5px)
+  if (!isDraggingItem && mouseDownPos) {
+    const distance = Math.hypot(e.clientX - mouseDownPos.x, e.clientY - mouseDownPos.y);
+    if (distance > 5) {
+      setIsDraggingItem(true);
+    } else {
+      return; // 👈 Prevents instant "snap" on click
+    }
+  }
+
+  if (isDraggingItem) {
+    handleItemUpdate(selectedItem, {
+      position: {
+        x: Math.max(0, newX),
+        y: Math.max(0, newY)
       }
-    };
+    });
+  }
+};
 
-    const handleMouseUp = () => {
-      setIsDraggingItem(false);
-      setIsResizing(false);
-      setResizeHandle(null);
-    };
+
+const handleMouseUp = () => {
+  setIsDraggingItem(false);
+  setIsResizing(false);
+  setResizeHandle(null);
+  setMouseDownPos(null); // prevents sticky next click
+};
 
     if (isDraggingItem || isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
@@ -432,18 +500,27 @@ useEffect(() => {
     });
   };
 
-  const handleItemMouseDown = (e: React.MouseEvent, itemId: string) => {
-    e.stopPropagation();
-    setSelectedItem(itemId);
-    setIsDraggingItem(true);
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect) {
-      setDragStart({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      });
-    }
-  };
+const handleItemMouseDown = (e: React.MouseEvent, itemId: string) => {
+  e.stopPropagation();
+  setPendingDragItem(itemId);
+  setMouseDownScreenPos({ x: e.clientX, y: e.clientY });
+
+  const canvasRect = canvasRef.current?.getBoundingClientRect();
+  if (!canvasRect) return;
+
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+
+  const mouseX = (e.clientX - canvasRect.left) / canvas.zoom - canvas.pan.x;
+  const mouseY = (e.clientY - canvasRect.top) / canvas.zoom - canvas.pan.y;
+
+  setDragStart({ x: mouseX - item.position.x, y: mouseY - item.position.y });
+};
+
+
+
+
+
 
   const handleResizeMouseDown = (e: React.MouseEvent, handle: string) => {
     e.stopPropagation();
@@ -605,23 +682,23 @@ useEffect(() => {
 >
               {items.map((item) => (
                 <div
-                  key={item.id}
-                  className={`absolute cursor-move border-2 ${
-                    selectedItem === item.id ? 'border-purple-500' : 'border-transparent'
-                  } hover:border-purple-300 transition-colors`}
-                  style={{
-                    left: item.position.x,
-                    top: item.position.y,
-                    width: item.size.width,
-                    height: item.size.height,
-                    zIndex: item.zIndex,
-                    opacity: item.styles.opacity || 1
-                  }}
-                  onClick={() => setSelectedItem(item.id)}
-                  onMouseDown={(e) => handleItemMouseDown(e, item.id)}
-                >
+  key={item.id}
+  className={`group absolute cursor-move border-2 ${
+    selectedItem === item.id ? 'border-purple-500' : 'border-transparent'
+  } hover:border-purple-300 transition-colors`}
+  style={{
+    left: item.position.x,
+    top: item.position.y,
+    width: item.size.width,
+    height: item.size.height,
+    zIndex: item.zIndex,
+    opacity: item.styles.opacity || 1
+  }}
+  onClick={() => setSelectedItem(item.id)}
+  onMouseDown={(e) => handleItemMouseDown(e, item.id)}
+>
 {item.type === 'video' && (
-  <div className="relative w-full h-full">
+  <div className="relative w-full h-full z-0">
     {isCtrlPressed && (
       <div className="absolute inset-0 z-50 bg-transparent cursor-not-allowed" />
     )}
@@ -636,21 +713,16 @@ useEffect(() => {
   </div>
 )}
                   
-                  {item.type === 'image' && (
-                    <img
-  src={item.content || item.metadata?.s3Url}
-  style={{
-    position: 'absolute',
-    left: item.position.x,
-    top: item.position.y,
-    width: item.size.width,
-    height: item.size.height,
-    zIndex: item.zIndex,
-    ...item.styles
-  }}
-  alt=""
-/>
-                  )}
+{item.type === 'image' && (
+  <div className="relative w-full h-full">
+    <img
+      src={item.content || item.metadata?.s3Url}
+      className="w-full h-full object-cover rounded"
+      style={{ borderRadius: item.styles.borderRadius || 0, opacity: item.styles.opacity || 1 }}
+      alt=""
+    />
+  </div>
+)}
                   
                   {item.type === 'text' && (
                     <div
@@ -671,31 +743,36 @@ useEffect(() => {
                   
                   {/* Resize Handles */}
                   {renderResizeHandles(item)}
+
+{(item.type === 'image' || item.type === 'video') && (
+  <div className="absolute -top-8 right-0 flex items-center space-x-1 bg-black/70 text-white rounded px-2 py-1 z-50">
+
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handleDuplicateItem(item.id);
+      }}
+      title="Duplicate"
+      className="hover:text-blue-400"
+    >
+      <Move className="w-4 h-4" />
+    </button>
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handleDeleteItem(item.id);
+      }}
+      title="Delete"
+      className="hover:text-red-400"
+    >
+      <Trash2 className="w-4 h-4" />
+    </button>
+  </div>
+)}
+
+
                   
-                  {selectedItem === item.id && (
-                    <div className={`absolute -top-8 left-0 flex items-center space-x-1 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded shadow-lg px-2 py-1`}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDuplicateItem(item.id);
-                        }}
-                        className={`p-1 ${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}
-                        title="Duplicate"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteItem(item.id);
-                        }}
-                        className={`p-1 ${darkMode ? 'text-gray-400 hover:text-red-400' : 'text-gray-600 hover:text-red-600'} transition-colors`}
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
+                 
                 </div>
               ))}
             </div>

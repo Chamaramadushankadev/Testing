@@ -131,25 +131,32 @@ export const TimeTrackerManager: React.FC = () => {
     }
   };
 
-  const handleStartTimer = async (formData: FormData) => {
-    try {
-      const timerData = {
-        projectId: formData.get('projectId') as string || undefined,
-        taskId: formData.get('taskId') as string || undefined,
-        projectName: formData.get('projectName') as string || 'Untitled Project',
-        taskName: formData.get('taskName') as string || undefined,
-        description: formData.get('description') as string || ''
-      };
+const handleStartTimer = async (formData: FormData) => {
+  try {
+    const isValidObjectId = (id: unknown) =>
+      typeof id === 'string' && /^[a-fA-F0-9]{24}$/.test(id);
 
-      const response = await timeTrackerAPI.startTimer(timerData);
-      setCurrentTimer(response.data);
-      setElapsedTime(0);
-      setShowStartModal(false);
-      await loadTimeEntries();
-    } catch (error) {
-      console.error('Error starting timer:', error);
-    }
-  };
+    const rawProjectId = formData.get('projectId');
+    const rawTaskId = formData.get('taskId');
+
+    const timerData = {
+      projectId: isValidObjectId(rawProjectId) ? rawProjectId : undefined,
+      taskId: isValidObjectId(rawTaskId) ? rawTaskId : undefined,
+      projectName: (formData.get('projectName') as string) || 'Untitled Project',
+      taskName: (formData.get('taskName') as string) || '',
+      description: (formData.get('description') as string) || '',
+    };
+
+    const response = await timeTrackerAPI.startTimer(timerData);
+    setCurrentTimer(response.data);
+    setElapsedTime(0);
+    setShowStartModal(false);
+    await loadTimeEntries();
+  } catch (error) {
+    console.error('Error starting timer:', error);
+  }
+};
+
 
   const handleStopTimer = async (notes?: string) => {
     try {

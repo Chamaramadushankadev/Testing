@@ -138,23 +138,22 @@ export const GoalsManager: React.FC = () => {
             </select>
           </div>
         </div>
-        <button
-          onClick={() => { setShowAddGoal(true); setEditingGoal(null); }}
-          className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
-            canCreate('goals', goals.length)
-              ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
-              : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
-          }`}
-          disabled={!canCreate('goals', goals.length)}
-          onClick={() => {
-            if (canCreate('goals', goals.length)) {
-              setShowAddGoal(true);
-              setEditingGoal(null);
-            } else {
-              alert(getUpgradeMessage('goals'));
-            }
-          }}
-        >
+<button
+  onClick={() => {
+    if (canCreate('goals', goals.length)) {
+      setShowAddGoal(true);
+      setEditingGoal(null);
+    } else {
+      alert(getUpgradeMessage('goals'));
+    }
+  }}
+  className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+    canCreate('goals', goals.length)
+      ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
+      : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
+  }`}
+  disabled={!canCreate('goals', goals.length)}
+>
           <Plus className="w-4 h-4" />
           <span>{canCreate('goals', goals.length) ? 'Add Goal' : `Limit: ${limits.goals}`}</span>
         </button>

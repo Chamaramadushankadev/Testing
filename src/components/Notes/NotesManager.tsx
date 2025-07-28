@@ -250,22 +250,21 @@ export const NotesManager: React.FC = () => {
             </button>
           </div>
           
-          <button
-            onClick={() => setShowAddNote(true)}
-            className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
-              canCreate('notes', notes.length)
-                ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
-                : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
-            }`}
-            disabled={!canCreate('notes', notes.length)}
-            onClick={() => {
-              if (canCreate('notes', notes.length)) {
-                setShowAddNote(true);
-              } else {
-                setShowUpgradeModal(true);
-              }
-            }}
-          >
+         <button
+  onClick={() => {
+    if (canCreate('notes', notes.length)) {
+      setShowAddNote(true);
+    } else {
+      setShowUpgradeModal(true);
+    }
+  }}
+  className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+    canCreate('notes', notes.length)
+      ? 'bg-blue-700 text-white dark:text-white border border-blue-800 dark:border-blue-500 hover:bg-blue-800'
+      : 'bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed'
+  }`}
+  disabled={!canCreate('notes', notes.length)}
+>
             <Plus className="w-4 h-4" />
             <span>{canCreate('notes', notes.length) ? 'Add Note' : `Limit: ${limits.notes}`}</span>
           </button>

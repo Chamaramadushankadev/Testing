@@ -55,6 +55,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
         'Unlimited Proposals',
         'Unlimited Reminders',
         'Pomodoro Timer',
+        'time tracker',
         'Unlimited YouTube Scripts',
         '2 Team Members',
         'Email Support',
@@ -86,6 +87,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
         'Inspiration Board (save images & videos)',
         'Social Template Creation (basic Canva-like editor)',
         'Finance Management Tools',
+        'Moodboard',
         'Priority Support'
       ],
       limits: {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Quote, ChevronLeft, ChevronRight, Heart, Edit3, Trash2, X } from 'lucide-react';
 import { quotesAPI } from '../../services/api';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface Quote {
   id: string;
@@ -28,7 +29,7 @@ export const MotivationalQuotes: React.FC = () => {
     if (quotes.length > 1) {
       const interval = setInterval(() => {
         setCurrentQuoteIndex((prev) => (prev + 1) % quotes.length);
-      }, 60000); // 60 seconds
+      }, 5000); // 60 seconds
 
       return () => clearInterval(interval);
     }
@@ -161,16 +162,24 @@ export const MotivationalQuotes: React.FC = () => {
             </div>
           </div>
 
-          {currentQuote && (
-            <div className="space-y-3">
-              <blockquote className="text-lg font-medium leading-relaxed">
-                "{currentQuote.text}"
-              </blockquote>
-              <cite className="text-sm opacity-90 not-italic">
-                — {currentQuote.author}
-              </cite>
-            </div>
-          )}
+<AnimatePresence mode="wait">
+  <motion.div
+    key={currentQuote?.id}
+    initial={{ x: -100, opacity: 0 }}
+    animate={{ x: 0, opacity: 1 }}
+    exit={{ x: 100, opacity: 0 }}
+    transition={{ duration: 0.5 }}
+    className="space-y-3"
+  >
+    <blockquote className="text-lg font-medium leading-relaxed">
+      "{currentQuote?.text}"
+    </blockquote>
+    <cite className="text-sm opacity-90 not-italic">
+      — {currentQuote?.author}
+    </cite>
+  </motion.div>
+</AnimatePresence>
+
 
           {/* Navigation */}
           {quotes.length > 1 && (

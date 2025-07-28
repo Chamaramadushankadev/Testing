@@ -12,7 +12,6 @@
     "preview": "vite preview",
     "populate": "node scripts/populateDatabase.js",
     "start": "node server/index.js"
-    
   },
   "dependencies": {
     "@stripe/stripe-js": "^7.4.0",
@@ -21,6 +20,7 @@
     "csv-parser": "^3.2.0",
     "firebase": "^11.10.0",
     "firebase-admin": "^13.4.0",
+    "framer-motion": "^12.23.11",
     "imapflow": "^1.0.164",
     "lucide-react": "^0.525.0",
     "node-cron": "^3.0.3",

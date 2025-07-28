@@ -26,6 +26,7 @@ const menuItems = [
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'chat', label: 'Chat', icon: Hash },
   { id: 'moodboard', label: 'Moodboard', icon: Palette },
+  { id: 'time-tracker', label: 'Time Tracker', icon: Clock },
   { id: 'settings', label: 'Settings', icon: Settings },
   { id: 'help', label: 'Help & Support', icon: HelpCircle },
 ];

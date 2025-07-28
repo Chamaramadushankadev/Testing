@@ -20,6 +20,8 @@ import { FinanceManager } from './components/Finance/FinanceManager';
 import PomodoroTimer from './components/PomodoroTimer/PomodoroTimer';
 import { ChatManager } from './components/Chat/ChatManager';
 import { MoodboardManager } from './components/Moodboard/MoodboardManager';
+import { TimeTrackerManager } from './components/TimeTracker/TimeTrackerManager';
+import { SharedTimeSheet } from './components/TimeTracker/SharedTimeSheet';
 import { AdminPanel } from './components/Admin/AdminPanel';
 import { Menu, X, Home, Target, CheckSquare, StickyNote, FileText, Bell, Video, Mail, Send, BarChart3, Settings, Clock, HelpCircle, DollarSign, Palette } from 'lucide-react';
 import { ThemeProvider } from './context/ThemeContext';
@@ -68,6 +70,8 @@ function App() {
         return <ChatManager />;
       case 'moodboard':
         return <MoodboardManager />;
+      case 'time-tracker':
+        return <TimeTrackerManager />;
       default:
         return <Dashboard />;
     }
@@ -80,6 +84,7 @@ function App() {
           <Router>
             <Routes>
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/shared-timesheet/:shareId" element={<SharedTimeSheet />} />
               <Route path="/*" element={
                 <ProtectedRoute>
                   <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -115,6 +120,7 @@ function App() {
                             { id: 'analytics', label: 'Analytics', icon: BarChart3 },
                             { id: 'chat', label: 'Chat', icon: Hash },
                             { id: 'moodboard', label: 'Moodboard', icon: Palette },
+                            { id: 'time-tracker', label: 'Time Tracker', icon: Clock },
                             { id: 'settings', label: 'Settings', icon: Settings },
                             { id: 'help', label: 'Help & Support', icon: HelpCircle },
                           ].map((item) => {

@@ -319,6 +319,23 @@ export const financeAPI = {
 
 export default api;
 
+// ---------------- TIME TRACKER ----------------
+export const timeTrackerAPI = {
+  getCurrentTimer: () => api.get('/time-tracker/current'),
+  getEntries: (params?: any) => api.get('/time-tracker/entries', { params }),
+  startTimer: (data: any) => api.post('/time-tracker/start', data),
+  stopTimer: (data: any) => api.post('/time-tracker/stop', data),
+  updateEntry: (id: string, data: any) => api.put(`/time-tracker/entries/${id}`, data),
+  deleteEntry: (id: string) => api.delete(`/time-tracker/entries/${id}`),
+  getAnalytics: (period?: string) => api.get('/time-tracker/analytics', { params: { period } }),
+  
+  // Shared sheets
+  createShare: (data: any) => api.post('/time-tracker/share', data),
+  getSharedSheets: () => api.get('/time-tracker/shared'),
+  getSharedSheet: (shareId: string) => api.get(`/time-tracker/shared/${shareId}`),
+  deleteSharedSheet: (id: string) => api.delete(`/time-tracker/shared/${id}`)
+};
+
 // ---------------- MOODBOARDS ----------------
 export const moodboardAPI = {
   getAll: (params?: any) => api.get('/moodboards', { params }),

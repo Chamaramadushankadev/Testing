@@ -43,6 +43,7 @@ export const TimeTrackerManager: React.FC = () => {
   const [filterPeriod, setFilterPeriod] = useState<'day' | 'week' | 'month'>('week');
   const [analytics, setAnalytics] = useState<any>(null);
   const [sharedSheets, setSharedSheets] = useState<any[]>([]);
+  
 
   useEffect(() => {
     loadData();

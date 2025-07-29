@@ -880,3 +880,129 @@ export const handleTrackingPixelOpen = async (pixelId) => {
     console.error('Error handling tracking pixel open:', error);
   }
 };
+
+
+
+
+// Email service for team invitations
+export const sendTeamInvitationEmail = async ({
+  to,
+  inviterName,
+  inviterEmail,
+  teamMemberName,
+  invitationToken,
+  permissions
+}) => {
+  try {
+    console.log('📧 Sending team invitation email to:', to);
+    
+    // TODO: Replace with your actual email configuration
+    // For now, this is a placeholder that logs the email details
+    
+    const invitationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accept-invitation/${invitationToken}`;
+    
+    const permissionsList = Object.entries(permissions)
+      .filter(([_, hasAccess]) => hasAccess)
+      .map(([module, _]) => module.charAt(0).toUpperCase() + module.slice(1))
+      .join(', ');
+
+    const emailContent = {
+      to,
+      subject: `You're invited to join ${inviterName}'s team on Nexa Pro`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">Team Invitation</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">You're invited to join Nexa Pro</p>
+          </div>
+          
+          <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h2 style="color: #333; margin-top: 0;">Hi ${teamMemberName}!</h2>
+            
+            <p style="color: #666; line-height: 1.6; font-size: 16px;">
+              <strong>${inviterName}</strong> (${inviterEmail}) has invited you to join their team on Nexa Pro, 
+              the AI-powered productivity platform.
+            </p>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #333; margin-top: 0;">Your Access Permissions:</h3>
+              <p style="color: #666; margin: 0;">${permissionsList}</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${invitationUrl}" 
+                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                        color: white; 
+                        padding: 15px 30px; 
+                        text-decoration: none; 
+                        border-radius: 8px; 
+                        font-weight: bold; 
+                        font-size: 16px;
+                        display: inline-block;">
+                Accept Invitation
+              </a>
+            </div>
+            
+            <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #999; font-size: 14px; margin: 0;">
+                This invitation will expire in 7 days. If you have any questions, 
+                please contact ${inviterName} at ${inviterEmail}.
+              </p>
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <p style="color: #999; font-size: 12px;">
+              Powered by Nexa Pro - Your AI-Powered Workspace
+            </p>
+          </div>
+        </div>
+      `,
+      text: `
+        Hi ${teamMemberName}!
+        
+        ${inviterName} (${inviterEmail}) has invited you to join their team on Nexa Pro.
+        
+        Your access permissions include: ${permissionsList}
+        
+        To accept this invitation, please visit: ${invitationUrl}
+        
+        This invitation will expire in 7 days.
+        
+        Best regards,
+        The Nexa Pro Team
+      `
+    };
+
+    // TODO: Implement actual email sending
+    // For now, we'll log the email content
+    console.log('📧 Email Content (PLACEHOLDER):', {
+      to: emailContent.to,
+      subject: emailContent.subject,
+      invitationUrl,
+      permissions: permissionsList
+    });
+
+    // Placeholder for actual email sending
+    // const transporter = nodemailer.createTransporter({...});
+    // await transporter.sendMail(emailContent);
+
+    return {
+      success: true,
+      message: 'Invitation email sent successfully',
+      invitationUrl
+    };
+  } catch (error) {
+    console.error('❌ Error sending invitation email:', error);
+    throw new Error('Failed to send invitation email: ' + error.message);
+  }
+};
+
+// Placeholder for other email functions
+export const sendWelcomeEmail = async (userEmail, userName) => {
+  console.log('📧 Welcome email placeholder for:', userEmail);
+};
+
+export const sendPasswordResetEmail = async (userEmail, resetToken) => {
+  console.log('📧 Password reset email placeholder for:', userEmail);
+};

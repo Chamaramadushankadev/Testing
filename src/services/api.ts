@@ -351,6 +351,17 @@ export const financeAPI = {
 
 export default api;
 
+// ---------------- TEAM MANAGEMENT ----------------
+export const teamAPI = {
+  getAll: () => api.get('/team'),
+  invite: (data: any) => api.post('/team', data),
+  update: (id: string, data: any) => api.put(`/team/${id}`, data),
+  remove: (id: string) => api.delete(`/team/${id}`),
+  resendInvitation: (id: string) => api.post(`/team/${id}/resend`),
+  getAssignable: () => api.get('/team/assignable'),
+  acceptInvitation: (token: string, data: any) => api.post(`/team/accept-invitation/${token}`, data)
+};
+
 // ---------------- CLIENTS ----------------
 export const clientsAPI = {
   getAll: (params?: any) => api.get('/clients', { params }),

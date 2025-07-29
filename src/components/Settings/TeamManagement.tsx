@@ -1,11 +1,27 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, User, Mail, ShieldCheck, Check, X } from 'lucide-react';
-import { useTeam, TeamMember } from '../../context/TeamContext';
+import { Plus, Edit2, Trash2, User, Mail, ShieldCheck, Check, X, Send, Clock, UserCheck, UserX, RefreshCw } from 'lucide-react';
+import { teamAPI } from '../../services/api';
 import { useSubscription } from '../../context/SubscriptionContext';
 import { UpgradeModal } from '../Upgrade/UpgradeModal';
 
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'editor' | 'viewer';
+  status: 'pending' | 'active' | 'inactive' | 'declined';
+  permissions: {
+    [key: string]: boolean;
+  };
+  avatar?: string;
+  invitedAt: string;
+  joinedAt?: string;
+  lastActiveAt?: string;
+}
+
 export const TeamManagement: React.FC = () => {
-  const { members, addMember, updateMember, removeMember, loading } = useTeam();
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
   const { canCreate, getUpgradeMessage, limits } = useSubscription();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
@@ -25,11 +41,29 @@ export const TeamManagement: React.FC = () => {
       scripts: false,
       email: false,
       'cold-email': false,
+      finance: false,
       analytics: false,
       settings: false,
       help: true
     }
   });
+
+  React.useEffect(() => {
+    loadTeamMembers();
+  }, []);
+
+  const loadTeamMembers = async () => {
+    try {
+      setLoading(true);
+      const response = await teamAPI.getAll();
+      setMembers(response.data || []);
+    } catch (error) {
+      console.error('Error loading team members:', error);
+      setMembers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -57,14 +91,16 @@ export const TeamManagement: React.FC = () => {
     
     try {
       if (editingMember) {
-        await updateMember(editingMember.id, formData);
+        await teamAPI.update(editingMember.id, formData);
       } else {
-        await addMember(formData);
+        await teamAPI.invite(formData);
       }
       
+      await loadTeamMembers();
       resetForm();
     } catch (error) {
       console.error('Error saving team member:', error);
+      alert('Failed to save team member. Please try again.');
     }
   };
 

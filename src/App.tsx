@@ -10,6 +10,7 @@ import { ProposalsManager } from './components/Proposals/ProposalsManager';
 import { RemindersManager } from './components/Reminders/RemindersManager';
 import { GoogleAlerts } from './components/GoogleAlerts/GoogleAlerts';
 import { YouTubeScripts } from './components/YouTubeScripts/YouTubeScripts';
+import { SocialMediaManager } from './components/SocialMedia/SocialMediaManager';
 import { EmailManager } from './components/Email/EmailManager';
 import { ColdEmailManager } from './components/ColdEmail/ColdEmailManager';
 import { AnalyticsManager } from './components/Analytics/AnalyticsManager';
@@ -54,7 +55,7 @@ function App() {
       case 'alerts':
         return <GoogleAlerts />;
       case 'scripts':
-        return <YouTubeScripts />;
+        return <SocialMediaManager />;
       case 'email':
         return <EmailManager />;
       case 'cold-email':

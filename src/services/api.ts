@@ -269,6 +269,38 @@ export const youtubeChannelsAPI = {
 };
 
 // ---------------- YOUTUBE SCRIPTS ----------------
+// ---------------- SOCIAL MEDIA ----------------
+export const socialMediaAPI = {
+  // Posts
+  getPosts: (params?: any) => api.get('/social-media/posts', { params }),
+  getById: (id: string) => api.get(`/social-media/posts/${id}`),
+  createPost: (data: any) => api.post('/social-media/posts', data),
+  updatePost: (id: string, data: any) => api.put(`/social-media/posts/${id}`, data),
+  deletePost: (id: string) => api.delete(`/social-media/posts/${id}`),
+  uploadImage: (id: string, formData: FormData) => api.post(`/social-media/posts/${id}/upload`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  deleteImage: (postId: string, imageId: string) => api.delete(`/social-media/posts/${postId}/images/${imageId}`),
+  
+  // Categories
+  getCategories: () => api.get('/social-media/categories'),
+  createCategory: (data: any) => api.post('/social-media/categories', data),
+  updateCategory: (id: string, data: any) => api.put(`/social-media/categories/${id}`, data),
+  deleteCategory: (id: string) => api.delete(`/social-media/categories/${id}`),
+  
+  // Accounts
+  getAccounts: () => api.get('/social-media/accounts'),
+  createAccount: (data: any) => api.post('/social-media/accounts', data),
+  updateAccount: (id: string, data: any) => api.put(`/social-media/accounts/${id}`, data),
+  deleteAccount: (id: string) => api.delete(`/social-media/accounts/${id}`),
+  
+  // AI Generation
+  generateContent: (data: any) => api.post('/social-media/generate', data),
+  
+  // Analytics
+  getAnalytics: (params?: any) => api.get('/social-media/analytics', { params })
+};
+
 export const youtubeScriptsAPI = {
   getAll: (params?: any) => api.get('/youtube-scripts', { params }),
   getById: (id: string) => api.get(`/youtube-scripts/${id}`),

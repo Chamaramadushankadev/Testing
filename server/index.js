@@ -25,7 +25,7 @@ import coldEmailSystemRoutes from './routes/coldEmailSystem.js';
 import analyticsRoutes from './routes/analytics.js';
 import youtubeChannelsRoutes from './routes/youtubeChannels.js';
 import youtubeScriptsRoutes from './routes/youtubeScripts.js';
-//import socialMediaRoutes from './routes/socialMedia.js';
+import socialMediaRoutes from './routes/socialMedia.js';
 import financeRoutes from './routes/finance.js';
 import channelsRoutes from './routes/channels.js';
 import messagesRoutes from './routes/messages.js';

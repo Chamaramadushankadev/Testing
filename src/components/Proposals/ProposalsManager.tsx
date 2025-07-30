@@ -206,16 +206,25 @@ export const ProposalsManager: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  {/*status changed*/}
+
+ const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'draft':
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+    case 'approved':
+      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+    case 'rejected':
+      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+    case 'completed':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+  }
+};
+
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -232,33 +241,51 @@ export const ProposalsManager: React.FC = () => {
 
     return (
       <div 
-        className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
-        onClick={() => setSelectedProposal(proposal)}
+  className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
+  onClick={() => setSelectedProposal(proposal)}
+>
+  <div className="flex items-start justify-between mb-3">
+    <div className="flex items-center space-x-2">
+      <div 
+        className="p-2 rounded-lg"
+        style={{ backgroundColor: categoryInfo?.color + '20', color: categoryInfo?.color }}
       >
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <div 
-              className="p-2 rounded-lg"
-              style={{ backgroundColor: categoryInfo?.color + '20', color: categoryInfo?.color }}
-            >
-              <CategoryIcon className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 line-clamp-1">{proposal.title}</h4>
-              <p className="text-xs text-gray-500">{proposal.category}</p>
-            </div>
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditingProposal(proposal);
-              setIsEditing(true);
-            }}
-            className="text-gray-400 hover:text-blue-600 transition-colors"
-          >
-            <Edit3 className="w-4 h-4" />
-          </button>
-        </div>
+        <CategoryIcon className="w-4 h-4" />
+      </div>
+      <div>
+        <h4 className="font-medium text-gray-900 dark:text-white line-clamp-1">{proposal.title}</h4>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{proposal.category}</p>
+      </div>
+    </div>
+
+    {/* Action buttons: Edit & Delete */}
+    <div className="flex items-center gap-2 text-muted-foreground">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setEditingProposal(proposal);
+          setIsEditing(true);
+        }}
+        title="Edit"
+        className="hover:text-blue-500 transition-colors"
+      >
+        <Edit3 className="w-4 h-4 stroke-current" />
+      </button>
+
+      {/*add delete button*/} 
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleDeleteProposal(proposal.id);
+        }}
+        title="Delete"
+        className="hover:text-red-500 transition-colors"
+      >
+        <Trash2 className="w-4 h-4 stroke-current" />
+      </button>
+    </div>
+  </div>
+
         
         <div className="mb-4">
           <div className="line-clamp-3 text-gray-600 text-sm whitespace-pre-line">

@@ -93,13 +93,19 @@ export const GoalsManager: React.FC = () => {
     return matchesStatus && matchesSearch;
   });
 
-  if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-96">
-        <p>Loading goals...</p>
+
+{/*change loading spine*/}
+ if (loading) {
+  return (
+    <div className="p-6 flex items-center justify-center min-h-96">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading goals...</p>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
 
   return (
     <div className="p-6 space-y-6">

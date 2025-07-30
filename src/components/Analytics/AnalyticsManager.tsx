@@ -254,13 +254,13 @@ export const AnalyticsManager: React.FC = () => {
               </div>
               
               <div className="grid grid-cols-2 gap-3">
-                <div className="text-center p-2 bg-blue-50 rounded">
+                <div className="text-center p-2 rounded">
                   <p className="text-lg font-bold text-blue-600">
                     {tasks.filter(t => t.priority === 'high').length}
                   </p>
                   <p className="text-xs text-gray-600">High Priority</p>
                 </div>
-                <div className="text-center p-2 bg-yellow-50 rounded">
+                <div className="text-center p-2 rounded">
                   <p className="text-lg font-bold text-yellow-600">
                     {tasks.filter(t => t.status === 'in-progress').length}
                   </p>
@@ -346,12 +346,12 @@ export const AnalyticsManager: React.FC = () => {
                     <h4 className="font-medium text-gray-900 text-sm mb-2">{campaign.name}</h4>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-gray-500">Open Rate:</span>
-                        <span className="font-medium ml-1">{Math.round(openRate)}%</span>
+                        <span className="text-gray-700">Open Rate:</span>
+                        <span className="text-gray-700 font-medium ml-1">{Math.round(openRate)}%</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Click Rate:</span>
-                        <span className="font-medium ml-1">{Math.round(clickRate)}%</span>
+                        <span className="text-gray-700">Click Rate:</span>
+                        <span className="text-gray-700 font-medium ml-1">{Math.round(clickRate)}%</span>
                       </div>
                     </div>
                   </div>

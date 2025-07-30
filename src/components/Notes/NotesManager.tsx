@@ -122,19 +122,37 @@ export const NotesManager: React.FC = () => {
       className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
       onClick={() => setSelectedNote(note)}
     >
-      <div className="flex items-start justify-between mb-3">
-        <h4 className="font-medium text-gray-900 line-clamp-2">{note.title}</h4>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setEditingNote(note);
-            setIsEditing(true);
-          }}
-          className="text-gray-400 hover:text-blue-600 transition-colors"
-        >
-          <Edit3 className="w-4 h-4" />
-        </button>
-      </div>
+     <div className="flex items-start justify-between mb-2">
+  <h4 className="font-medium text-gray-900 dark:text-white line-clamp-2">{note.title}</h4>
+  <div className="flex items-center gap-2">
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditingNote(note);
+        setIsEditing(true);
+      }}
+      title="Edit"
+      className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+    >
+      <Edit3 className="w-4 h-4 text-gray-500 hover:text-blue-600" />
+    </button>
+
+    {/*Add delete button*/}
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handleDeleteNote(note.id);
+      }}
+      title="Delete"
+      className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+    >
+      <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-600" />
+    </button>
+  </div>
+</div>
+
+
+
       
       <div className="prose prose-sm max-w-none mb-4">
         <div className="line-clamp-3 text-gray-600 whitespace-pre-line">

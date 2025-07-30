@@ -35,7 +35,8 @@ import adminRoutes from './routes/admin.js';
 import quotesRoutes from './routes/quotes.js';
 import { startBackgroundJobs } from './services/emailScheduler.js';
 
-dotenv.config();
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+dotenv.config({ path: envFile });
 
 const app = express();
 const server = createServer(app);

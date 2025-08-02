@@ -33,6 +33,7 @@ import moodboardRoutes from './routes/moodboards.js';
 import timeTrackerRoutes from './routes/timeTracker.js';
 import adminRoutes from './routes/admin.js';
 import quotesRoutes from './routes/quotes.js';
+import teamRoutes from './routes/team.js';
 import { startBackgroundJobs } from './services/emailScheduler.js';
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
@@ -96,6 +97,7 @@ app.use('/api/time-tracker', timeTrackerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/quotes', quotesRoutes);
+app.use('/api/team', teamRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
